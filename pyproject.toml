@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "linkedin-chat-bridge"
+version = "0.1.0"
+description = ""
+authors = ["Sumner Evans <me@sumnerevans.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+linkedin-api = "~=2.0.0a"
+
+[tool.poetry.dev-dependencies]
+mypy = "^0.812"
+flake8 = "^3.9.2"
+pytest = "^6.2.4"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
