@@ -14,4 +14,6 @@ linkedin = Linkedin("", "", cookies=cookies)
 
 convos = linkedin.get_conversations()
 
-print(convos)
+for element in convos["elements"]:
+    print("=" * 100)
+    print(element)

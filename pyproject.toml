@@ -8,6 +8,7 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "^3.7"
 linkedin-api = "~=2.0.0a"
+black = "^21.5b2"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.812"
