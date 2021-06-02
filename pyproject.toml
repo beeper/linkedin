@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "linkedin-chat-bridge"
+name = "linkedin-matrix-bridge"
 version = "0.1.0"
 description = ""
 authors = ["Sumner Evans <me@sumnerevans.com>"]
@@ -8,9 +8,10 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "^3.7"
 linkedin-api = "~=2.0.0a"
-black = "^21.5b2"
+mautrix = "^0.9.2"
 
 [tool.poetry.dev-dependencies]
+black = "^21.5b2"
 mypy = "^0.812"
 flake8 = "^3.9.2"
 pytest = "^6.2.4"
