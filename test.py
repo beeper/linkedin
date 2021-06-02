@@ -1,6 +1,7 @@
 import json
 import sys
 import textwrap
+import time
 from pathlib import Path
 from datetime import datetime
 
@@ -17,15 +18,31 @@ cookies = cookiejar_from_dict(
 linkedin = Linkedin("", "", cookies=cookies)
 
 convo_cache_path = Path("convocache.json")
-if convo_cache_path.exists():
+if False and convo_cache_path.exists():
     print("Using convocache.json")
     with open(convo_cache_path) as f:
         convos = json.load(f)
 else:
-    convos = linkedin.get_conversations()
+    convos = []
+    # , "createdBefore": 1, "count": 1}
+    result = []
+    last_activity_at = int(time.time() * 1000)
+    while True:
+        print(last_activity_at)
+        result = linkedin.get_conversations(createdBefore=last_activity_at)
+        last_activity_at = result["elements"][-1]["lastActivityAt"]
+        convos.extend(result["elements"])
 
-    with open(convo_cache_path, "w+") as convocache:
-        json.dump(convos, convocache, sort_keys=True, indent=2)
+        with open(convo_cache_path, "w+") as convocache:
+            json.dump(convos, convocache, sort_keys=True, indent=2)
+
+        if len(result["elements"]) < 20:
+            break
+
+    # TODO can use createdBefore to do paging
+    sys.exit(1)
+
+# TODO use the messages that are sent as part of the get_conversations JSON
 
 thread_cache_path = Path("threadcache.json")
 threads = {}
