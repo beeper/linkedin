@@ -6,6 +6,10 @@
 convocache.json
 threadcache.json
 
+# Config files
+*.yaml
+!mautrix_linkedin/example-config.yaml
+
 # Created by https://www.toptal.com/developers/gitignore/api/python
 # Edit at https://www.toptal.com/developers/gitignore?templates=python
 
