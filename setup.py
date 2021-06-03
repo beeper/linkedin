@@ -1,6 +1,6 @@
 import setuptools
 
-from mautrix_linkedin.get_version import git_tag, git_revision, version, linkified_version
+from linkedin_matrix.get_version import git_tag, git_revision, version, linkified_version
 
 try:
     long_desc = open("README.md").read()
@@ -23,7 +23,7 @@ with open("optional-requirements.txt") as reqs:
 
 extras_require["all"] = list({dep for deps in extras_require.values() for dep in deps})
 
-with open("mautrix_linkedin/version.py", "w") as version_file:
+with open("linkedin_matrix/version.py", "w") as version_file:
     version_file.write(f"""# Generated in setup.py
 
 git_tag = {git_tag!r}
@@ -33,9 +33,9 @@ linkified_version = {linkified_version!r}
 """)
 
 setuptools.setup(
-    name="mautrix-linkedin",
+    name="linkedin-matrix",
     version=version,
-    url="https://github.com/sumnerevans/mautrix-linkedin",
+    url="https://github.com/sumnerevans/linkedin-matrix",
 
     author="Sumner Evans",
     author_email="inquiries@sumnerevans.com",
@@ -55,10 +55,10 @@ setuptools.setup(
         "Topic :: Communications :: Chat",
     ],
     package_data={
-        "mautrix_linkedin": ["example-config.yaml"],
+        "linkedin_matrix": ["example-config.yaml"],
     },
     data_files=[
-        (".", ["mautrix_linkedin/example-config.yaml"]),
+        (".", ["linkedin_matrix/example-config.yaml"]),
     ],
 )
 

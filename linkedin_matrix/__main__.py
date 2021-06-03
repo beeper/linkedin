@@ -13,9 +13,9 @@ from .version import version, linkified_version
 
 
 class LinkedInBridge(Bridge):
-    name = "mautrix-linkedin"
-    module = "mautrix_linkedin"
-    command = "mautrix-linkedin"
+    name = "linkedin-matrix"
+    module = "linkedin_matrix"
+    command = "linkedin-matrix"
     description = "A Matrix-LinkedIn Messages puppeting bridge."
     version = version
     markdown_version = linkified_version
