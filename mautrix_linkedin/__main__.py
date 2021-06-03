@@ -5,6 +5,7 @@ from .config import Config
 from .portal import Portal
 from .puppet import Puppet
 from .user import User
+from .version import version, linkified_version
 
 
 class LinkedInBridge(Bridge):
@@ -12,6 +13,8 @@ class LinkedInBridge(Bridge):
     module = "mautrix_linkedin"
     command = "mautrix-linkedin"
     description = "A Matrix-LinkedIn Messages puppeting bridge."
+    version = version
+    markdown_version = linkified_version
 
     config_class = Config
 
