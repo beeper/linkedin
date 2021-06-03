@@ -1,8 +1,7 @@
+with import <nixpkgs> {};
 let
-  pkgs = import <nixpkgs> {};
-
   # CoC Config
-  cocConfig = with pkgs; writeText "coc-settings.json" (
+  cocConfig = writeText "coc-settings.json" (
     builtins.toJSON {
       "python.formatting.provider" = "black";
       "python.linting.enabled" = true;
@@ -13,16 +12,37 @@ let
     }
   );
 in
-pkgs.mkShell {
-  shellHook = ''
+mkShell rec {
+  name = "impurePythonEnv";
+  venvDir = "./.venv";
+
+  buildInputs = [
+    python3Packages.python
+    python3Packages.venvShellHook
+
+    # Python Dependencies
+    python3Packages.psycopg2
+
+    # Dev Dependencies
+    python3Packages.black
+
+    postgresql_11
+    rnix-lsp
+  ];
+
+  # Run this command, only after creating the virtual environment
+  postVenvCreation = ''
+    unset SOURCE_DATE_EPOCH
+    pip install -r requirements.txt
+  '';
+
+  # Now we can execute any commands within the virtual environment.
+  # This is optional and can be left out to run pip manually.
+  postShellHook = ''
+    # allow pip to install wheels
+    unset SOURCE_DATE_EPOCH
+
     mkdir -p .vim
     ln -sf ${cocConfig} .vim/coc-settings.json
   '';
-
-  buildInputs = with pkgs; [
-    black
-    poetry
-    python37
-    rnix-lsp
-  ];
 }

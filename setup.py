@@ -1,6 +1,6 @@
 import setuptools
 
-from mautrix_facebook.get_version import git_tag, git_revision, version, linkified_version
+from mautrix_linkedin.get_version import git_tag, git_revision, version, linkified_version
 
 try:
     long_desc = open("README.md").read()

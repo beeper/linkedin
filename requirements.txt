@@ -1,0 +1,5 @@
+asyncpg>=0.20,<0.23
+ruamel.yaml>=0.15.94,<0.18
+commonmark>=0.8,<0.10
+mautrix>=0.9.1,<0.10
+SQLAlchemy
