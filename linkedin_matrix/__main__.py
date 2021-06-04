@@ -47,6 +47,7 @@ class LinkedInBridge(Bridge):
         await self.state_store.upgrade_table.upgrade(self.db.pool)
         if self.matrix.e2ee:
             self.matrix.e2ee.crypto_db.override_pool(self.db.pool)
+        self.add_startup_actions(User.init_cls(self))
 
     async def get_user(self, user_id: UserID, create: bool = True) -> User:
         raise NotImplementedError()
