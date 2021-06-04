@@ -21,6 +21,16 @@ class Reaction(Model):
     li_sender: int
     reaction: str
 
+    _table_name = "reaction"
+    _field_list = [
+        "mxid",
+        "mx_room",
+        "li_msg_urn",
+        "li_receiver",
+        "li_sender",
+        "reaction",
+    ]
+
     @classmethod
     def _from_row(cls, row: Optional[Record]) -> Optional["Reaction"]:
         if row is None:

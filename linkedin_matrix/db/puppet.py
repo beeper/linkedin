@@ -27,19 +27,17 @@ class Puppet(Model):
     next_batch: Optional[SyncToken]
 
     _table_name = "puppet"
-    _field_list = ",".join(
-        [
-            "li_urn",
-            "name",
-            "photo_id",
-            "photo_mxc",
-            "name_set",
-            "avatar_set",
-            "is_registered",
-            "custom_mxid",
-            "next_batch",
-        ]
-    )
+    _field_list = [
+        "li_urn",
+        "name",
+        "photo_id",
+        "photo_mxc",
+        "name_set",
+        "avatar_set",
+        "is_registered",
+        "custom_mxid",
+        "next_batch",
+    ]
 
     @classmethod
     def _from_row(cls, row: Optional[Record]) -> Optional["Puppet"]:

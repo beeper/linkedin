@@ -25,19 +25,17 @@ class Message(Model):
     timestamp: int
 
     _table_name = "message"
-    _field_list = ",".join(
-        [
-            "mxid",
-            "mx_room",
-            "li_urn",
-            "li_message_urn",
-            "index",
-            "li_chat_urn",
-            "li_receiver",
-            "li_sender",
-            "timestamp",
-        ]
-    )
+    _field_list = [
+        "mxid",
+        "mx_room",
+        "li_urn",
+        "li_message_urn",
+        "index",
+        "li_chat_urn",
+        "li_receiver",
+        "li_sender",
+        "timestamp",
+    ]
 
     @classmethod
     def _from_row(cls, row: Optional[Record]) -> Optional["Message"]:

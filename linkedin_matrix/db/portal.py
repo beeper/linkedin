@@ -23,17 +23,15 @@ class Portal(Model):
     encrypted: bool
 
     _table_name = "portal"
-    _field_list = ",".join(
-        [
-            "li_urn",
-            "li_receiver",
-            "mxid",
-            "name",
-            "photo_id",
-            "avatar_url",
-            "encrypted",
-        ]
-    )
+    _field_list = [
+        "li_urn",
+        "li_receiver",
+        "mxid",
+        "name",
+        "photo_id",
+        "avatar_url",
+        "encrypted",
+    ]
 
     @classmethod
     def _from_row(cls, row: Optional[Record]) -> Optional["Portal"]:

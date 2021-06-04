@@ -19,7 +19,7 @@ class User(Model):
     notice_room: Optional[RoomID]
 
     _table_name = "user"
-    _field_list = ",".join(["mxid", "li_urn", "notice_room"])
+    _field_list = ["mxid", "li_urn", "notice_room"]
 
     @classmethod
     def _from_row(cls, row: Optional[Record]) -> Optional["User"]:
@@ -47,6 +47,7 @@ class User(Model):
 
     async def insert(self):
         query = User.insert_constructor()
+        print(query)
         await self.db.execute(query, self.mxid, self.li_urn, self.notice_room)
 
     async def delete(self):
