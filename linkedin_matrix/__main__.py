@@ -48,6 +48,7 @@ class LinkedInBridge(Bridge):
         if self.matrix.e2ee:
             self.matrix.e2ee.crypto_db.override_pool(self.db.pool)
         self.add_startup_actions(User.init_cls(self))
+        await super().start()
 
     async def get_user(self, user_id: UserID, create: bool = True) -> User:
         raise NotImplementedError()
@@ -56,7 +57,7 @@ class LinkedInBridge(Bridge):
         raise NotImplementedError()
 
     async def get_puppet(self, user_id: UserID, create: bool = False) -> Puppet:
-        raise NotImplementedError()
+        return await Puppet.get_by_mxid(user_id, create=create)
 
     async def get_double_puppet(self, user_id: UserID) -> Puppet:
         raise NotImplementedError()

@@ -28,7 +28,13 @@ class User:
             """
             SELECT mxid, linkedin_urn
             FROM "user"
-            WHERE fbid<>""
+            WHERE fbid<>''
             """
         )
-        return [cls._from_row(row) for row in rows]
+        print(rows)
+        logged_in = []
+        for row in rows:
+            user = cls._from_row(row)
+            if user is not None:
+                logged_in.append(user)
+        return logged_in

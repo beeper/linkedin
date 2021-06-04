@@ -2,7 +2,9 @@ from typing import (
     AsyncGenerator,
     AsyncIterable,
     Awaitable,
+    cast,
     Dict,
+    List,
     Optional,
     TYPE_CHECKING,
 )
@@ -52,9 +54,7 @@ class User(DBUser, BaseUser):
     @classmethod
     async def all_logged_in(cls) -> AsyncGenerator["User", None]:
         users = await super().all_logged_in()
-        user: cls
-        print(users)
-        for user in users:
+        for user in cast(List[cls], users):
             try:
                 yield cls.by_mxid[user.mxid]
             except KeyError:

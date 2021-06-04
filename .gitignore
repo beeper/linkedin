@@ -5,6 +5,7 @@
 # Test caches so I don't get banned from LinkedIn
 convocache.json
 threadcache.json
+synapse-files
 
 # Config files
 *.yaml
