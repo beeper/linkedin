@@ -101,5 +101,4 @@ async def upgrade_v1(conn: Connection):
     ]
 
     for query in create_table_queries:
-        print(query)
         await conn.execute(query)

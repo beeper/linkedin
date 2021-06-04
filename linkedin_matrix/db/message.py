@@ -47,7 +47,7 @@ class Message(Model):
 
     @classmethod
     async def get_all_by_li_urn(cls, li_urn: str, li_receiver: str) -> List["Message"]:
-        query = Message.select_constructor("fbid=$1 AND fb_receiver=$2")
+        query = Message.select_constructor("li_urn=$1 AND li_receiver=$2")
         rows = await cls.db.fetch(query, li_urn, li_receiver)
         return [cls._from_row(row) for row in rows]
 
@@ -58,7 +58,7 @@ class Message(Model):
         li_receiver: str,
         index: int = 0,
     ) -> Optional["Message"]:
-        query = Message.select_constructor("fbid=$1 AND fb_receiver=$2 AND index=$3")
+        query = Message.select_constructor("li_urn=$1 AND li_receiver=$2 AND index=$3")
         row = await cls.db.fetchrow(query, li_urn, li_receiver, index)
         return cls._from_row(row)
 

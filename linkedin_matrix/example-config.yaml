@@ -102,7 +102,7 @@ bridge:
     - first_name
 
     # The prefix for commands. Only required in non-management rooms.
-    command_prefix: "!fb"
+    command_prefix: "!li"
 
     # Number of chats to sync (and create portals for) on startup/login.
     # Set 0 to disable automatic syncing.
@@ -230,7 +230,7 @@ logging:
     version: 1
     formatters:
         colored:
-            (): mautrix_linkedin.util.ColorFormatter
+            (): mautrix.util.logging.color.ColorFormatter
             format: "[%(asctime)s] [%(levelname)s@%(name)s] %(message)s"
         normal:
             format: "[%(asctime)s] [%(levelname)s@%(name)s] %(message)s"
