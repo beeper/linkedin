@@ -10,6 +10,9 @@ class Config(BaseBridgeConfig):
     def do_update(self, helper: ConfigUpdateHelper) -> None:
         super().do_update(helper)
         copy, copy_dict, base = helper
+
+        copy("bridge.invite_own_puppet_to_pm")
+
         copy_dict("bridge.permissions")
 
     def _get_permissions(self, key: str) -> Tuple[bool, bool, str]:

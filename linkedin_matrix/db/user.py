@@ -47,7 +47,6 @@ class User(Model):
 
     async def insert(self):
         query = User.insert_constructor()
-        print(query)
         await self.db.execute(query, self.mxid, self.li_urn, self.notice_room)
 
     async def delete(self):

@@ -26,7 +26,7 @@ from mautrix.types import (
 from mautrix.errors import MatrixError
 from mautrix.bridge import BaseMatrixHandler
 
-from . import user as u, portal as po
+# from . import user as u, portal as po, puppet as pu
 
 # from .db import ThreadType, Message as DBMessage
 

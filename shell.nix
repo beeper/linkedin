@@ -22,6 +22,7 @@ mkShell rec {
 
     # Python Dependencies
     python3Packages.psycopg2
+    python3Packages.python-olm
 
     postgresql_11
     rnix-lsp
