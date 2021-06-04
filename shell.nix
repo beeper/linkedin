@@ -23,9 +23,6 @@ mkShell rec {
     # Python Dependencies
     python3Packages.psycopg2
 
-    # Dev Dependencies
-    python3Packages.black
-
     postgresql_11
     rnix-lsp
   ];
@@ -34,6 +31,7 @@ mkShell rec {
   postVenvCreation = ''
     unset SOURCE_DATE_EPOCH
     pip install -r requirements.txt
+    pip install -r dev-requirements.txt
   '';
 
   # Now we can execute any commands within the virtual environment.
