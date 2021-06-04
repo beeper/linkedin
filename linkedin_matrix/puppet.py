@@ -30,9 +30,9 @@ class Puppet(DBPuppet, BasePuppet):
     mx: m.MatrixHandler
     config: Config
     hs_domain: str
-    mxid_template: SimpleTemplate[int]
+    mxid_template: SimpleTemplate[str]
 
-    by_linkedin_urn: Dict[int, "Puppet"] = {}
+    by_li_urn: Dict[str, "Puppet"] = {}
     by_custom_mxid: Dict[UserID, "Puppet"] = {}
 
     @classmethod
@@ -47,7 +47,7 @@ class Puppet(DBPuppet, BasePuppet):
             "userid",
             prefix="@",
             suffix=f":{Puppet.hs_domain}",
-            type=int,
+            type=str,
         )
         cls.sync_with_custom_puppets = cls.config["bridge.sync_with_custom_puppets"]
         cls.homeserver_url_map = {
@@ -67,15 +67,72 @@ class Puppet(DBPuppet, BasePuppet):
 
     # region Database getters
 
+    def _add_to_cache(self) -> None:
+        self.by_li_urn[self.li_urn] = self
+        if self.custom_mxid:
+            self.by_custom_mxid[self.custom_mxid] = self
+
     @classmethod
     async def get_all_with_custom_mxid(cls) -> AsyncGenerator["Puppet", None]:
         puppets = await super().get_all_with_custom_mxid()
         puppet: cls
         for puppet in puppets:
             try:
-                yield cls.by_linkedin_urn[puppet.linkedin_urn]
+                yield cls.by_li_urn[puppet.li_urn]
             except KeyError:
                 puppet._add_to_cache()
                 yield puppet
+
+    @classmethod
+    @async_getter_lock
+    async def get_by_li_urn(
+        cls,
+        li_urn: str,
+        *,
+        create: bool = True,
+    ) -> Optional["Puppet"]:
+        try:
+            return cls.by_li_urn[li_urn]
+        except KeyError:
+            pass
+
+        puppet = cast(cls, await super().get_by_li_urn(li_urn))
+        if puppet:
+            puppet._add_to_cache()
+            return puppet
+
+        if create:
+            puppet = cls(li_urn)
+            await puppet.insert()
+            puppet._add_to_cache()
+            return puppet
+
+        return None
+
+    @classmethod
+    async def get_by_mxid(cls, mxid: UserID, create: bool = True) -> Optional["Puppet"]:
+        li_urn = cls.get_id_from_mxid(mxid)
+        if li_urn:
+            return await cls.get_by_li_urn(li_urn, create=create)
+        return None
+
+    @classmethod
+    @async_getter_lock
+    async def get_by_custom_mxid(cls, mxid: UserID) -> Optional["Puppet"]:
+        try:
+            return cls.by_custom_mxid[mxid]
+        except KeyError:
+            pass
+
+        puppet = cast("Puppet", await super().get_by_custom_mxid(mxid))
+        if puppet:
+            puppet._add_to_cache()
+            return puppet
+
+        return None
+
+    @classmethod
+    def get_id_from_mxid(cls, mxid: UserID) -> Optional[int]:
+        return cls.mxid_template.parse(mxid)
 
     # endregion
