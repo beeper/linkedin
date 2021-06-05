@@ -15,7 +15,10 @@ cookies = cookiejar_from_dict(
         "JSESSIONID": sys.argv[2],
     }
 )
+
 linkedin = Linkedin("", "", cookies=cookies)
+print(linkedin.get_conversations())
+assert False
 
 convo_cache_path = Path("convocache.json")
 if False and convo_cache_path.exists():

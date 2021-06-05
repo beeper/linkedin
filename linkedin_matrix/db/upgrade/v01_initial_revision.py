@@ -10,6 +10,7 @@ async def upgrade_v1(conn: Connection):
         CREATE TABLE "user" (
             mxid            TEXT PRIMARY KEY,
             li_urn          TEXT UNIQUE,
+            cookies         jsonb,
             notice_room     TEXT
         )
         """,

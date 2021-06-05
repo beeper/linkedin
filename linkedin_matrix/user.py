@@ -11,6 +11,7 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from linkedin_api import Linkedin
 from mautrix.bridge import async_getter_lock, BaseUser
 from mautrix.types import (
     PushActionType,
@@ -23,7 +24,9 @@ from mautrix.types import (
     MessageType,
 )
 from mautrix.util.simple_lock import SimpleLock
+from requests.cookies import RequestsCookieJar
 
+from .config import Config
 from .db import User as DBUser
 
 if TYPE_CHECKING:
@@ -31,6 +34,10 @@ if TYPE_CHECKING:
 
 
 class User(DBUser, BaseUser):
+    shutdown: bool = False
+    config: Config
+    linkedin_client: Linkedin
+
     by_mxid: Dict[UserID, "User"] = {}
     by_li_urn: Dict[str, "User"] = {}
 
@@ -38,9 +45,10 @@ class User(DBUser, BaseUser):
         self,
         mxid: UserID,
         li_urn: Optional[str] = None,
+        cookies: Optional[RequestsCookieJar] = None,
         notice_room: Optional[RoomID] = None,
     ):
-        super().__init__(mxid=mxid, li_urn=li_urn, notice_room=notice_room)
+        super().__init__(mxid, li_urn, cookies, notice_room)
         BaseUser.__init__(self)
         self.notice_room = notice_room
         self._notice_room_lock = asyncio.Lock()
@@ -113,7 +121,7 @@ class User(DBUser, BaseUser):
         *,
         create: bool = True,
     ) -> Optional["User"]:
-        from . import portal as po, puppet as pu
+        from . import puppet as pu
 
         if pu.Puppet.get_id_from_mxid(mxid) or mxid == cls.az.bot_mxid:
             return None
@@ -158,9 +166,23 @@ class User(DBUser, BaseUser):
         _override: bool = False,
         _raise_errors: bool = False,
     ) -> bool:
-        print("load session", self)
         if self._is_logged_in and not _override:
             return True
+        if not self.cookies:
+            return False
+        self.linkedin_client = Linkedin("", "", cookies=self.cookies)
 
     async def is_logged_in(self, _override: bool = False) -> bool:
         return False
+
+    async def on_logged_in(self, cookies: RequestsCookieJar):
+        self.cookies = cookies
+        self.linkedin_client = Linkedin("", "", cookies=cookies)
+        profile = self.linkedin_client.get_user_profile()
+        self.li_urn = str(profile["plainId"])  # TODO figure out what this actually is
+        await self.save()
+
+    def stop_listen(self) -> None:
+        if self.listen_task:
+            self.listen_task.cancel()
+        self.listen_task = None

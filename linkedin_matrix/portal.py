@@ -53,7 +53,7 @@ if TYPE_CHECKING:
 class Portal(DBPortal, BasePortal):
     invite_own_puppet_to_pm: bool = False
     by_mxid: Dict[RoomID, "Portal"] = {}
-    by_li_urn: Dict[str, "Portal"] = {}
+    by_li_urn: Dict[Tuple[str, str], "Portal"] = {}
     matrix: "MatrixHandler"
     config: Config
 
@@ -110,7 +110,7 @@ class Portal(DBPortal, BasePortal):
     # region Database getters
 
     async def postinit(self) -> None:
-        self.by_li_urn[self.li_urn] = self
+        self.by_li_urn[(self.li_urn, self.li_receiver)] = self
         if self.mxid:
             self.by_mxid[self.mxid] = self
         self._main_intent = (
@@ -133,5 +133,15 @@ class Portal(DBPortal, BasePortal):
             return portal
 
         return None
+
+    @classmethod
+    async def all(cls) -> AsyncGenerator["Portal", None]:
+        portals = await super().all()
+        for portal in cast(List[Portal], portals):
+            try:
+                yield cls.by_li_urn[(portal.li_urn, portal.li_receiver)]
+            except KeyError:
+                await portal.postinit()
+                yield portal
 
     # endregion

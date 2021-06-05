@@ -34,8 +34,19 @@ class Config(BaseBridgeConfig):
 
         copy("homeserver.asmux")
 
+        # appservice
         copy("appservice.bot_avatar")
+        copy("appservice.public.allow_matrix_login")
+        copy("appservice.public.enabled")
+        copy("appservice.public.external")
+        copy("appservice.public.prefix")
 
+        if self["appservice.public.shared_secret"] == "generate":
+            base["appservice.public.shared_secret"] = self._new_token()
+        else:
+            copy("appservice.public.shared_secret")
+
+        # bridge
         copy("bridge.double_puppet_allow_discovery")
         copy("bridge.double_puppet_server_map")
         copy("bridge.invite_own_puppet_to_pm")

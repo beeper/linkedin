@@ -1,9 +1,11 @@
+import json
 from typing import ClassVar, List, Optional, TYPE_CHECKING
 
 from asyncpg import Record
 from attr import dataclass
 from mautrix.types import RoomID, UserID
 from mautrix.util.async_db import Database
+from requests.cookies import cookiejar_from_dict, RequestsCookieJar
 
 from .model_base import Model
 
@@ -18,14 +20,25 @@ class User(Model):
     li_urn: Optional[str]
     notice_room: Optional[RoomID]
 
+    cookies: Optional[RequestsCookieJar]
+
     _table_name = "user"
-    _field_list = ["mxid", "li_urn", "notice_room"]
+    _field_list = ["mxid", "li_urn", "cookies", "notice_room"]
+
+    @property
+    def _cookies_json(self) -> Optional[str]:
+        return json.dumps(dict(self.cookies)) if self.cookies else None
 
     @classmethod
     def _from_row(cls, row: Optional[Record]) -> Optional["User"]:
         if row is None:
             return None
-        return cls(**row)
+        data = {**row}
+        cookies = data.pop("cookies", None)
+        user = cls(**data)
+        if cookies is not None:
+            user.cookies = cookiejar_from_dict(json.loads(cookies))
+        return user
 
     @classmethod
     async def all_logged_in(cls) -> List["User"]:
@@ -47,7 +60,13 @@ class User(Model):
 
     async def insert(self):
         query = User.insert_constructor()
-        await self.db.execute(query, self.mxid, self.li_urn, self.notice_room)
+        await self.db.execute(
+            query,
+            self.mxid,
+            self.li_urn,
+            self._cookies_json,
+            self.notice_room,
+        )
 
     async def delete(self):
         await self.db.execute('DELETE FROM "user" WHERE mxid=$1', self.mxid)
@@ -56,7 +75,14 @@ class User(Model):
         query = """
             UPDATE "user"
                SET li_urn=$2,
-                   notice_room=$3
+                   cookies=$3,
+                   notice_room=$4
              WHERE mxid=$1
         """
-        await self.db.execute(query, self.mxid, self.li_urn, self.notice_room)
+        await self.db.execute(
+            query,
+            self.mxid,
+            self.li_urn,
+            self._cookies_json,
+            self.notice_room,
+        )

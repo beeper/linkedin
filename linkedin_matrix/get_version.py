@@ -1,6 +1,7 @@
-import subprocess
-import shutil
 import os
+import shutil
+import subprocess
+from typing import Any, List, Optional
 
 from . import __version__
 
@@ -12,20 +13,26 @@ cmd_env = {
 }
 
 
-def run(cmd):
+def run(cmd: List[str]) -> Any:
     return subprocess.check_output(cmd, stderr=subprocess.DEVNULL, env=cmd_env)
 
+
+git_revision_url: Optional[str]
 if os.path.exists(".git") and shutil.which("git"):
     try:
         git_revision = run(["git", "rev-parse", "HEAD"]).strip().decode("ascii")
-        git_revision_url = f"https://github.com/sumnerevans/linkedin-matrix/commit/{git_revision}"
+        git_revision_url = (
+            f"https://github.com/sumnerevans/linkedin-matrix/commit/{git_revision}"
+        )
         git_revision = git_revision[:8]
     except (subprocess.SubprocessError, OSError):
         git_revision = "unknown"
         git_revision_url = None
 
     try:
-        git_tag = run(["git", "describe", "--exact-match", "--tags"]).strip().decode("ascii")
+        git_tag = (
+            run(["git", "describe", "--exact-match", "--tags"]).strip().decode("ascii")
+        )
     except (subprocess.SubprocessError, OSError):
         git_tag = None
 else:
@@ -33,8 +40,11 @@ else:
     git_revision_url = None
     git_tag = None
 
-git_tag_url = (f"https://github.com/sumnerevans/linkedin-matrix/releases/tag/{git_tag}"
-               if git_tag else None)
+git_tag_url = (
+    f"https://github.com/sumnerevans/linkedin-matrix/releases/tag/{git_tag}"
+    if git_tag
+    else None
+)
 
 if git_tag and __version__ == git_tag[1:].replace("-", ""):
     version = __version__

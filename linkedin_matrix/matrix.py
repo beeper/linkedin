@@ -26,7 +26,7 @@ from mautrix.types import (
 from mautrix.errors import MatrixError
 from mautrix.bridge import BaseMatrixHandler
 
-# from . import user as u, portal as po, puppet as pu
+from . import user as u
 
 # from .db import ThreadType, Message as DBMessage
 
@@ -43,3 +43,17 @@ class MatrixHandler(BaseMatrixHandler):
         self.user_id_prefix = f"@{prefix}"
         self.user_id_suffix = f"{suffix}:{homeserver}"
         super().__init__(bridge=bridge)
+
+    async def send_welcome_message(self, room_id: RoomID, inviter: "u.User") -> None:
+        await super().send_welcome_message(room_id, inviter)
+        if not inviter.notice_room:
+            inviter.notice_room = room_id
+            await inviter.save()
+            await self.az.intent.send_notice(
+                room_id,
+                "This room has been marked as your LinkedIn Messages bridge notice "
+                "room.",
+            )
+
+    def filter_matrix_event(self, evt: Event) -> bool:
+        pass
