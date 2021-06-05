@@ -10,6 +10,7 @@ synapse-files
 # Config files
 *.yaml
 !linkedin_matrix/example-config.yaml
+!.github/workflows/*
 
 # Created by https://www.toptal.com/developers/gitignore/api/python
 # Edit at https://www.toptal.com/developers/gitignore?templates=python
