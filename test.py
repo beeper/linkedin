@@ -2,8 +2,8 @@ import json
 import sys
 import textwrap
 import time
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 from linkedin_api import Linkedin
 from requests.cookies import cookiejar_from_dict
@@ -17,11 +17,9 @@ cookies = cookiejar_from_dict(
 )
 
 linkedin = Linkedin("", "", cookies=cookies)
-print(linkedin.get_conversations())
-assert False
 
 convo_cache_path = Path("convocache.json")
-if False and convo_cache_path.exists():
+if convo_cache_path.exists():
     print("Using convocache.json")
     with open(convo_cache_path) as f:
         convos = json.load(f)
@@ -29,11 +27,13 @@ else:
     convos = []
     # , "createdBefore": 1, "count": 1}
     result = []
-    last_activity_at = int(time.time() * 1000)
+    last_activity_at = datetime.now()
     while True:
         print(last_activity_at)
-        result = linkedin.get_conversations(createdBefore=last_activity_at)
-        last_activity_at = result["elements"][-1]["lastActivityAt"]
+        result = linkedin.get_conversations(last_activity_before=last_activity_at)
+        last_activity_at = datetime.fromtimestamp(
+            (result["elements"][-1]["lastActivityAt"] - 1) / 1000
+        )
         convos.extend(result["elements"])
 
         with open(convo_cache_path, "w+") as convocache:
