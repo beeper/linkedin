@@ -35,6 +35,37 @@ class Puppet(DBPuppet, BasePuppet):
     by_li_urn: Dict[str, "Puppet"] = {}
     by_custom_mxid: Dict[UserID, "Puppet"] = {}
 
+    def __init__(
+        self,
+        li_urn: str,
+        name: Optional[str] = None,
+        photo_id: Optional[str] = None,
+        photo_mxc: Optional[ContentURI] = None,
+        name_set: bool = False,
+        avatar_set: bool = False,
+        is_registered: bool = False,
+        custom_mxid: Optional[UserID] = None,
+        next_batch: Optional[SyncToken] = None,
+    ):
+        super().__init__(
+            li_urn,
+            name,
+            photo_id,
+            photo_mxc,
+            custom_mxid,
+            next_batch,
+            name_set,
+            avatar_set,
+            is_registered,
+        )
+        self._last_info_sync = None
+
+        self.default_mxid = self.get_mxid_from_id(li_urn)
+        self.default_mxid_intent = self.az.intent.user(self.default_mxid)
+        self.intent = self._fresh_intent()
+
+        self.log = self.log.getChild(self.li_urn)
+
     @classmethod
     def init_cls(cls, bridge: "LinkedInBridge") -> AsyncIterable[Awaitable[None]]:
         cls.config = bridge.config
@@ -102,7 +133,7 @@ class Puppet(DBPuppet, BasePuppet):
             return puppet
 
         if create:
-            puppet = cls(li_urn)
+            puppet = cls(li_urn, None, None, None, None, None)
             await puppet.insert()
             puppet._add_to_cache()
             return puppet
@@ -132,7 +163,11 @@ class Puppet(DBPuppet, BasePuppet):
         return None
 
     @classmethod
-    def get_id_from_mxid(cls, mxid: UserID) -> Optional[int]:
+    def get_id_from_mxid(cls, mxid: UserID) -> Optional[str]:
         return cls.mxid_template.parse(mxid)
+
+    @classmethod
+    def get_mxid_from_id(cls, li_urn: str) -> UserID:
+        return UserID(cls.mxid_template.format_full(li_urn))
 
     # endregion

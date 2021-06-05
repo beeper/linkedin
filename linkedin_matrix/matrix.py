@@ -26,9 +26,7 @@ from mautrix.types import (
 from mautrix.errors import MatrixError
 from mautrix.bridge import BaseMatrixHandler
 
-from . import user as u
-
-# from .db import ThreadType, Message as DBMessage
+from . import user as u, portal as po, puppet as pu
 
 if TYPE_CHECKING:
     from .__main__ import LinkedInBridge
@@ -56,4 +54,14 @@ class MatrixHandler(BaseMatrixHandler):
             )
 
     def filter_matrix_event(self, evt: Event) -> bool:
-        pass
+        if isinstance(evt, (ReceiptEvent, TypingEvent, PresenceEvent)):
+            return False
+        elif not isinstance(
+            evt,
+            (ReactionEvent, RedactionEvent, MessageEvent, StateEvent, EncryptedEvent),
+        ):
+            return True
+        return (
+            evt.sender == self.az.bot_mxid
+            or pu.Puppet.get_id_from_mxid(evt.sender) is not None
+        )

@@ -8,11 +8,14 @@ from mautrix.util.async_db import Database
 from . import commands  # noqa: F401
 from .config import Config
 from .db import init as init_db, upgrade_table
-from .matrix import MatrixHandler
-from .portal import Portal
 from .puppet import Puppet
+from .portal import Portal  # noqa: I100 (needs to be after because it relies on Puppet)
 from .user import User
 from .version import linkified_version, version
+
+# This has to be imported after the rest of the modules because it relies on them
+# being imported already.
+from .matrix import MatrixHandler  # noqa: I100 I202
 
 
 class LinkedInBridge(Bridge):
@@ -48,7 +51,7 @@ class LinkedInBridge(Bridge):
         )
         init_db(self.db)
 
-    def prepare_stop(self) -> None:
+    def prepare_stop(self):
         # self.periodic_reconnect_task.cancel()
         self.log.debug("Stopping puppet syncers")
         for puppet in Puppet.by_custom_mxid.values():
@@ -58,7 +61,7 @@ class LinkedInBridge(Bridge):
         for user in User.by_li_urn.values():
             user.stop_listen()
 
-    async def stop(self) -> None:
+    async def stop(self):
         await super().stop()
         self.log.debug("Saving user sessions")
         for user in User.by_mxid.values():
@@ -77,7 +80,7 @@ class LinkedInBridge(Bridge):
         await super().start()
         # self.periodic_reconnect_task = asyncio.create_task(self._try_periodic_reconnect_loop())
 
-    async def resend_bridge_info(self) -> None:
+    async def resend_bridge_info(self):
         self.config["bridge.resend_bridge_info"] = False
         self.config.save()
         self.log.info("Re-sending bridge info state event to all portals")

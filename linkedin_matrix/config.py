@@ -49,9 +49,13 @@ class Config(BaseBridgeConfig):
         # bridge
         copy("bridge.double_puppet_allow_discovery")
         copy("bridge.double_puppet_server_map")
+        copy("bridge.encryption.default")
+        copy("bridge.initial_chat_sync")
         copy("bridge.invite_own_puppet_to_pm")
+        copy("bridge.mute_bridging")
         copy("bridge.resend_bridge_info")
         copy("bridge.sync_with_custom_puppets")
+        copy("bridge.tag_only_on_create")
         copy("bridge.temporary_disconnect_notices")
         copy("bridge.username_template")
 

@@ -19,12 +19,12 @@ class Puppet(Model):
     photo_id: Optional[str]
     photo_mxc: Optional[ContentURI]
 
-    name_set: bool
-    avatar_set: bool
-    is_registered: bool
-
     custom_mxid: Optional[UserID]
     next_batch: Optional[SyncToken]
+
+    name_set: bool = False
+    avatar_set: bool = False
+    is_registered: bool = False
 
     _table_name = "puppet"
     _field_list = [
@@ -100,6 +100,18 @@ class Puppet(Model):
                    next_batch=$9
              WHERE li_urn=$1
         """
+        print(self,
+
+            self.li_urn,
+            self.name,
+            self.photo_id,
+            self.photo_mxc,
+            self.name_set,
+            self.avatar_set,
+            self.is_registered,
+            self.custom_mxid,
+            self.next_batch,
+              )
         await self.db.execute(
             query,
             self.li_urn,

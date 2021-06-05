@@ -32,5 +32,6 @@ jobs:
         flake8 --count --statistics
         mypy linkedin_matrix tests/**/*.py
     - name: Test with pytest
+      if: always() # always run the tests
       run: |
         pytest
