@@ -7,11 +7,49 @@ from mautrix.util.config import ConfigUpdateHelper, ForbiddenDefault, ForbiddenK
 
 
 class Config(BaseBridgeConfig):
+    def __getitem__(self, key: str) -> Any:
+        try:
+            return os.environ[f"MAUTRIX_FACEBOOK_{key.replace('.', '_').upper()}"]
+        except KeyError:
+            return super().__getitem__(key)
+
+    @property
+    def forbidden_defaults(self) -> List[ForbiddenDefault]:
+        return [
+            *super().forbidden_defaults,
+            ForbiddenDefault(
+                "appservice.database", "postgres://username:password@hostname/db"
+            ),
+            ForbiddenDefault(
+                "appservice.public.external",
+                "https://example.com/public",
+                condition="appservice.public.enabled",
+            ),
+            ForbiddenDefault("bridge.permissions", ForbiddenKey("example.com")),
+        ]
+
     def do_update(self, helper: ConfigUpdateHelper) -> None:
         super().do_update(helper)
         copy, copy_dict, base = helper
 
+        copy("homeserver.asmux")
+
+        copy("appservice.bot_avatar")
+
+        copy("bridge.double_puppet_allow_discovery")
+        copy("bridge.double_puppet_server_map")
         copy("bridge.invite_own_puppet_to_pm")
+        copy("bridge.resend_bridge_info")
+        copy("bridge.sync_with_custom_puppets")
+        copy("bridge.temporary_disconnect_notices")
+        copy("bridge.username_template")
+
+        if "bridge.login_shared_secret" in self:
+            base["bridge.login_shared_secret_map"] = {
+                base["homeserver.domain"]: self["bridge.login_shared_secret"]
+            }
+        else:
+            copy("bridge.login_shared_secret_map")
 
         copy_dict("bridge.permissions")
 
