@@ -14,8 +14,8 @@ fake_db = Database("") if TYPE_CHECKING else None
 class Portal(Model):
     db: ClassVar[Database] = fake_db
 
-    li_urn: str
-    li_receiver: str
+    li_thread_urn: str
+    li_receiver_urn: str
     mxid: Optional[RoomID]
     name: Optional[str]
     photo_id: Optional[str]
@@ -24,8 +24,8 @@ class Portal(Model):
 
     _table_name = "portal"
     _field_list = [
-        "li_urn",
-        "li_receiver",
+        "li_thread_urn",
+        "li_receiver_urn",
         "mxid",
         "name",
         "photo_id",
@@ -40,9 +40,13 @@ class Portal(Model):
         return cls(**row)
 
     @classmethod
-    async def get_by_li_urn(cls, li_urn: str, li_receiver: str) -> Optional["Portal"]:
-        query = Portal.select_constructor("li_urn=$1 AND li_receiver=$2")
-        row = await cls.db.fetchrow(query, li_urn, li_receiver)
+    async def get_by_li_thread_urn(
+        cls,
+        li_thread_urn: str,
+        li_receiver_urn: str,
+    ) -> Optional["Portal"]:
+        query = Portal.select_constructor("li_thread_urn=$1 AND li_receiver_urn=$2")
+        row = await cls.db.fetchrow(query, li_thread_urn, li_receiver_urn)
         return cls._from_row(row)
 
     @classmethod
@@ -52,9 +56,9 @@ class Portal(Model):
         return cls._from_row(row)
 
     @classmethod
-    async def get_all_by_receiver(cls, li_receiver: str) -> List["Portal"]:
-        query = Portal.select_constructor("li_receiver=$1")
-        rows = await cls.db.fetch(query, li_receiver)
+    async def get_all_by_receiver(cls, li_receiver_urn: str) -> List["Portal"]:
+        query = Portal.select_constructor("li_receiver_urn=$1")
+        rows = await cls.db.fetch(query, li_receiver_urn)
         return [cls._from_row(row) for row in rows]
 
     @classmethod
@@ -67,8 +71,8 @@ class Portal(Model):
         query = Portal.insert_constructor()
         await self.db.execute(
             query,
-            self.li_urn,
-            self.li_receiver,
+            self.li_thread_urn,
+            self.li_receiver_urn,
             self.mxid,
             self.name,
             self.photo_id,
@@ -77,8 +81,8 @@ class Portal(Model):
         )
 
     async def delete(self):
-        q = "DELETE FROM portal WHERE li_urn=$1 AND li_receiver=$2"
-        await self.db.execute(q, self.li_urn, self.li_receiver)
+        q = "DELETE FROM portal WHERE li_thread_urn=$1 AND li_receiver_urn=$2"
+        await self.db.execute(q, self.li_thread_urn, self.li_receiver_urn)
 
     async def save(self):
         query = """
@@ -88,13 +92,13 @@ class Portal(Model):
                    photo_id=$5,
                    avatar_url=$6,
                    encrypted=$7
-             WHERE li_urn=$1
-               AND li_receiver=$2
+             WHERE li_thread_urn=$1
+               AND li_receiver_urn=$2
         """
         await self.db.execute(
             query,
-            self.li_urn,
-            self.li_receiver,
+            self.li_thread_urn,
+            self.li_receiver_urn,
             self.mxid,
             self.name,
             self.photo_id,

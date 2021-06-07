@@ -14,7 +14,7 @@ fake_db = Database("") if TYPE_CHECKING else None
 class Puppet(Model):
     db: ClassVar[Database] = fake_db
 
-    li_urn: str
+    li_member_urn: str
     name: Optional[str]
     photo_id: Optional[str]
     photo_mxc: Optional[ContentURI]
@@ -28,7 +28,7 @@ class Puppet(Model):
 
     _table_name = "puppet"
     _field_list = [
-        "li_urn",
+        "li_member_urn",
         "name",
         "photo_id",
         "photo_mxc",
@@ -46,9 +46,9 @@ class Puppet(Model):
         return cls(**row)
 
     @classmethod
-    async def get_by_li_urn(cls, li_urn: str) -> Optional["Puppet"]:
-        query = Puppet.select_constructor("li_urn=$1")
-        row = await cls.db.fetchrow(query, li_urn)
+    async def get_by_li_member_urn(cls, li_member_urn: str) -> Optional["Puppet"]:
+        query = Puppet.select_constructor("li_member_urn=$1")
+        row = await cls.db.fetchrow(query, li_member_urn)
         return cls._from_row(row)
 
     @classmethod
@@ -73,7 +73,7 @@ class Puppet(Model):
         query = Puppet.insert_constructor()
         await self.db.execute(
             query,
-            self.li_urn,
+            self.li_member_urn,
             self.name,
             self.photo_id,
             self.photo_mxc,
@@ -85,7 +85,9 @@ class Puppet(Model):
         )
 
     async def delete(self) -> None:
-        await self.db.execute("DELETE FROM puppet WHERE li_urn=$1", self.li_urn)
+        await self.db.execute(
+            "DELETE FROM puppet WHERE li_member_urn=$1", self.li_member_urn
+        )
 
     async def save(self) -> None:
         query = """
@@ -98,11 +100,11 @@ class Puppet(Model):
                    is_registered=$7,
                    custom_mxid=$8,
                    next_batch=$9
-             WHERE li_urn=$1
+             WHERE li_member_urn=$1
         """
-        print(self,
-
-            self.li_urn,
+        print(
+            self,
+            self.li_member_urn,
             self.name,
             self.photo_id,
             self.photo_mxc,
@@ -111,10 +113,10 @@ class Puppet(Model):
             self.is_registered,
             self.custom_mxid,
             self.next_batch,
-              )
+        )
         await self.db.execute(
             query,
-            self.li_urn,
+            self.li_member_urn,
             self.name,
             self.photo_id,
             self.photo_mxc,

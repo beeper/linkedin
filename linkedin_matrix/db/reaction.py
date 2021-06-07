@@ -16,18 +16,18 @@ class Reaction(Model):
 
     mxid: EventID
     mx_room: RoomID
-    li_msg_urn: str
-    li_receiver: int
-    li_sender: int
+    li_message_urn: str
+    li_receiver_urn: str
+    li_sender_urn: str
     reaction: str
 
     _table_name = "reaction"
     _field_list = [
         "mxid",
         "mx_room",
-        "li_msg_urn",
-        "li_receiver",
-        "li_sender",
+        "li_message_urn",
+        "li_receiver_urn",
+        "li_sender_urn",
         "reaction",
     ]
 
@@ -43,20 +43,25 @@ class Reaction(Model):
             query,
             self.mxid,
             self.mx_room,
-            self.li_msg_urn,
-            self.li_receiver,
-            self.li_sender,
+            self.li_message_urn,
+            self.li_receiver_urn,
+            self.li_sender_urn,
             self.reaction,
         )
 
     async def delete(self):
         query = """
             DELETE FROM reaction
-             WHERE li_msg_urn=$1
-               AND li_receiver=$2
-               AND li_sender=$3
+             WHERE li_message_urn=$1
+               AND li_receiver_urn=$2
+               AND li_sender_urn=$3
         """
-        await self.db.execute(query, self.li_msg_urn, self.li_receiver, self.li_sender)
+        await self.db.execute(
+            query,
+            self.li_message_urn,
+            self.li_receiver_urn,
+            self.li_sender_urn,
+        )
 
     async def save(self):
         query = """
@@ -64,16 +69,16 @@ class Reaction(Model):
                SET mxid=$1,
                    mx_room=$2,
                    reaction=$3
-             WHERE li_msg_urn=$1
-               AND li_receiver=$2
-               AND li_sender=$3
+             WHERE li_message_urn=$1
+               AND li_receiver_urn=$2
+               AND li_sender_urn=$3
         """
         await self.db.execute(
             query,
             self.mxid,
             self.mx_room,
             self.reaction,
-            self.li_msg_urn,
-            self.li_receiver,
-            self.li_sender,
+            self.li_message_urn,
+            self.li_receiver_urn,
+            self.li_sender_urn,
         )

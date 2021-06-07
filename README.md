@@ -10,6 +10,10 @@ LinkedIn Mesaging <-> Matrix bridge built using
 
 Not any yet :)
 
+### Features & Roadmap
+[ROADMAP.md](https://github.com/sumnerevans/linkedin-matrix/blob/master/ROADMAP.md)
+contains a general overview of what is supported by the bridge.
+
 ## Discussion
 
 Matrix room:

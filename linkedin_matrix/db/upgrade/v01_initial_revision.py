@@ -9,27 +9,27 @@ async def upgrade_v1(conn: Connection):
         """
         CREATE TABLE "user" (
             mxid            TEXT PRIMARY KEY,
-            li_urn          TEXT UNIQUE,
+            li_member_urn   TEXT UNIQUE,
             cookies         jsonb,
             notice_room     TEXT
         )
         """,
         """
         CREATE TABLE portal (
-            li_urn          TEXT,
-            li_receiver     TEXT,
+            li_thread_urn   TEXT,
+            li_receiver_urn TEXT,
             mxid            TEXT UNIQUE,
             name            TEXT,
             photo_id        TEXT,
             avatar_url      TEXT,
             encrypted       BOOLEAN NOT NULL DEFAULT false,
 
-            PRIMARY KEY (li_urn, li_receiver)
+            PRIMARY KEY (li_thread_urn, li_receiver_urn)
         )
         """,
         """
         CREATE TABLE puppet (
-            li_urn          TEXT PRIMARY KEY,
+            li_member_urn   TEXT PRIMARY KEY,
             name            TEXT,
             photo_id        TEXT,
             photo_mxc       TEXT,
@@ -46,24 +46,23 @@ async def upgrade_v1(conn: Connection):
         CREATE TABLE message (
             mxid                TEXT,
             mx_room             TEXT,
-            li_urn              TEXT,
             li_message_urn      TEXT,
+            li_thread_urn       TEXT,
+            li_sender_urn       TEXT,
+            li_receiver_urn     TEXT,
             index               SMALLINT,
-            li_chat_urn         TEXT,
-            li_receiver         TEXT,
-            li_sender           TEXT,
             timestamp           BIGINT,
 
-            PRIMARY KEY (li_urn, li_receiver, index),
+            PRIMARY KEY (li_thread_urn, li_receiver_urn, index),
 
-            FOREIGN KEY (li_chat_urn, li_receiver)
-             REFERENCES portal (li_urn, li_receiver)
+            FOREIGN KEY (li_thread_urn, li_receiver_urn)
+             REFERENCES portal (li_thread_urn, li_receiver_urn)
                      ON UPDATE CASCADE
                      ON DELETE CASCADE,
 
             UNIQUE (mxid, mx_room),
-            UNIQUE (li_urn, li_receiver, index),
-            UNIQUE (li_message_urn, li_sender, li_receiver, index)
+            UNIQUE (li_thread_urn, li_receiver_urn, index),
+            UNIQUE (li_message_urn, li_sender_urn, li_receiver_urn, index)
         )
         """,
         """
@@ -71,11 +70,11 @@ async def upgrade_v1(conn: Connection):
             mxid            TEXT,
             mx_room         TEXT,
             li_message_urn  TEXT,
-            li_receiver     TEXT,
-            li_sender       TEXT,
+            li_receiver_urn TEXT,
+            li_sender_urn   TEXT,
             reaction        TEXT,
 
-            PRIMARY KEY (li_message_urn, li_receiver, li_sender),
+            PRIMARY KEY (li_message_urn, li_receiver_urn, li_sender_urn),
 
             UNIQUE (mxid, mx_room)
         )
@@ -89,12 +88,12 @@ async def upgrade_v1(conn: Connection):
             PRIMARY KEY ("user", portal, portal_receiver),
 
             FOREIGN KEY (portal, portal_receiver)
-             REFERENCES portal (li_urn, li_receiver)
+             REFERENCES portal (li_thread_urn, li_receiver_urn)
                      ON UPDATE CASCADE
                      ON DELETE CASCADE,
 
             FOREIGN KEY ("user")
-             REFERENCES "user"(li_urn)
+             REFERENCES "user"(li_member_urn)
                      ON UPDATE CASCADE
                      ON DELETE CASCADE
         )

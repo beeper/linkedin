@@ -47,6 +47,9 @@ class Config(BaseBridgeConfig):
             copy("appservice.public.shared_secret")
 
         # bridge
+        copy("bridge.backfill.disable_notifications")
+        copy("bridge.backfill.initial_limit")
+        copy("bridge.backfill.missed_limit")
         copy("bridge.double_puppet_allow_discovery")
         copy("bridge.double_puppet_server_map")
         copy("bridge.encryption.default")

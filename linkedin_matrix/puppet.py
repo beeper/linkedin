@@ -32,12 +32,12 @@ class Puppet(DBPuppet, BasePuppet):
     hs_domain: str
     mxid_template: SimpleTemplate[str]
 
-    by_li_urn: Dict[str, "Puppet"] = {}
+    by_li_member_urn: Dict[str, "Puppet"] = {}
     by_custom_mxid: Dict[UserID, "Puppet"] = {}
 
     def __init__(
         self,
-        li_urn: str,
+        li_member_urn: str,
         name: Optional[str] = None,
         photo_id: Optional[str] = None,
         photo_mxc: Optional[ContentURI] = None,
@@ -47,8 +47,11 @@ class Puppet(DBPuppet, BasePuppet):
         custom_mxid: Optional[UserID] = None,
         next_batch: Optional[SyncToken] = None,
     ):
+        print("puppet init", li_member_urn)
+        if ":" in li_member_urn:
+            assert False
         super().__init__(
-            li_urn,
+            li_member_urn,
             name,
             photo_id,
             photo_mxc,
@@ -60,11 +63,12 @@ class Puppet(DBPuppet, BasePuppet):
         )
         self._last_info_sync = None
 
-        self.default_mxid = self.get_mxid_from_id(li_urn)
+        # TODO this is where I should convert to a proper MXID
+        self.default_mxid = self.get_mxid_from_id(li_member_urn)
         self.default_mxid_intent = self.az.intent.user(self.default_mxid)
         self.intent = self._fresh_intent()
 
-        self.log = self.log.getChild(self.li_urn)
+        self.log = self.log.getChild(self.li_member_urn)
 
     @classmethod
     def init_cls(cls, bridge: "LinkedInBridge") -> AsyncIterable[Awaitable[None]]:
@@ -99,7 +103,7 @@ class Puppet(DBPuppet, BasePuppet):
     # region Database getters
 
     def _add_to_cache(self) -> None:
-        self.by_li_urn[self.li_urn] = self
+        self.by_li_member_urn[self.li_member_urn] = self
         if self.custom_mxid:
             self.by_custom_mxid[self.custom_mxid] = self
 
@@ -109,31 +113,31 @@ class Puppet(DBPuppet, BasePuppet):
         puppet: cls
         for puppet in puppets:
             try:
-                yield cls.by_li_urn[puppet.li_urn]
+                yield cls.by_li_member_urn[puppet.li_member_urn]
             except KeyError:
                 puppet._add_to_cache()
                 yield puppet
 
     @classmethod
     @async_getter_lock
-    async def get_by_li_urn(
+    async def get_by_li_member_urn(
         cls,
-        li_urn: str,
+        li_member_urn: str,
         *,
         create: bool = True,
     ) -> Optional["Puppet"]:
         try:
-            return cls.by_li_urn[li_urn]
+            return cls.by_li_member_urn[li_member_urn]
         except KeyError:
             pass
 
-        puppet = cast(cls, await super().get_by_li_urn(li_urn))
+        puppet = cast(cls, await super().get_by_li_member_urn(li_member_urn))
         if puppet:
             puppet._add_to_cache()
             return puppet
 
         if create:
-            puppet = cls(li_urn, None, None, None, None, None)
+            puppet = cls(li_member_urn, None, None, None, False, False)
             await puppet.insert()
             puppet._add_to_cache()
             return puppet
@@ -142,9 +146,10 @@ class Puppet(DBPuppet, BasePuppet):
 
     @classmethod
     async def get_by_mxid(cls, mxid: UserID, create: bool = True) -> Optional["Puppet"]:
-        li_urn = cls.get_id_from_mxid(mxid)
-        if li_urn:
-            return await cls.get_by_li_urn(li_urn, create=create)
+        # TODO and here (on the conversion back)
+        li_member_urn = cls.get_id_from_mxid(mxid)
+        if li_member_urn:
+            return await cls.get_by_li_member_urn(li_member_urn, create=create)
         return None
 
     @classmethod
@@ -162,12 +167,13 @@ class Puppet(DBPuppet, BasePuppet):
 
         return None
 
+    # TODO which involse these two functions
     @classmethod
     def get_id_from_mxid(cls, mxid: UserID) -> Optional[str]:
         return cls.mxid_template.parse(mxid)
 
     @classmethod
-    def get_mxid_from_id(cls, li_urn: str) -> UserID:
-        return UserID(cls.mxid_template.format_full(li_urn))
+    def get_mxid_from_id(cls, li_member_urn: str) -> UserID:
+        return UserID(cls.mxid_template.format_full(li_member_urn))
 
     # endregion

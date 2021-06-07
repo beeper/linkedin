@@ -17,7 +17,7 @@ from typing import (
 )
 
 from mautrix.appservice import IntentAPI
-from mautrix.bridge import BasePortal, NotificationDisabler, async_getter_lock
+from mautrix.bridge import async_getter_lock, BasePortal, NotificationDisabler
 from mautrix.errors import (
     MForbidden,
     MNotFound,
@@ -67,7 +67,7 @@ StateHalfShotBridge = EventType.find("uk.half-shot.bridge", EventType.Class.STAT
 class Portal(DBPortal, BasePortal):
     invite_own_puppet_to_pm: bool = False
     by_mxid: Dict[RoomID, "Portal"] = {}
-    by_li_urn: Dict[Tuple[str, str], "Portal"] = {}
+    by_li_thread_urn: Dict[Tuple[str, str], "Portal"] = {}
     matrix: "MatrixHandler"
     config: Config
 
@@ -75,8 +75,8 @@ class Portal(DBPortal, BasePortal):
 
     def __init__(
         self,
-        li_urn: str,
-        li_receiver: str,
+        li_thread_urn: str,
+        li_receiver_urn: str,
         mxid: Optional[RoomID] = None,
         name: Optional[str] = None,
         photo_id: Optional[str] = None,
@@ -84,7 +84,7 @@ class Portal(DBPortal, BasePortal):
         encrypted: bool = False,
     ) -> None:
         super().__init__(
-            li_urn, li_receiver, mxid, name, photo_id, avatar_url, encrypted
+            li_thread_urn, li_receiver_urn, mxid, name, photo_id, avatar_url, encrypted
         )
         self.log = self.log.getChild(self.li_urn_log)
 
@@ -108,18 +108,18 @@ class Portal(DBPortal, BasePortal):
         cls.loop = bridge.loop
         cls.matrix = bridge.matrix
         cls.invite_own_puppet_to_pm = cls.config["bridge.invite_own_puppet_to_pm"]
-        # NotificationDisabler.puppet_cls = p.Puppet
-        # NotificationDisabler.config_enabled = cls.config[
-        #     "bridge.backfill.disable_notifications"
-        # ]
+        NotificationDisabler.puppet_cls = p.Puppet
+        NotificationDisabler.config_enabled = cls.config[
+            "bridge.backfill.disable_notifications"
+        ]
 
     # region DB conversion
 
     async def delete(self) -> None:
         if self.mxid:
             await DBMessage.delete_all_by_room(self.mxid)
-        self.by_li_urn.pop(self.li_urn_full, None)
-        self.by_mxid.pop(self.mxid, None)
+            self.by_mxid.pop(self.mxid, None)
+        self.by_li_thread_urn.pop(self.li_urn_full, None)
         await super().delete()
 
     # endregion
@@ -128,7 +128,7 @@ class Portal(DBPortal, BasePortal):
 
     @property
     def li_urn_full(self) -> Tuple[str, str]:
-        return self.li_urn, self.li_receiver
+        return self.li_thread_urn, self.li_receiver_urn
 
     @property
     def main_intent(self) -> IntentAPI:
@@ -149,21 +149,24 @@ class Portal(DBPortal, BasePortal):
 
     @property
     def li_urn_log(self) -> str:
-        if False and self.is_direct:
-            return f"{self.li_urn}<->{self.li_receiver}"
-        return str(self.li_urn)
+        if self.is_direct:
+            return f"{self.li_thread_urn}<->{self.li_receiver_urn}"
+        return str(self.li_thread_urn)
 
     # endregion
 
     # region Database getters
 
     async def postinit(self) -> None:
-        self.by_li_urn[(self.li_urn, self.li_receiver)] = self
+        self.by_li_thread_urn[self.li_urn_full] = self
         if self.mxid:
             self.by_mxid[self.mxid] = self
         self._main_intent = (
-            (await p.Puppet.get_by_li_urn(self.li_urn)).default_mxid_intent
-            if True or self.is_direct
+            # TODO THIS HAS TO BE THE OTHER USER IN THE THREAD
+            (
+                await p.Puppet.get_by_li_member_urn(self.li_other_user)
+            ).default_mxid_intent
+            if self.is_direct
             else self.az.intent
         )
 
@@ -184,25 +187,31 @@ class Portal(DBPortal, BasePortal):
 
     @classmethod
     @async_getter_lock
-    async def get_by_li_urn(
+    async def get_by_li_thread_urn(
         cls,
-        li_urn: str,
+        li_thread_urn: str,
         *,
-        li_receiver: str = None,
+        li_receiver_urn: str = None,
         create: bool = True,
     ) -> Optional["Portal"]:
         try:
-            return cls.by_li_urn[(li_urn, li_receiver)]
+            return cls.by_li_thread_urn[(li_thread_urn, li_receiver_urn)]
         except KeyError:
             pass
 
-        portal = cast(Portal, await super().get_by_li_urn(li_urn, li_receiver))
+        portal = cast(
+            Portal,
+            await super().get_by_li_thread_urn(
+                li_thread_urn,
+                li_receiver_urn,
+            ),
+        )
         if portal:
             await portal.postinit()
             return portal
 
         if create:
-            portal = cls(li_urn, li_receiver)
+            portal = cls(li_thread_urn, li_receiver_urn=li_receiver_urn)
             await portal.insert()
             await portal.postinit()
             return portal
@@ -212,18 +221,24 @@ class Portal(DBPortal, BasePortal):
     @classmethod
     def get_by_thread(
         cls,
-        li_urn: str,
-        li_receiver: Optional[str] = None,
+        li_thread_urn: str,
+        li_receiver_urn: Optional[str] = None,
         create: bool = True,
     ) -> Awaitable["Portal"]:
-        return cls.get_by_li_urn(li_urn, li_receiver=li_receiver, create=create)
+        return cls.get_by_li_thread_urn(
+            li_thread_urn,
+            li_receiver_urn=li_receiver_urn,
+            create=create,
+        )
 
     @classmethod
     async def all(cls) -> AsyncGenerator["Portal", None]:
         portals = await super().all()
         for portal in cast(List[Portal], portals):
             try:
-                yield cls.by_li_urn[(portal.li_urn, portal.li_receiver)]
+                yield cls.by_li_thread_urn[
+                    (portal.li_thread_urn, portal.li_receiver_urn)
+                ]
             except KeyError:
                 await portal.postinit()
                 yield portal
@@ -233,23 +248,25 @@ class Portal(DBPortal, BasePortal):
     # region Chat info updating
 
     async def update_info(
-        self, source: Optional["u.User"] = None, conversation: Dict[str, Any] = None
+        self,
+        source: Optional["u.User"] = None,
+        conversation: Dict[str, Any] = None,
     ) -> Dict[str, Any]:
         if not conversation:
             # shouldn't happen currently
             assert False, "update_info called without conversation"
 
-        if conversation.get("entityUrn") != self.li_urn:
+        if conversation.get("entityUrn") != self.li_thread_urn:
             self.log.warning(
                 "Got different ID (%s) than what was asked for (%s) when fetching",
                 conversation.get("entityUrn"),
-                self.li_urn,
+                self.li_thread_urn,
             )
 
         # TODO actually update things
         changed = False
 
-        if False and not self.is_direct:
+        if not self.is_direct:
             pass
             # changed = any(
             #     await asyncio.gather(
@@ -259,12 +276,46 @@ class Portal(DBPortal, BasePortal):
             #     )
             # )
 
-        # changed = await self._update_participants(source, info) or changed
+        changed = await self._update_participants(source, conversation) or changed
         if changed:
             # await self.update_bridge_info()
             await self.save()
 
         return conversation
+
+    async def _update_participants(
+        self,
+        source: "u.User",
+        conversation: Dict[str, Any],
+    ) -> bool:
+        changed = False
+
+        participants = conversation.get("participants", [])
+        nick_map = {}
+        for participant in participants:
+            participant = participant["com.linkedin.voyager.messaging.MessagingMember"]
+            print("update_participant participant", participant)
+
+            # puppet = await p.Puppet.get_by_li_urn()
+
+        return changed
+        nick_map = (
+            info.customization_info.nickname_map if info.customization_info else {}
+        )
+        for participant in info.all_participants.nodes:
+            puppet = await p.Puppet.get_by_fbid(int(participant.id))
+            await puppet.update_info(source, participant.messaging_actor)
+            if self.is_direct and self.fbid == puppet.fbid and self.encrypted:
+                changed = await self._update_name(puppet.name) or changed
+                changed = await self._update_photo_from_puppet(puppet) or changed
+            if self.mxid:
+                if puppet.fbid != self.fb_receiver or puppet.is_real_user:
+                    await puppet.intent_for(self).ensure_joined(
+                        self.mxid, bot=self.main_intent
+                    )
+                if puppet.fbid in nick_map:
+                    await self.sync_per_room_nick(puppet, nick_map[puppet.fbid])
+        return changed
 
     # endregion
 
@@ -332,7 +383,7 @@ class Portal(DBPortal, BasePortal):
                     "content": {"algorithm": "m.megolm.v1.aes-sha2"},
                 }
             )
-            if False and self.is_direct:
+            if self.is_direct:
                 invites.append(self.az.bot_mxid)
 
         info = await self.update_info(source, conversation)
@@ -353,18 +404,16 @@ class Portal(DBPortal, BasePortal):
         # created and the initial backfill finishing wouldn't be bridged before the
         # backfill messages.
         with self.backfill_lock:
-            print(name, invites, initial_state)
-            print(self.main_intent)
             self.mxid = await self.main_intent.create_room(
                 name=name,
-                is_direct=True,  # self.is_direct,
+                is_direct=self.is_direct,
                 initial_state=initial_state,
                 invitees=invites,
             )
             if not self.mxid:
                 raise Exception("Failed to create room: no mxid returned")
 
-            if self.encrypted and self.matrix.e2ee and True:  # self.is_direct:
+            if self.encrypted and self.matrix.e2ee and self.is_direct:
                 try:
                     await self.az.intent.ensure_joined(self.mxid)
                 except Exception:
@@ -376,9 +425,8 @@ class Portal(DBPortal, BasePortal):
             self.log.debug(f"Matrix room created: {self.mxid}")
             self.by_mxid[self.mxid] = self
 
-            if False and not self.is_direct:
-                pass
-                # await self._update_participants(source, info)
+            if not self.is_direct:
+                await self._update_participants(source, info)
             else:
                 puppet = await p.Puppet.get_by_custom_mxid(source.mxid)
                 if puppet:
@@ -416,7 +464,7 @@ class Portal(DBPortal, BasePortal):
 
     @property
     def bridge_info_state_key(self) -> str:
-        return f"com.github.linkedin://linkedin/{self.li_urn}"
+        return f"com.github.linkedin://linkedin/{self.by_li_thread_urn}"
 
     @property
     def bridge_info(self) -> Dict[str, Any]:
@@ -429,7 +477,7 @@ class Portal(DBPortal, BasePortal):
                 "avatar_url": self.config["appservice.bot_avatar"],
             },
             "channel": {
-                "id": self.li_urn,
+                "id": self.li_thread_urn,
                 "displayname": self.name,
                 "avatar_url": self.avatar_url,
             },
@@ -446,6 +494,82 @@ class Portal(DBPortal, BasePortal):
         conversation: Optional[Dict[str, Any]] = None,
     ):
         print("backfill", conversation)
+        limit = (
+            self.config["bridge.backfill.initial_limit"]
+            if is_initial
+            else self.config["bridge.backfill.missed_limit"]
+        )
+        if limit == 0:
+            return
+        elif limit < 0:
+            limit = None
+        last_active = None
+
+        # TODO fix all of this
+        return
+
+        if not is_initial and conversation and len(conversation.get("events", [])) > 0:
+            last_active = conversation["events"][-1].get("lastActivityAt")
+
+        most_recent = await DBMessage.get_most_recent(self.li_urn, self.li_receiver)
+        if most_recent and is_initial:
+            self.log.debug(
+                "Not backfilling %s: already bridged messages found", self.li_urn_log
+            )
+        elif (not most_recent or not most_recent.timestamp) and not is_initial:
+            self.log.debug(
+                "Not backfilling %s: no most recent message found", self.li_urn_log
+            )
+        elif last_active and most_recent and most_recent.timestamp >= last_active:
+            self.log.debug(
+                "Not backfilling %s: last activity is equal to most recent bridged "
+                "message (%s >= %s)",
+                self.li_urn_log,
+                most_recent.timestamp,
+                last_active,
+            )
+        else:
+            with self.backfill_lock:
+                await self._backfill(
+                    source,
+                    limit,
+                    most_recent.timestamp if most_recent else None,
+                    conversation=conversation,
+                )
+
+    async def _backfill(
+        self,
+        source: "u.User",
+        limit: int,
+        after_timestamp: Optional[int],
+        conversation: Dict[str, Any],
+    ):
+        self.log.debug("Backfilling history through %s", source.mxid)
+        messages = conversation.get("events", [])
+        oldest_message = messages[0]
+        before_timestamp = oldest_message.get("createdAt") - 1
+        self.log.debug(
+            "Fetching up to %d messages through %s",
+            limit,
+            source.li_member_urn,
+        )
+
+        conversation_urn = conversation.get("entityUrn", "").split(":")[-1]
+
+        while False and len(messages) < limit:
+            result = source.linkedin_client.get_conversation(conversation_urn)
+            messages
+            if len(result["elements"]) < 20:
+                break
+            last_activity_at = datetime.fromtimestamp(
+                (result["elements"][-1]["lastActivityAt"] - 1) / 1000
+            )
+
+        async with NotificationDisabler(self.mxid, source):
+            for message in messages:
+                print("backfill message", message)
+                # puppet = await p.Puppet.get_by_fbid(message.message_sender.id)
+                # await self.handle_facebook_message(source, puppet, message)
 
     # endregion
 

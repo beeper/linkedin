@@ -45,7 +45,7 @@ class User(DBUser, BaseUser):
     config: Config
 
     by_mxid: Dict[UserID, "User"] = {}
-    by_li_urn: Dict[str, "User"] = {}
+    by_li_member_urn: Dict[str, "User"] = {}
 
     linkedin_client: Linkedin
 
@@ -60,11 +60,12 @@ class User(DBUser, BaseUser):
     def __init__(
         self,
         mxid: UserID,
-        li_urn: Optional[str] = None,
+        li_member_urn: Optional[str] = None,
         cookies: Optional[RequestsCookieJar] = None,
         notice_room: Optional[RoomID] = None,
     ):
-        super().__init__(mxid, li_urn, cookies, notice_room)
+        print("USER INIT", mxid, li_member_urn)
+        super().__init__(mxid, li_member_urn, cookies, notice_room)
         BaseUser.__init__(self)
         self.notice_room = notice_room
         self._notice_room_lock = asyncio.Lock()
@@ -116,8 +117,8 @@ class User(DBUser, BaseUser):
 
     def _add_to_cache(self) -> None:
         self.by_mxid[self.mxid] = self
-        if self.li_urn:
-            self.by_li_urn[self.li_urn] = self
+        if self.li_member_urn:
+            self.by_li_member_urn[self.li_member_urn] = self
 
     @classmethod
     async def all_logged_in(cls) -> AsyncGenerator["User", None]:
@@ -160,13 +161,13 @@ class User(DBUser, BaseUser):
 
     @classmethod
     @async_getter_lock
-    async def get_by_li_urn(cls, li_urn: str) -> Optional["User"]:
+    async def get_by_li_member_urn(cls, li_member_urn: str) -> Optional["User"]:
         try:
-            return cls.by_li_urn[li_urn]
+            return cls.by_li_member_urn[li_member_urn]
         except KeyError:
             pass
 
-        user = cast("User", await super().get_by_li_urn(li_urn))
+        user = cast("User", await super().get_by_li_member_urn(li_member_urn))
         if user is not None:
             user._add_to_cache()
             return user
@@ -200,7 +201,7 @@ class User(DBUser, BaseUser):
             return False
 
         self.log.info("Loaded session successfully")
-        self.li_urn = str(user_info["plainId"])  # TODO figure out what this actually is
+        self.li_member_urn = str(user_info["plainId"])  # TODO figure out what this actually is
         self.linkedin_client = linkedin_client
         self._track_metric(METRIC_LOGGED_IN, True)
         self._is_logged_in = True
@@ -224,15 +225,18 @@ class User(DBUser, BaseUser):
         self.cookies = cookies
         self.linkedin_client = Linkedin("", "", cookies=cookies)
         profile = self.linkedin_client.get_user_profile()
-        self.li_urn = str(profile["plainId"])  # TODO figure out what this actually is
+        self.li_member_urn = str(profile["plainId"])  # TODO figure out what this actually is
         await self.save()
+        self.stop_listen()
+        asyncio.create_task(self.post_login())
 
     async def post_login(self):
         self.log.info("Running post-login actions")
         self._add_to_cache()
 
         try:
-            puppet = await pu.Puppet.get_by_li_urn(self.li_urn)
+            print("ohea get_by_li_member_urn", self.li_member_urn)
+            puppet = await pu.Puppet.get_by_li_member_urn(self.li_member_urn)
 
             if puppet.custom_mxid != self.mxid and puppet.can_auto_login(self.mxid):
                 self.log.info("Automatically enabling custom puppet")
@@ -271,7 +275,7 @@ class User(DBUser, BaseUser):
     async def _sync_threads(self) -> None:
         sync_count = self.config["bridge.initial_chat_sync"]
         self.log.debug("Fetching threads...")
-        user_portals = await UserPortal.all(self.li_urn)
+        user_portals = await UserPortal.all(self.li_member_urn)
 
         # TODO: implement page limit support in linkedin-api, and also get more pages if
         # necessary
@@ -282,7 +286,10 @@ class User(DBUser, BaseUser):
 
         for conversation in conversations.get("elements", []):
             try:
-                await self._sync_thread(conversation, user_portals)
+                await self._sync_thread(
+                    conversation,
+                    # user_portals,
+                )
             except Exception:
                 self.log.exception(
                     "Failed to sync thread %s", conversation.get("entityUrn")
@@ -293,12 +300,12 @@ class User(DBUser, BaseUser):
     async def _sync_thread(
         self,
         conversation: Dict[str, Any],
-        user_portals: Dict[str, UserPortal],
+        # user_portals: Dict[str, UserPortal],
     ):
         urn = cast(str, conversation.get("entityUrn"))
         is_direct = not conversation.get("groupChat", False)
         self.log.debug(f"Syncing thread {urn}")
-        portal = await po.Portal.get_by_thread(urn, self.li_urn)
+        portal = await po.Portal.get_by_thread(urn, self.li_member_urn)
         assert portal
         portal = cast(po.Portal, portal)
 
