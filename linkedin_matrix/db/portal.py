@@ -15,6 +15,7 @@ class Portal(Model):
     db: ClassVar[Database] = fake_db
 
     li_thread_urn: str
+    # TODO: look at hangouts bridge: add a "other_user_id" field
     li_receiver_urn: str
     mxid: Optional[RoomID]
     name: Optional[str]
