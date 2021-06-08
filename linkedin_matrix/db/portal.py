@@ -15,23 +15,31 @@ class Portal(Model):
     db: ClassVar[Database] = fake_db
 
     li_thread_urn: str
-    # TODO: look at hangouts bridge: add a "other_user_id" field
-    li_receiver_urn: str
+    li_receiver_urn: Optional[str]
+    li_is_group_chat: bool
+    li_other_user_urn: Optional[str]
+
     mxid: Optional[RoomID]
+    encrypted: bool
+
     name: Optional[str]
     photo_id: Optional[str]
     avatar_url: Optional[ContentURI]
-    encrypted: bool
 
     _table_name = "portal"
     _field_list = [
+        # LinkedIn chat information
         "li_thread_urn",
         "li_receiver_urn",
+        "li_is_group_chat",
+        "li_other_user_urn",
+        # Matrix portal information
         "mxid",
+        "encrypted",
+        # Chat metadata
         "name",
         "photo_id",
         "avatar_url",
-        "encrypted",
     ]
 
     @classmethod
@@ -74,11 +82,13 @@ class Portal(Model):
             query,
             self.li_thread_urn,
             self.li_receiver_urn,
+            self.li_is_group_chat,
+            self.li_other_user_urn,
             self.mxid,
+            self.encrypted,
             self.name,
             self.photo_id,
             self.avatar_url,
-            self.encrypted,
         )
 
     async def delete(self):
@@ -88,11 +98,13 @@ class Portal(Model):
     async def save(self):
         query = """
             UPDATE portal
-               SET mxid=$3,
-                   name=$4,
-                   photo_id=$5,
-                   avatar_url=$6,
-                   encrypted=$7
+               SET li_is_group_chat=$3,
+                   li_other_user_urn=$4,
+                   mxid=$5,
+                   encrypted=$6,
+                   name=$7,
+                   photo_id=$8,
+                   avatar_url=$9
              WHERE li_thread_urn=$1
                AND li_receiver_urn=$2
         """
@@ -100,9 +112,11 @@ class Portal(Model):
             query,
             self.li_thread_urn,
             self.li_receiver_urn,
+            self.li_is_group_chat,
+            self.li_other_user_urn,
             self.mxid,
+            self.encrypted,
             self.name,
             self.photo_id,
             self.avatar_url,
-            self.encrypted,
         )

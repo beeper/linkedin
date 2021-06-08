@@ -77,6 +77,8 @@ class Portal(DBPortal, BasePortal):
         self,
         li_thread_urn: str,
         li_receiver_urn: str,
+        li_is_group_chat: bool,
+        li_other_user_urn: Optional[str] = None,
         mxid: Optional[RoomID] = None,
         name: Optional[str] = None,
         photo_id: Optional[str] = None,
@@ -84,7 +86,15 @@ class Portal(DBPortal, BasePortal):
         encrypted: bool = False,
     ) -> None:
         super().__init__(
-            li_thread_urn, li_receiver_urn, mxid, name, photo_id, avatar_url, encrypted
+            li_thread_urn,
+            li_receiver_urn,
+            li_is_group_chat,
+            li_other_user_urn,
+            mxid,
+            encrypted,
+            name,
+            photo_id,
+            avatar_url,
         )
         self.log = self.log.getChild(self.li_urn_log)
 
@@ -161,14 +171,15 @@ class Portal(DBPortal, BasePortal):
         self.by_li_thread_urn[self.li_urn_full] = self
         if self.mxid:
             self.by_mxid[self.mxid] = self
-        self._main_intent = (
-            # TODO THIS HAS TO BE THE OTHER USER IN THE THREAD
-            (
-                await p.Puppet.get_by_li_member_urn(self.li_other_user)
+
+        if self.is_direct:
+            if not self.li_other_user_urn:
+                raise ValueError("Portal.li_other_user_urn not set for private chat")
+            self._main_intent = (
+                await p.Puppet.get_by_li_member_urn(self.li_other_user_urn)
             ).default_mxid_intent
-            if self.is_direct
-            else self.az.intent
-        )
+        else:
+            self._main_intent = self.az.intent
 
     @classmethod
     @async_getter_lock
@@ -192,6 +203,8 @@ class Portal(DBPortal, BasePortal):
         li_thread_urn: str,
         *,
         li_receiver_urn: str = None,
+        li_is_group_chat: bool = False,
+        li_other_user_urn: str = None,
         create: bool = True,
     ) -> Optional["Portal"]:
         try:
@@ -211,25 +224,17 @@ class Portal(DBPortal, BasePortal):
             return portal
 
         if create:
-            portal = cls(li_thread_urn, li_receiver_urn=li_receiver_urn)
+            portal = cls(
+                li_thread_urn,
+                li_receiver_urn=li_receiver_urn,
+                li_is_group_chat=li_is_group_chat,
+                li_other_user_urn=li_other_user_urn,
+            )
             await portal.insert()
             await portal.postinit()
             return portal
 
         return None
-
-    @classmethod
-    def get_by_thread(
-        cls,
-        li_thread_urn: str,
-        li_receiver_urn: Optional[str] = None,
-        create: bool = True,
-    ) -> Awaitable["Portal"]:
-        return cls.get_by_li_thread_urn(
-            li_thread_urn,
-            li_receiver_urn=li_receiver_urn,
-            create=create,
-        )
 
     @classmethod
     async def all(cls) -> AsyncGenerator["Portal", None]:
@@ -293,10 +298,17 @@ class Portal(DBPortal, BasePortal):
         participants = conversation.get("participants", [])
         nick_map = {}
         for participant in participants:
-            participant = participant["com.linkedin.voyager.messaging.MessagingMember"]
-            print("update_participant participant", participant)
+            # TODO turn Participant into an actual class and deserialize it.
+            # For now, this will have to suffice do
+            participant = participant.get(
+                "com.linkedin.voyager.messaging.MessagingMember", {}
+            )
+            participant_urn = (
+                participant.get("miniProfile", {}).get("objectUrn", "").split(":")[-1]
+            )
 
-            # puppet = await p.Puppet.get_by_li_urn()
+            puppet = await p.Puppet.get_by_li_member_urn(participant_urn)
+            await puppet.update_info(source, participant)
 
         return changed
         nick_map = (
@@ -464,7 +476,7 @@ class Portal(DBPortal, BasePortal):
 
     @property
     def bridge_info_state_key(self) -> str:
-        return f"com.github.linkedin://linkedin/{self.by_li_thread_urn}"
+        return f"com.github.linkedin://linkedin/{self.li_thread_urn}"
 
     @property
     def bridge_info(self) -> Dict[str, Any]:
@@ -493,7 +505,6 @@ class Portal(DBPortal, BasePortal):
         is_initial: bool,
         conversation: Optional[Dict[str, Any]] = None,
     ):
-        print("backfill", conversation)
         limit = (
             self.config["bridge.backfill.initial_limit"]
             if is_initial
@@ -505,13 +516,12 @@ class Portal(DBPortal, BasePortal):
             limit = None
         last_active = None
 
-        # TODO fix all of this
-        return
-
         if not is_initial and conversation and len(conversation.get("events", [])) > 0:
             last_active = conversation["events"][-1].get("lastActivityAt")
 
-        most_recent = await DBMessage.get_most_recent(self.li_urn, self.li_receiver)
+        most_recent = await DBMessage.get_most_recent(
+            self.li_thread_urn, self.li_receiver_urn
+        )
         if most_recent and is_initial:
             self.log.debug(
                 "Not backfilling %s: already bridged messages found", self.li_urn_log
@@ -556,6 +566,7 @@ class Portal(DBPortal, BasePortal):
 
         conversation_urn = conversation.get("entityUrn", "").split(":")[-1]
 
+        # TODO actually do this extra backfill
         while False and len(messages) < limit:
             result = source.linkedin_client.get_conversation(conversation_urn)
             messages
@@ -567,9 +578,15 @@ class Portal(DBPortal, BasePortal):
 
         async with NotificationDisabler(self.mxid, source):
             for message in messages:
-                print("backfill message", message)
-                # puppet = await p.Puppet.get_by_fbid(message.message_sender.id)
-                # await self.handle_facebook_message(source, puppet, message)
+                member_urn = (
+                    message.get("from", {})
+                    .get("com.linkedin.voyager.messaging.MessagingMember", {})
+                    .get("miniProfile", {})
+                    .get("objectUrn", "")
+                    .split(":")[-1]
+                )
+                puppet = await p.Puppet.get_by_li_member_urn(member_urn)
+                await self.handle_linkedin_message(source, puppet, message)
 
     # endregion
 
@@ -583,5 +600,52 @@ class Portal(DBPortal, BasePortal):
     ):
         print("Portal.handle_matrix_message", sender, message, event_id)
         pass
+
+    # endregion
+
+    # region LinkedIn messages
+
+    async def handle_linkedin_message(
+        self,
+        source: "u.User",
+        sender: "p.Puppet",
+        message: Dict[str, Any],
+    ):
+        try:
+            await self._handle_linkedin_message(source, sender, message)
+        except Exception:
+            self.log.exception(
+                "Error handling LinkedIn message %s",
+                message.get("entityUrn"),
+            )
+
+    async def _handle_linkedin_message(
+        self,
+        source: "u.User",
+        sender: "p.Puppet",
+        message: Dict[str, Any],
+    ):
+        assert self.mxid
+        self.log.trace("Facebook GraphQL event content: %s", message)
+        intent = sender.intent_for(self)
+
+        message_text = (
+            message.get("eventContent", {})
+            .get("com.linkedin.voyager.messaging.event.MessageEvent", {})
+            .get("attributedBody", {})
+            .get("text")
+        )
+
+        event_type = EventType.ROOM_MESSAGE
+        if self.encrypted and self.matrix.e2ee:
+            pass
+            # if intent.api.is_real_user:
+            #     content[intent.api.real_user_content_key] = True
+            # event_type, content = await self.matrix.e2ee.encrypt(
+            #     self.mxid, event_type, content
+            # )
+
+        content = TextMessageEventContent(msgtype=MessageType.TEXT, body=message_text)
+        return await intent.send_message_event(self.mxid, event_type, content)
 
     # endregion

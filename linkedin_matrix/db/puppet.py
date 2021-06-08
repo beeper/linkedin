@@ -102,18 +102,6 @@ class Puppet(Model):
                    next_batch=$9
              WHERE li_member_urn=$1
         """
-        print(
-            self,
-            self.li_member_urn,
-            self.name,
-            self.photo_id,
-            self.photo_mxc,
-            self.name_set,
-            self.avatar_set,
-            self.is_registered,
-            self.custom_mxid,
-            self.next_batch,
-        )
         await self.db.execute(
             query,
             self.li_member_urn,

@@ -64,7 +64,6 @@ class User(DBUser, BaseUser):
         cookies: Optional[RequestsCookieJar] = None,
         notice_room: Optional[RoomID] = None,
     ):
-        print("USER INIT", mxid, li_member_urn)
         super().__init__(mxid, li_member_urn, cookies, notice_room)
         BaseUser.__init__(self)
         self.notice_room = notice_room
@@ -194,16 +193,18 @@ class User(DBUser, BaseUser):
                 user_info = linkedin_client.get_user_profile()
                 break
             except Exception as e:
-                print(e)
                 return False
 
         if not user_info:
             return False
 
         self.log.info("Loaded session successfully")
-        self.li_member_urn = str(user_info["plainId"])  # TODO figure out what this actually is
+        self.li_member_urn = str(
+            user_info["plainId"]
+        )  # TODO figure out what type this actually is
         self.linkedin_client = linkedin_client
-        self._track_metric(METRIC_LOGGED_IN, True)
+        # TODO
+        # self._track_metric(METRIC_LOGGED_IN, True)
         self._is_logged_in = True
         self.is_connected = None
         self.stop_listen()
@@ -225,7 +226,9 @@ class User(DBUser, BaseUser):
         self.cookies = cookies
         self.linkedin_client = Linkedin("", "", cookies=cookies)
         profile = self.linkedin_client.get_user_profile()
-        self.li_member_urn = str(profile["plainId"])  # TODO figure out what this actually is
+        self.li_member_urn = str(
+            profile["plainId"]
+        )  # TODO figure out what this actually is
         await self.save()
         self.stop_listen()
         asyncio.create_task(self.post_login())
@@ -235,7 +238,6 @@ class User(DBUser, BaseUser):
         self._add_to_cache()
 
         try:
-            print("ohea get_by_li_member_urn", self.li_member_urn)
             puppet = await pu.Puppet.get_by_li_member_urn(self.li_member_urn)
 
             if puppet.custom_mxid != self.mxid and puppet.can_auto_login(self.mxid):
@@ -302,10 +304,26 @@ class User(DBUser, BaseUser):
         conversation: Dict[str, Any],
         # user_portals: Dict[str, UserPortal],
     ):
-        urn = cast(str, conversation.get("entityUrn"))
-        is_direct = not conversation.get("groupChat", False)
-        self.log.debug(f"Syncing thread {urn}")
-        portal = await po.Portal.get_by_thread(urn, self.li_member_urn)
+        thread_urn = cast(str, conversation.get("entityUrn"))
+        self.log.debug(f"Syncing thread {thread_urn}")
+
+        li_is_group_chat = not conversation.get("groupChat", False)
+        li_other_user_urn = None
+        if li_is_group_chat:
+            li_other_user_urn = (
+                conversation.get("participants", [])[0]
+                .get("com.linkedin.voyager.messaging.MessagingMember", {})
+                .get("miniProfile", {})
+                .get("objectUrn", "")
+                .split(":")[-1]
+            )
+
+        portal = await po.Portal.get_by_li_thread_urn(
+            thread_urn,
+            li_receiver_urn=self.li_member_urn,
+            li_is_group_chat=li_is_group_chat,
+            li_other_user_urn=li_other_user_urn,
+        )
         assert portal
         portal = cast(po.Portal, portal)
 

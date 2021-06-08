@@ -16,13 +16,17 @@ async def upgrade_v1(conn: Connection):
         """,
         """
         CREATE TABLE portal (
-            li_thread_urn   TEXT,
-            li_receiver_urn TEXT,
-            mxid            TEXT UNIQUE,
-            name            TEXT,
-            photo_id        TEXT,
-            avatar_url      TEXT,
-            encrypted       BOOLEAN NOT NULL DEFAULT false,
+            li_thread_urn       TEXT,
+            li_receiver_urn     TEXT,
+            li_is_group_chat    BOOLEAN NOT NULL DEFAULT false,
+            li_other_user_urn   TEXT,
+
+            mxid                TEXT UNIQUE,
+            encrypted           BOOLEAN NOT NULL DEFAULT false,
+
+            name                TEXT,
+            photo_id            TEXT,
+            avatar_url          TEXT,
 
             PRIMARY KEY (li_thread_urn, li_receiver_urn)
         )

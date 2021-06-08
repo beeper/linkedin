@@ -61,6 +61,18 @@ class Message(Model):
         row = await cls.db.fetchrow(query, mxid, mx_room)
         return cls._from_row(row)
 
+    @classmethod
+    async def get_most_recent(
+        cls, li_thread_urn: str, li_receiver_urn: str
+    ) -> Optional["Message"]:
+        query = (
+            Message.select_constructor("li_thread_urn=$1 AND li_receiver_urn=$2 ")
+            + " ORDER BY timestamp DESC"
+            + " LIMIT 1"
+        )
+        row = await cls.db.fetchrow(query, li_thread_urn, li_receiver_urn)
+        return cls._from_row(row)
+
     async def insert(self) -> None:
         query = Message.insert_constructor()
         await self.db.execute(

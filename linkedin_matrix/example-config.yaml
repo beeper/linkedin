@@ -95,8 +95,6 @@ bridge:
     # "name" (full name)
     # "first_name"
     # "last_name"
-    # "nickname"
-    # "own_nickname" (user-specific!)
     displayname_preference:
     - name
     - first_name

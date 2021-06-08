@@ -1,22 +1,24 @@
+import magic
+import re
+from datetime import datetime, timedelta
 from typing import (
-    Optional,
-    Dict,
+    Any,
     AsyncGenerator,
     AsyncIterable,
     Awaitable,
-    Union,
+    Dict,
+    Optional,
     TYPE_CHECKING,
+    Union,
     cast,
 )
-from datetime import datetime, timedelta
-import asyncio
 
-from yarl import URL
-
-from mautrix.types import UserID, RoomID, SyncToken, ContentURI
+import requests
 from mautrix.appservice import IntentAPI
-from mautrix.bridge import BasePuppet, async_getter_lock
+from mautrix.bridge import async_getter_lock, BasePuppet
+from mautrix.types import ContentURI, UserID, RoomID, SyncToken
 from mautrix.util.simple_template import SimpleTemplate
+from yarl import URL
 
 from .config import Config
 from .db import Puppet as DBPuppet
@@ -47,9 +49,6 @@ class Puppet(DBPuppet, BasePuppet):
         custom_mxid: Optional[UserID] = None,
         next_batch: Optional[SyncToken] = None,
     ):
-        print("puppet init", li_member_urn)
-        if ":" in li_member_urn:
-            assert False
         super().__init__(
             li_member_urn,
             name,
@@ -61,7 +60,7 @@ class Puppet(DBPuppet, BasePuppet):
             avatar_set,
             is_registered,
         )
-        self._last_info_sync = None
+        self._last_info_sync: Optional[datetime] = None
 
         # TODO this is where I should convert to a proper MXID
         self.default_mxid = self.get_mxid_from_id(li_member_urn)
@@ -99,6 +98,123 @@ class Puppet(DBPuppet, BasePuppet):
         return (
             puppet.try_start() async for puppet in Puppet.get_all_with_custom_mxid()
         )
+
+    def intent_for(self, portal: "p.Portal") -> IntentAPI:
+        if portal.li_other_user_urn == self.li_member_urn or (
+            portal.backfill_lock.locked
+            and self.config["bridge.backfill.invite_own_puppet"]
+        ):
+            return self.default_mxid_intent
+        return self.intent
+
+    # region User info updating
+
+    async def update_info(
+        self,
+        source: Optional[u.User],
+        info: Dict[str, Any] = None,
+        update_avatar: bool = True,
+    ) -> "Puppet":
+        if not info:
+            # TODO fetch the user info directly from the API?
+            return self
+
+        self._last_info_sync = datetime.now()
+        try:
+            changed = await self._update_name(info)
+            if update_avatar:
+                changed = (
+                    await self._update_photo(
+                        info.get("miniProfile", {})
+                        .get("picture", {})
+                        .get("com.linkedin.common.VectorImage", {}),
+                    )
+                    or changed
+                )
+
+            if changed:
+                await self.save()
+        except Exception:
+            self.log.exception(
+                f"Failed to update info from source {source.li_member_urn}"
+            )
+        return self
+
+    @staticmethod
+    async def reupload_avatar(intent: IntentAPI, url: str) -> ContentURI:
+        image_data = requests.get(url)
+        if not image_data.ok:
+            raise Exception("Couldn't download profile picture")
+
+        mime = magic.from_buffer(image_data.content, mime=True)
+        return await intent.upload_media(image_data.content, mime_type=mime)
+
+    async def _update_name(self, info: Dict[str, Any]) -> bool:
+        name = self._get_displayname(info)
+        if name != self.name or not self.name_set:
+            self.name = name
+            try:
+                await self.default_mxid_intent.set_displayname(self.name)
+                self.name_set = True
+            except Exception:
+                self.log.exception("Failed to set displayname")
+                self.name_set = False
+            return True
+        return False
+
+    @classmethod
+    def _get_displayname(cls, info: Dict[str, Any]) -> str:
+        profile = info.get("miniProfile", {})
+        first, last = profile.get("firstName"), profile.get("lastName")
+        info = {
+            "displayname": None,
+            "name": f"{first} {last}",
+            "first_name": first,
+            "last_name": last,
+        }
+        for preference in cls.config["bridge.displayname_preference"]:
+            if info.get(preference):
+                info["displayname"] = info.get(preference)
+                break
+        return cls.config["bridge.displayname_template"].format(**info)
+
+    photo_id_re = re.compile(r"https://.*?/image/(.*?)/profile-.*?")
+
+    async def _update_photo(self, picture: Dict[str, Any]) -> bool:
+        root_url = picture.get("rootUrl")
+        photo_id = None
+        if root_url:
+            match = self.photo_id_re.match(root_url)
+            if match:
+                photo_id = match.group(1)
+
+        if photo_id != self.photo_id or not self.avatar_set:
+            self.photo_id = photo_id
+
+            if photo_id:
+                # Use the 100x100 image
+                file_path_segment = picture["artifacts"][0][
+                    "fileIdentifyingUrlPathSegment"
+                ]
+
+                self.photo_mxc = await self.reupload_avatar(
+                    self.default_mxid_intent,
+                    root_url + file_path_segment,
+                )
+            else:
+                self.photo_mxc = ContentURI("")
+
+            try:
+                await self.default_mxid_intent.set_avatar_url(self.photo_mxc)
+                self.avatar_set = True
+            except Exception:
+                self.log.exception("Failed to set avatar")
+                self.avatar_set = False
+
+            return True
+        return False
+
+    # endregion
 
     # region Database getters
 
