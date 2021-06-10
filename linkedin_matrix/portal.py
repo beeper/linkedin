@@ -1,5 +1,6 @@
 import asyncio
 from collections import deque
+from datetime import datetime
 from typing import (
     Dict,
     Deque,
@@ -273,6 +274,7 @@ class Portal(DBPortal, BasePortal):
 
         if not self.is_direct:
             pass
+            # TODO
             # changed = any(
             #     await asyncio.gather(
             #         self._update_name(info.name),
@@ -283,6 +285,7 @@ class Portal(DBPortal, BasePortal):
 
         changed = await self._update_participants(source, conversation) or changed
         if changed:
+            # TODO
             # await self.update_bridge_info()
             await self.save()
 
@@ -299,7 +302,7 @@ class Portal(DBPortal, BasePortal):
         nick_map = {}
         for participant in participants:
             # TODO turn Participant into an actual class and deserialize it.
-            # For now, this will have to suffice do
+            # For now, this will have to suffice
             participant = participant.get(
                 "com.linkedin.voyager.messaging.MessagingMember", {}
             )
@@ -556,8 +559,15 @@ class Portal(DBPortal, BasePortal):
     ):
         self.log.debug("Backfilling history through %s", source.mxid)
         messages = conversation.get("events", [])
-        oldest_message = messages[0]
-        before_timestamp = oldest_message.get("createdAt") - 1
+
+        if len(messages):
+            oldest_message = messages[0]
+            before_timestamp = datetime.fromtimestamp(
+                (oldest_message.get("createdAt") // 1000) - 1
+            )
+        else:
+            before_timestamp = datetime.now()
+
         self.log.debug(
             "Fetching up to %d messages through %s",
             limit,
@@ -566,14 +576,21 @@ class Portal(DBPortal, BasePortal):
 
         conversation_urn = conversation.get("entityUrn", "").split(":")[-1]
 
-        # TODO actually do this extra backfill
-        while False and len(messages) < limit:
-            result = source.linkedin_client.get_conversation(conversation_urn)
-            messages
-            if len(result["elements"]) < 20:
+        while len(messages) < limit:
+            result = source.linkedin_client.get_conversation(
+                conversation_urn,
+                created_before=before_timestamp,
+            )
+            elements = result.get("elements", [])
+
+            messages = elements + messages
+
+            if len(elements) < 20:
                 break
-            last_activity_at = datetime.fromtimestamp(
-                (result["elements"][-1]["lastActivityAt"] - 1) / 1000
+
+            oldest_message = messages[0]
+            before_timestamp = datetime.fromtimestamp(
+                (oldest_message.get("createdAt") / 1000) - 1
             )
 
         async with NotificationDisabler(self.mxid, source):
@@ -626,7 +643,7 @@ class Portal(DBPortal, BasePortal):
         message: Dict[str, Any],
     ):
         assert self.mxid
-        self.log.trace("Facebook GraphQL event content: %s", message)
+        self.log.trace("LinkedIn event content: %s", message)
         intent = sender.intent_for(self)
 
         message_text = (
