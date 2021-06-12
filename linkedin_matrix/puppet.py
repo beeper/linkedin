@@ -6,11 +6,12 @@ from typing import (
     AsyncGenerator,
     AsyncIterable,
     Awaitable,
+    cast,
     Dict,
+    List,
     Optional,
     TYPE_CHECKING,
     Union,
-    cast,
 )
 
 import requests
@@ -224,17 +225,6 @@ class Puppet(DBPuppet, BasePuppet):
             self.by_custom_mxid[self.custom_mxid] = self
 
     @classmethod
-    async def get_all_with_custom_mxid(cls) -> AsyncGenerator["Puppet", None]:
-        puppets = await super().get_all_with_custom_mxid()
-        puppet: cls
-        for puppet in puppets:
-            try:
-                yield cls.by_li_member_urn[puppet.li_member_urn]
-            except KeyError:
-                puppet._add_to_cache()
-                yield puppet
-
-    @classmethod
     @async_getter_lock
     async def get_by_li_member_urn(
         cls,
@@ -282,6 +272,17 @@ class Puppet(DBPuppet, BasePuppet):
             return puppet
 
         return None
+
+    @classmethod
+    async def get_all_with_custom_mxid(cls) -> AsyncGenerator["Puppet", None]:
+        puppets = await super().get_all_with_custom_mxid()
+        print("get_all_with_custom_mxid", puppets)
+        for puppet in cast(List[Puppet], puppets):
+            try:
+                yield cls.by_li_member_urn[puppet.li_member_urn]
+            except KeyError:
+                puppet._add_to_cache()
+                yield puppet
 
     # TODO which involse these two functions
     @classmethod

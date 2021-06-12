@@ -47,7 +47,7 @@
   * [ ] Presence
   * [ ] Typing notifications
   * [ ] Read receipts
-  * [ ] Admin status
+  * [x] Admin status
   * [ ] Membership actions
     * [ ] Add member
     * [ ] Remove member
