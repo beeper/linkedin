@@ -2,15 +2,12 @@
 
 * Matrix → LinkedIn
   * [ ] Message content
-    * [ ] Text
+    * [x] Text
     * [ ] Media
-      * [ ] Stickers
       * [ ] Files
-      * [ ] Voice messages
       * [ ] Videos
       * [ ] Images
-      * [ ] Locations
-    * [ ] Formatting
+    * [ ] ~~Formatting~~ (LinkedIn does not support rich formatting)
     * [ ] Replies
     * [ ] Mentions
   * [ ] Message redactions
@@ -31,17 +28,11 @@
   * [ ] Message content
     * [ ] Text
     * [ ] Media
-      * [ ] Stickers
       * [ ] Files
-      * [ ] Voice messages
       * [ ] Videos
       * [ ] Images
-      * [ ] Locations
-    * [ ] Formatting
-    * [ ] Replies
     * [ ] Mentions
-    * [ ] Polls
-  * [ ] Message unsend
+  * [ ] Message delete
   * [ ] Message reactions
   * [ ] Message history
   * [ ] Presence

@@ -17,6 +17,7 @@ from typing import (
     cast,
 )
 
+from bs4 import BeautifulSoup
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import async_getter_lock, BasePortal, NotificationDisabler
 from mautrix.errors import (
@@ -621,8 +622,45 @@ class Portal(DBPortal, BasePortal):
         message: MessageEventContent,
         event_id: EventID,
     ):
-        print("Portal.handle_matrix_message", sender, message, event_id)
-        pass
+        try:
+            await self._handle_matrix_message(sender, message, event_id)
+        except Exception:
+            self.log.exception(f"Failed handling {event_id}")
+
+    async def _handle_matrix_message(
+        self,
+        sender: "u.User",
+        message: MessageEventContent,
+        event_id: EventID,
+    ):
+        if message.get(
+            self.az.real_user_content_key, False
+        ) and await p.Puppet.get_by_custom_mxid(sender.mxid):
+            self.log.debug(
+                f"Ignoring puppet-sent message by confirmed puppet user {sender.mxid}"
+            )
+            return
+        if message.msgtype == MessageType.TEXT or message.msgtype == MessageType.NOTICE:
+            await self._handle_matrix_text(event_id, sender, message)
+        else:
+            self.log.warning(f"Unsupported msgtype {message.msgtype} in {event_id}")
+            return
+
+    async def _handle_matrix_text(
+        self,
+        event_id: EventID,
+        sender: "u.User",
+        message: TextMessageEventContent,
+    ):
+        if message.format == Format.HTML and message.formatted_body:
+            text = BeautifulSoup(message.formatted_body, "lxml").text
+        else:
+            text = message.body
+
+        conversation_urn = self.li_thread_urn.split(":")[-1]
+        failure = sender.linkedin_client.send_message(text, conversation_urn)
+        if failure:
+            raise Exception(f"Send message to {conversation_urn} failed")
 
     # endregion
 
@@ -663,8 +701,7 @@ class Portal(DBPortal, BasePortal):
             await self._handle_linkedin_message(source, sender, message)
         except Exception:
             self.log.exception(
-                "Error handling LinkedIn message %s",
-                message.get("entityUrn"),
+                f"Error handling LinkedIn message {message.get('entityUrn')}",
             )
 
     async def _handle_linkedin_message(
