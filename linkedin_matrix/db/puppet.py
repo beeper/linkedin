@@ -4,6 +4,7 @@ from asyncpg import Record
 from attr import dataclass
 from mautrix.types import ContentURI, SyncToken, UserID
 from mautrix.util.async_db import Database
+from yarl import URL
 
 from .model_base import Model
 
@@ -14,21 +15,23 @@ fake_db = Database("") if TYPE_CHECKING else None
 class Puppet(Model):
     db: ClassVar[Database] = fake_db
 
-    li_urn: str
+    li_member_urn: str
     name: Optional[str]
     photo_id: Optional[str]
     photo_mxc: Optional[ContentURI]
 
-    name_set: bool
-    avatar_set: bool
-    is_registered: bool
-
     custom_mxid: Optional[UserID]
+    access_token: Optional[str]
     next_batch: Optional[SyncToken]
+    base_url: Optional[URL]
+
+    name_set: bool = False
+    avatar_set: bool = False
+    is_registered: bool = False
 
     _table_name = "puppet"
     _field_list = [
-        "li_urn",
+        "li_member_urn",
         "name",
         "photo_id",
         "photo_mxc",
@@ -36,7 +39,9 @@ class Puppet(Model):
         "avatar_set",
         "is_registered",
         "custom_mxid",
+        "access_token",
         "next_batch",
+        "base_url",
     ]
 
     @classmethod
@@ -46,9 +51,9 @@ class Puppet(Model):
         return cls(**row)
 
     @classmethod
-    async def get_by_li_urn(cls, li_urn: str) -> Optional["Puppet"]:
-        query = Puppet.select_constructor("li_urn=$1")
-        row = await cls.db.fetchrow(query, li_urn)
+    async def get_by_li_member_urn(cls, li_member_urn: str) -> Optional["Puppet"]:
+        query = Puppet.select_constructor("li_member_urn=$1")
+        row = await cls.db.fetchrow(query, li_member_urn)
         return cls._from_row(row)
 
     @classmethod
@@ -73,7 +78,7 @@ class Puppet(Model):
         query = Puppet.insert_constructor()
         await self.db.execute(
             query,
-            self.li_urn,
+            self.li_member_urn,
             self.name,
             self.photo_id,
             self.photo_mxc,
@@ -81,11 +86,15 @@ class Puppet(Model):
             self.avatar_set,
             self.is_registered,
             self.custom_mxid,
+            self.access_token,
             self.next_batch,
+            self.base_url,
         )
 
     async def delete(self) -> None:
-        await self.db.execute("DELETE FROM puppet WHERE li_urn=$1", self.li_urn)
+        await self.db.execute(
+            "DELETE FROM puppet WHERE li_member_urn=$1", self.li_member_urn
+        )
 
     async def save(self) -> None:
         query = """
@@ -97,12 +106,14 @@ class Puppet(Model):
                    avatar_set=$6,
                    is_registered=$7,
                    custom_mxid=$8,
-                   next_batch=$9
-             WHERE li_urn=$1
+                   access_token=$9,
+                   next_batch=$10,
+                   base_url=$11
+             WHERE li_member_urn=$1
         """
         await self.db.execute(
             query,
-            self.li_urn,
+            self.li_member_urn,
             self.name,
             self.photo_id,
             self.photo_mxc,
@@ -110,5 +121,7 @@ class Puppet(Model):
             self.avatar_set,
             self.is_registered,
             self.custom_mxid,
+            self.access_token,
             self.next_batch,
+            self.base_url,
         )

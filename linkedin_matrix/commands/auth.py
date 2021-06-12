@@ -1,10 +1,13 @@
 import requests
 from bs4 import BeautifulSoup
 from linkedin_api import Linkedin
+from mautrix.bridge import custom_puppet as cpu
 from mautrix.bridge.commands import command_handler, HelpSection
+from mautrix.client import Client
 from mautrix.errors import MForbidden
 
 from .typehint import CommandEvent
+from .. import puppet as pu
 
 SECTION_AUTH = HelpSection("Authentication", 10, "")
 
@@ -33,6 +36,9 @@ async def whoami(evt: CommandEvent):
         first = user_profile.get("miniProfile", {}).get("firstName")
         last = user_profile.get("miniProfile", {}).get("lastName")
         await evt.reply(f"You are logged in as {first} {last}")
+
+
+# region Login
 
 
 @command_handler(
@@ -161,3 +167,51 @@ async def enter_2fa_code(evt: CommandEvent) -> None:
         evt.log.exception("Failed to log in")
         evt.sender.command_status = None
         await evt.reply(f"Failed to log in: {e}")
+
+
+# endregion
+
+# region Matrix Puppeting
+
+@command_handler(
+    needs_auth=True,
+    management_only=True,
+    help_args="<_access token_>",
+    help_section=SECTION_AUTH,
+    help_text="Replace your Facebook Messenger account's "
+    "Matrix puppet with your Matrix account",
+)
+async def login_matrix(evt: CommandEvent) -> None:
+    puppet = await pu.Puppet.get_by_li_member_urn(evt.sender.li_member_urn)
+    _, homeserver = Client.parse_mxid(evt.sender.mxid)
+    if homeserver != pu.Puppet.hs_domain:
+        await evt.reply("You can't log in with an account on a different homeserver")
+        return
+    try:
+        await puppet.switch_mxid(" ".join(evt.args), evt.sender.mxid)
+        await evt.reply(
+            "Successfully replaced your Facebook Messenger account's "
+            "Matrix puppet with your Matrix account."
+        )
+    except cpu.OnlyLoginSelf:
+        await evt.reply("You may only log in with your own Matrix account")
+    except cpu.InvalidAccessToken:
+        await evt.reply("Invalid access token")
+
+
+@command_handler(
+    needs_auth=True,
+    management_only=True,
+    help_section=SECTION_AUTH,
+    help_text="Revert your Facebook Messenger account's Matrix puppet to the original",
+)
+async def logout_matrix(evt: CommandEvent) -> None:
+    puppet = await pu.Puppet.get_by_li_member_urn(evt.sender.li_member_urn)
+    if not puppet.is_real_user:
+        await evt.reply("You're not logged in with your Matrix account")
+        return
+    await puppet.switch_mxid(None, None)
+    await evt.reply("Restored the original puppet for your Facebook Messenger account")
+
+
+# endregion

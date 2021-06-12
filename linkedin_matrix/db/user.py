@@ -17,13 +17,13 @@ class User(Model):
     db: ClassVar[Database] = fake_db
 
     mxid: UserID
-    li_urn: Optional[str]
+    li_member_urn: Optional[str]
     notice_room: Optional[RoomID]
 
     cookies: Optional[RequestsCookieJar]
 
     _table_name = "user"
-    _field_list = ["mxid", "li_urn", "cookies", "notice_room"]
+    _field_list = ["mxid", "li_member_urn", "cookies", "notice_room"]
 
     @property
     def _cookies_json(self) -> Optional[str]:
@@ -42,14 +42,14 @@ class User(Model):
 
     @classmethod
     async def all_logged_in(cls) -> List["User"]:
-        query = User.select_constructor("li_urn <> ''")
+        query = User.select_constructor("li_member_urn <> ''")
         rows = await cls.db.fetch(query)
         return [cls._from_row(row) for row in rows]
 
     @classmethod
-    async def get_by_li_urn(cls, li_urn: str) -> Optional["User"]:
-        query = User.select_constructor("li_urn=$1")
-        row = await cls.db.fetchrow(query, li_urn)
+    async def get_by_li_member_urn(cls, li_member_urn: str) -> Optional["User"]:
+        query = User.select_constructor("li_member_urn=$1")
+        row = await cls.db.fetchrow(query, li_member_urn)
         return cls._from_row(row)
 
     @classmethod
@@ -63,7 +63,7 @@ class User(Model):
         await self.db.execute(
             query,
             self.mxid,
-            self.li_urn,
+            self.li_member_urn,
             self._cookies_json,
             self.notice_room,
         )
@@ -74,7 +74,7 @@ class User(Model):
     async def save(self) -> None:
         query = """
             UPDATE "user"
-               SET li_urn=$2,
+               SET li_member_urn=$2,
                    cookies=$3,
                    notice_room=$4
              WHERE mxid=$1
@@ -82,7 +82,7 @@ class User(Model):
         await self.db.execute(
             query,
             self.mxid,
-            self.li_urn,
+            self.li_member_urn,
             self._cookies_json,
             self.notice_room,
         )
