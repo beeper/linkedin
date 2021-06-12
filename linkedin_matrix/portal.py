@@ -757,6 +757,19 @@ class Portal(DBPortal, BasePortal):
         content = TextMessageEventContent(msgtype=MessageType.TEXT, body=message_text)
         event_id = await intent.send_message_event(self.mxid, event_type, content)
 
+        if not event_id:
+            return
+
+        reaction_summaries = sorted(
+            message.get("reactionSummaries", []),
+            key=lambda m: m.get("firstReactedAt"),
+            reverse=True,
+        )
+        for reaction_summary in reaction_summaries:
+            matrix_reaction = reaction_summary.get("emoji")
+            mxid = await intent.react(self.mxid, event_id, matrix_reaction)
+            self.log.debug(f"Reacted to {event_id}, got {mxid}")
+
         # TODO store the event to the database
         # await DBMessage(                 mxid=event_id,mx_room=self.mxid,
         #                 li_message_urn = message.get("")
