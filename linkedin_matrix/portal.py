@@ -109,7 +109,7 @@ class Portal(DBPortal, BasePortal):
         self.backfill_lock = SimpleLock(
             "Waiting for backfilling to finish before handling %s", log=self.log
         )
-        self._backfill_leave = None
+        self._backfill_leave: Optional[Set[IntentAPI]] = None
 
     @classmethod
     def init_cls(cls, bridge: "LinkedInBridge") -> None:
@@ -557,6 +557,7 @@ class Portal(DBPortal, BasePortal):
         after_timestamp: Optional[int],
         conversation: Dict[str, Any],
     ):
+        assert self.mxid
         self.log.debug("Backfilling history through %s", source.mxid)
         messages = conversation.get("events", [])
 
@@ -593,6 +594,7 @@ class Portal(DBPortal, BasePortal):
                 (oldest_message.get("createdAt") / 1000) - 1
             )
 
+        self._backfill_leave = set()
         async with NotificationDisabler(self.mxid, source):
             for message in messages:
                 member_urn = (
@@ -604,6 +606,10 @@ class Portal(DBPortal, BasePortal):
                 )
                 puppet = await p.Puppet.get_by_li_member_urn(member_urn)
                 await self.handle_linkedin_message(source, puppet, message)
+        for intent in self._backfill_leave:
+            self.log.trace(f"Leaving room with {intent.mxid} post-backfill")
+            await intent.leave_room(self.mxid)
+        self.log.info(f"Backfilled {len(messages)} messages through {source.mxid}")
 
     # endregion
 
@@ -620,7 +626,32 @@ class Portal(DBPortal, BasePortal):
 
     # endregion
 
-    # region LinkedIn messages
+    # region LinkedIn event handling
+
+    async def _bridge_own_message_pm(
+        self,
+        source: "u.User",
+        sender: "p.Puppet",
+        mid: str,
+        invite: bool = True,
+    ) -> bool:
+        if (
+            self.is_direct
+            and sender.li_member_urn == source.li_member_urn
+            and not sender.is_real_user
+        ):
+            if self.invite_own_puppet_to_pm and invite:
+                await self.main_intent.invite_user(self.mxid, sender.mxid)
+            elif (
+                await self.az.state_store.get_membership(self.mxid, sender.mxid)
+                != Membership.JOIN
+            ):
+                self.log.warning(
+                    f"Ignoring own {mid} in private chat because own puppet is not in"
+                    " room."
+                )
+                return False
+        return True
 
     async def handle_linkedin_message(
         self,
@@ -644,14 +675,32 @@ class Portal(DBPortal, BasePortal):
     ):
         assert self.mxid
         self.log.trace("LinkedIn event content: %s", message)
+        if not self.mxid:
+            mxid = await self.create_matrix_room(source)
+            if not mxid:
+                # Failed to create
+                return
+        if not await self._bridge_own_message_pm(
+            source,
+            sender,
+            f"message {message.get('entityUrn')}",
+        ):
+            return
+
         intent = sender.intent_for(self)
 
-        message_text = (
-            message.get("eventContent", {})
-            .get("com.linkedin.voyager.messaging.event.MessageEvent", {})
-            .get("attributedBody", {})
-            .get("text")
-        )
+        if (
+            self._backfill_leave is not None
+            and self.li_other_user_urn != sender.li_member_urn
+            and intent != sender.intent
+            and intent not in self._backfill_leave
+        ):
+            self.log.debug(
+                "Adding %s's default puppet to room for backfilling", sender.mxid
+            )
+            await self.main_intent.invite_user(self.mxid, intent.mxid)
+            await intent.ensure_joined(self.mxid)
+            self._backfill_leave.add(intent)
 
         event_type = EventType.ROOM_MESSAGE
         if self.encrypted and self.matrix.e2ee:
@@ -662,7 +711,28 @@ class Portal(DBPortal, BasePortal):
             #     self.mxid, event_type, content
             # )
 
+        message_text = (
+            message.get("eventContent", {})
+            .get("com.linkedin.voyager.messaging.event.MessageEvent", {})
+            .get("attributedBody", {})
+            .get("text")
+        )
         content = TextMessageEventContent(msgtype=MessageType.TEXT, body=message_text)
-        return await intent.send_message_event(self.mxid, event_type, content)
+        event_id = await intent.send_message_event(self.mxid, event_type, content)
+
+        # TODO store the event to the database
+        # await DBMessage(                 mxid=event_id,mx_room=self.mxid,
+        #                 li_message_urn = message.get("")
+        #                 li_thread_urn=message.get("entityUrn"),
+
+        #     # mxid: EventID
+        #     # mx_room: RoomID
+        #     # li_message_urn: Optional[str]
+        #     # li_thread_urn: str
+        #     # li_sender_urn: str
+        #     # li_receiver_urn: str
+        #     # index: int
+        #     # timestamp: int
+        # )
 
     # endregion

@@ -48,7 +48,9 @@ class Puppet(DBPuppet, BasePuppet):
         avatar_set: bool = False,
         is_registered: bool = False,
         custom_mxid: Optional[UserID] = None,
+        access_token: Optional[str] = None,
         next_batch: Optional[SyncToken] = None,
+        base_url: Optional[URL] = None,
     ):
         super().__init__(
             li_member_urn,
@@ -56,7 +58,9 @@ class Puppet(DBPuppet, BasePuppet):
             photo_id,
             photo_mxc,
             custom_mxid,
+            access_token,
             next_batch,
+            base_url,
             name_set,
             avatar_set,
             is_registered,

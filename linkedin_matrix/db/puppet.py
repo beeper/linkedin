@@ -4,6 +4,7 @@ from asyncpg import Record
 from attr import dataclass
 from mautrix.types import ContentURI, SyncToken, UserID
 from mautrix.util.async_db import Database
+from yarl import URL
 
 from .model_base import Model
 
@@ -20,7 +21,9 @@ class Puppet(Model):
     photo_mxc: Optional[ContentURI]
 
     custom_mxid: Optional[UserID]
+    access_token: Optional[str]
     next_batch: Optional[SyncToken]
+    base_url: Optional[URL]
 
     name_set: bool = False
     avatar_set: bool = False
@@ -36,7 +39,9 @@ class Puppet(Model):
         "avatar_set",
         "is_registered",
         "custom_mxid",
+        "access_token",
         "next_batch",
+        "base_url",
     ]
 
     @classmethod
@@ -81,7 +86,9 @@ class Puppet(Model):
             self.avatar_set,
             self.is_registered,
             self.custom_mxid,
+            self.access_token,
             self.next_batch,
+            self.base_url,
         )
 
     async def delete(self) -> None:
@@ -99,7 +106,9 @@ class Puppet(Model):
                    avatar_set=$6,
                    is_registered=$7,
                    custom_mxid=$8,
-                   next_batch=$9
+                   access_token=$9,
+                   next_batch=$10,
+                   base_url=$11
              WHERE li_member_urn=$1
         """
         await self.db.execute(
@@ -112,5 +121,7 @@ class Puppet(Model):
             self.avatar_set,
             self.is_registered,
             self.custom_mxid,
+            self.access_token,
             self.next_batch,
+            self.base_url,
         )

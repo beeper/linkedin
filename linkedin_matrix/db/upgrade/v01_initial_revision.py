@@ -43,7 +43,9 @@ async def upgrade_v1(conn: Connection):
             is_registered   BOOLEAN NOT NULL DEFAULT false,
 
             custom_mxid     TEXT,
-            next_batch      TEXT
+            access_token    TEXT,
+            next_batch      TEXT,
+            base_url        TEXT
         )
         """,
         """
