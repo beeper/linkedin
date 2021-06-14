@@ -47,10 +47,9 @@
     * [ ] Title
     * [ ] Avatar
   * [ ] Initial chat metadata
-  * [ ] User metadata
-    * [ ] Name
-    * [ ] Per-chat nickname
-    * [ ] Avatar
+  * [x] User metadata
+    * [x] Name
+    * [x] Avatar
 * Misc
   * [ ] Multi-user support
   * [ ] Shared group chat portals
@@ -58,5 +57,5 @@
     * [ ] At startup
     * [ ] When added to chat
     * [ ] When receiving message
-  * [ ] Private chat creation by inviting Matrix puppet of Messenger user to new room
-  * [ ] Option to use own Matrix account for messages sent from other Messenger clients
+  * [ ] Private chat creation by inviting Matrix puppet of LinkedIn user to new room
+  * [ ] Option to use own Matrix account for messages sent from other LinkedIn clients
