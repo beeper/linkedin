@@ -1,6 +1,7 @@
 import asyncio
 from collections import deque
 from datetime import datetime
+from io import BytesIO
 from typing import (
     Dict,
     Deque,
@@ -17,6 +18,8 @@ from typing import (
     cast,
 )
 
+import magic
+import requests
 from bs4 import BeautifulSoup
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import async_getter_lock, BasePortal, NotificationDisabler
@@ -62,8 +65,19 @@ if TYPE_CHECKING:
     from .__main__ import LinkedInBridge
     from .matrix import MatrixHandler
 
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
+
+try:
+    from mautrix.crypto.attachments import decrypt_attachment, encrypt_attachment
+except ImportError:
+    decrypt_attachment = encrypt_attachment = None
+
 StateBridge = EventType.find("m.bridge", EventType.Class.STATE)
 StateHalfShotBridge = EventType.find("uk.half-shot.bridge", EventType.Class.STATE)
+MediaInfo = Union[FileInfo, VideoInfo, AudioInfo, ImageInfo]
 
 
 class Portal(DBPortal, BasePortal):
@@ -710,6 +724,7 @@ class Portal(DBPortal, BasePortal):
         sender: "p.Puppet",
         message: Dict[str, Any],
     ):
+        # TODO refactor this into multiple functions
         assert self.mxid
         self.log.trace("LinkedIn event content: %s", message)
         if not self.mxid:
@@ -739,27 +754,88 @@ class Portal(DBPortal, BasePortal):
             await intent.ensure_joined(self.mxid)
             self._backfill_leave.add(intent)
 
-        event_type = EventType.ROOM_MESSAGE
-        if self.encrypted and self.matrix.e2ee:
-            pass
-            # if intent.api.is_real_user:
-            #     content[intent.api.real_user_content_key] = True
-            # event_type, content = await self.matrix.e2ee.encrypt(
-            #     self.mxid, event_type, content
-            # )
-
-        message_text = (
-            message.get("eventContent", {})
-            .get("com.linkedin.voyager.messaging.event.MessageEvent", {})
-            .get("attributedBody", {})
-            .get("text")
+        message_event = message.get("eventContent", {}).get(
+            "com.linkedin.voyager.messaging.event.MessageEvent", {}
         )
-        content = TextMessageEventContent(msgtype=MessageType.TEXT, body=message_text)
-        event_id = await intent.send_message_event(self.mxid, event_type, content)
+        timestamp = message.get("createdAt") // 1000  # convert to POSIX
+
+        event_id = None
+
+        # Handle attachments (files and images)
+        attachments = message_event.get("attachments", [])
+        if attachments:
+            for attachment in attachments:
+                media_type = attachment.get("mediaType")
+
+                msgtype = MessageType.FILE
+                if media_type.startswith("image/"):
+                    msgtype = MessageType.IMAGE
+                else:
+                    msgtype = MessageType.FILE
+
+                url = attachment.get("reference", {}).get("string")
+                if not url:
+                    continue
+
+                mxc, info, decryption_info = await self._reupload_linkedin_file(
+                    url, source, intent, encrypt=self.encrypted, find_size=True
+                )
+                content = MediaMessageEventContent(
+                    url=mxc,
+                    file=decryption_info,
+                    info=info,
+                    msgtype=msgtype,
+                )
+
+                event_id = await self._send_message(
+                    intent,
+                    content,
+                    timestamp=timestamp,
+                )
+
+                # TODO error handling
+
+        # Handle third party media (gifs)
+        third_party_media = message_event.get("customContent", {}).get(
+            "com.linkedin.voyager.messaging.shared.ThirdPartyMedia"
+        )
+        if third_party_media:
+            if third_party_media.get("mediaType") == "TENOR_GIF":
+                gif_url = third_party_media.get("media", {}).get("gif", {}).get("url")
+                if gif_url:
+                    msgtype = MessageType.IMAGE
+                    # TODO get the width and height from the JSON response
+                    mxc, info, decryption_info = await self._reupload_linkedin_file(
+                        gif_url, source, intent, encrypt=self.encrypted, find_size=True
+                    )
+                    content = MediaMessageEventContent(
+                        url=mxc,
+                        file=decryption_info,
+                        info=info,
+                        msgtype=msgtype,
+                    )
+
+                    event_id = await self._send_message(
+                        intent,
+                        content,
+                        timestamp=timestamp,
+                    )
+                    # TODO error handling
+
+        # Handle the message text itself
+        message_text = message_event.get("attributedBody", {}).get("text")
+        if message_text:
+            content = TextMessageEventContent(
+                msgtype=MessageType.TEXT, body=message_text
+            )
+            event_id = await self._send_message(intent, content, timestamp=timestamp)
+
+            # TODO error handling
 
         if not event_id:
             return
 
+        # Handle reactions
         reaction_summaries = sorted(
             message.get("reactionSummaries", []),
             key=lambda m: m.get("firstReactedAt"),
@@ -767,6 +843,7 @@ class Portal(DBPortal, BasePortal):
         )
         for reaction_summary in reaction_summaries:
             matrix_reaction = reaction_summary.get("emoji")
+            # TODO figure out how many reactions should be added
             mxid = await intent.react(self.mxid, event_id, matrix_reaction)
             self.log.debug(f"Reacted to {event_id}, got {mxid}")
 
@@ -784,5 +861,48 @@ class Portal(DBPortal, BasePortal):
         #     # index: int
         #     # timestamp: int
         # )
+
+    @classmethod
+    async def _reupload_linkedin_file(
+        cls,
+        url: str,
+        source: "u.User",
+        intent: IntentAPI,
+        *,
+        filename: Optional[str] = None,
+        encrypt: bool = False,
+        find_size: bool = False,
+    ) -> Tuple[ContentURI, MediaInfo, Optional[EncryptedFile]]:
+        if not url:
+            raise ValueError("URL not provided")
+        # TODO move this to the linkedin-api
+        file_data = requests.get(url, cookies=source.linkedin_client.client.cookies)
+        if not file_data.ok:
+            raise Exception("Couldn't download media")
+
+        if len(file_data.content) > cls.matrix.media_config.upload_size:
+            raise ValueError("File not available: too large")
+
+        data = file_data.content
+        mime = magic.from_buffer(data, mime=True)
+
+        info = FileInfo(mimetype=mime, size=len(data))
+        if Image and mime.startswith("image/") and find_size:
+            with Image.open(BytesIO(data)) as img:
+                width, height = img.size
+            info = ImageInfo(mimetype=mime, size=len(data), width=width, height=height)
+
+        upload_mime_type = mime
+        decryption_info = None
+        if encrypt and encrypt_attachment:
+            data, decryption_info = encrypt_attachment(data)
+            upload_mime_type = "application/octet-stream"
+            filename = None
+        url = await intent.upload_media(
+            data, mime_type=upload_mime_type, filename=filename
+        )
+        if decryption_info:
+            decryption_info.url = url
+        return url, info, decryption_info
 
     # endregion

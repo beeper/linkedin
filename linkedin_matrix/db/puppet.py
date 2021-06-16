@@ -88,7 +88,7 @@ class Puppet(Model):
             self.custom_mxid,
             self.access_token,
             self.next_batch,
-            self.base_url,
+            str(self.base_url),
         )
 
     async def delete(self) -> None:
@@ -123,5 +123,5 @@ class Puppet(Model):
             self.custom_mxid,
             self.access_token,
             self.next_batch,
-            self.base_url,
+            str(self.base_url),
         )

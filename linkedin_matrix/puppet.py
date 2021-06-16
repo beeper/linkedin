@@ -1,4 +1,3 @@
-import magic
 import re
 from datetime import datetime, timedelta
 from typing import (
@@ -14,6 +13,7 @@ from typing import (
     Union,
 )
 
+import magic
 import requests
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import async_getter_lock, BasePuppet
