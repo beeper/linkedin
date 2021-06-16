@@ -173,6 +173,7 @@ async def enter_2fa_code(evt: CommandEvent) -> None:
 
 # region Matrix Puppeting
 
+
 @command_handler(
     needs_auth=True,
     management_only=True,

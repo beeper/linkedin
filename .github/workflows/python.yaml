@@ -26,12 +26,19 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install -r requirements.txt
         python -m pip install -r dev-requirements.txt
-    - name: Lint with flake8
+    - name: Lint with black
       run: |
         black --check .
+    - name: Lint with flake8
+      if: always()
+      run: |
         flake8 --count --statistics
-        mypy linkedin_matrix tests/**/*.py
+    - name: Lint with mypy
+      if: always()
+      run: |
+        mypy linkedin_matrix
+        mypy tests/**/*.py
     - name: Test with pytest
-      if: always() # always run the tests
+      if: always()
       run: |
         pytest
