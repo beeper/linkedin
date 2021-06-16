@@ -757,7 +757,7 @@ class Portal(DBPortal, BasePortal):
         message_event = message.get("eventContent", {}).get(
             "com.linkedin.voyager.messaging.event.MessageEvent", {}
         )
-        timestamp = message.get("createdAt") // 1000  # convert to POSIX
+        timestamp = message.get("createdAt")
 
         event_id = None
 

@@ -5,8 +5,9 @@
     * [x] Text
     * [ ] Media
       * [ ] Files
-      * [ ] Videos
       * [ ] Images
+      * [ ] Videos
+      * [ ] GIFs
     * [ ] ~~Formatting~~ (LinkedIn does not support rich formatting)
     * [ ] Replies
     * [ ] Mentions
@@ -26,15 +27,16 @@
     * [ ] Per-room user nick
 * LinkedIn → Matrix
   * [ ] Message content
-    * [ ] Text
-    * [ ] Media
-      * [ ] Files
-      * [ ] Videos
-      * [ ] Images
+    * [x] Text
+    * [x] Media
+      * [x] Files
+      * [x] Images
+      * [x] GIFs
     * [ ] Mentions
   * [ ] Message delete
   * [ ] Message reactions
-  * [ ] Message history
+  * [x] Message history
+  * [ ] Real-time messages
   * [ ] Presence
   * [ ] Typing notifications
   * [ ] Read receipts
