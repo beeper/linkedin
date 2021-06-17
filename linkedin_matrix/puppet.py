@@ -241,7 +241,9 @@ class Puppet(DBPuppet, BasePuppet):
         except KeyError:
             pass
 
-        puppet = cast(cls, await super().get_by_li_member_urn(li_member_urn))
+        puppet = cast(
+            Optional[Puppet], await super().get_by_li_member_urn(li_member_urn)
+        )
         if puppet:
             puppet._add_to_cache()
             return puppet

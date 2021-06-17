@@ -2,7 +2,6 @@ from typing import Dict, Optional, TYPE_CHECKING, ClassVar
 
 from asyncpg import Record
 from attr import dataclass
-
 from mautrix.util.async_db import Database
 from .model_base import Model
 
