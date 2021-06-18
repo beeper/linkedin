@@ -439,15 +439,19 @@ class User(DBUser, BaseUser):
                 if not chunk.startswith(b"data:"):
                     continue
                 data = json.loads(chunk.decode("utf-8")[6:])
-                event = (
-                    data.get("com.linkedin.realtimefrontend.DecoratedEvent", {})
-                    .get("payload", {})
-                    .get("event", {})
-                )
-                if not event:
-                    continue
+                event_payload = data.get(
+                    "com.linkedin.realtimefrontend.DecoratedEvent", {}
+                ).get("payload", {})
 
-                await self.handle_linkedin_event(event)
+                event = event_payload.get("event")
+                if event:
+                    await self.handle_linkedin_event(event)
+
+                reaction_summary = event_payload.get("reactionSummary")
+                if reaction_summary:
+                    print("reaction", event_payload)
+                    await self.handle_linkedin_reaction_summary(event_payload)
+
         self.log.info("Event stream closed")
 
     async def _try_listen(self):

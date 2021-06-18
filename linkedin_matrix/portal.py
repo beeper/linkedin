@@ -117,7 +117,6 @@ class Portal(DBPortal, BasePortal):
         self._main_intent = None
         self._create_room_lock = asyncio.Lock()
         self._dedup = deque(maxlen=100)
-        self._oti_dedup = {}
         self._send_locks = {}
         self._typing = set()
 
@@ -725,8 +724,32 @@ class Portal(DBPortal, BasePortal):
         sender: "p.Puppet",
         message: Dict[str, Any],
     ):
-        # TODO refactor this into multiple functions
         assert self.mxid
+        assert self.li_receiver_urn
+
+        li_message_urn = message.get("entityUrn")
+        if li_message_urn is None:
+            self.log.exception("entityUrn was None")
+            return
+
+        # Check in-memory queue for duplicates
+        if li_message_urn in self._dedup:
+            self.log.trace(
+                f"Not handling message {li_message_urn}, found ID in dedup queue"
+            )
+            return
+        self._dedup.appendleft(li_message_urn)
+
+        # Check database for duplicates
+        dbm = await DBMessage.get_by_li_message_urn(
+            li_message_urn, self.li_receiver_urn
+        )
+        if dbm:
+            self.log.debug(
+                f"Not handling message {li_message_urn}, found duplicate in database"
+            )
+            return
+
         self.log.trace("LinkedIn event content: %s", message)
         if not self.mxid:
             mxid = await self.create_matrix_room(source)
@@ -734,9 +757,7 @@ class Portal(DBPortal, BasePortal):
                 # Failed to create
                 return
         if not await self._bridge_own_message_pm(
-            source,
-            sender,
-            f"message {message.get('entityUrn')}",
+            source, sender, f"message {li_message_urn}"
         ):
             return
 
@@ -758,28 +779,158 @@ class Portal(DBPortal, BasePortal):
         message_event = message.get("eventContent", {}).get(
             "com.linkedin.voyager.messaging.event.MessageEvent", {}
         )
-        timestamp = message.get("createdAt")
+        timestamp = message.get("createdAt", int(datetime.now().timestamp() * 1000))
 
-        event_id = None
+        if message_event is None:
+            self.log.exception(f"No message event found in message {li_message_urn}")
+            return
 
-        # Handle attachments (files and images)
-        attachments = message_event.get("attachments", [])
-        if attachments:
-            for attachment in attachments:
-                media_type = attachment.get("mediaType")
+        event_ids = await self._handle_attachments(
+            source,
+            intent,
+            timestamp,
+            message_event.get("attachments", []),
+        ) + await self._handle_third_party_media(
+            source,
+            intent,
+            timestamp,
+            message_event.get("customContent", {}).get(
+                "com.linkedin.voyager.messaging.shared.ThirdPartyMedia"
+            ),
+        )
 
+        # Handle the message text itself
+        message_text = message_event.get("attributedBody", {}).get("text")
+        if message_text:
+            content = TextMessageEventContent(
+                msgtype=MessageType.TEXT, body=message_text
+            )
+            event_ids.append(
+                await self._send_message(intent, content, timestamp=timestamp)
+            )
+            # TODO error handling
+
+        if len(event_ids) == 0:
+            return
+
+        # Save all of the messages in the database.
+        event_ids = [event_id for event_id in event_ids if event_id]
+        self.log.debug(f"Handled Messenger message {li_message_urn} -> {event_ids}")
+        await DBMessage.bulk_create(
+            li_message_urn=li_message_urn,
+            li_thread_urn=self.li_thread_urn,
+            li_sender_urn=sender.li_member_urn,
+            li_receiver_urn=self.li_receiver_urn,
+            mx_room=self.mxid,
+            timestamp=timestamp,
+            event_ids=event_ids,
+        )
+        # TODO
+        # await self._send_delivery_receipt(event_ids[-1])
+
+        # Handle reactions
+        reaction_summaries = sorted(
+            message.get("reactionSummaries", []),
+            key=lambda m: m.get("firstReactedAt"),
+            reverse=True,
+        )
+        reaction_event_id = event_ids[-1]  # react to the last event
+        for reaction_summary in reaction_summaries:
+            self._handle_reaction_summary(
+                intent,
+                li_message_urn,
+                sender,
+                reaction_event_id,
+                reaction_summary,
+            )
+
+    async def _handle_reaction_summary(
+        self,
+        intent: IntentAPI,
+        li_message_urn: str,
+        sender: "p.Puppet",
+        reaction_event_id: EventID,
+        reaction_summary: Dict[str, Any],
+    ) -> Optional[EventID]:
+        reaction = reaction_summary.get("emoji")
+        if not reaction:
+            return None
+
+        assert self.mxid
+        assert self.li_receiver_urn
+
+        # TODO figure out how many reactions should be added
+        mxid = await intent.react(self.mxid, reaction_event_id, reaction)
+        self.log.debug(f"Reacted to {reaction_event_id}, got {mxid}")
+        await DBReaction(
+            mxid=mxid,
+            mx_room=self.mxid,
+            li_message_urn=li_message_urn,
+            li_receiver_urn=self.li_receiver_urn,
+            li_sender_urn=sender.li_member_urn,
+            reaction=reaction,
+        ).insert()
+        return mxid
+
+    async def _handle_attachments(
+        self,
+        source: "u.User",
+        intent: IntentAPI,
+        timestamp: Optional[int],
+        attachments: List[Dict[str, Any]],
+    ) -> List[EventID]:
+        event_ids = []
+        for attachment in attachments:
+            media_type = attachment.get("mediaType", "")
+
+            msgtype = MessageType.FILE
+            if media_type.startswith("image/"):
+                msgtype = MessageType.IMAGE
+            else:
                 msgtype = MessageType.FILE
-                if media_type.startswith("image/"):
-                    msgtype = MessageType.IMAGE
-                else:
-                    msgtype = MessageType.FILE
 
-                url = attachment.get("reference", {}).get("string")
-                if not url:
-                    continue
+            url = attachment.get("reference", {}).get("string")
+            if not url:
+                continue
 
+            mxc, info, decryption_info = await self._reupload_linkedin_file(
+                url, source, intent, encrypt=self.encrypted, find_size=True
+            )
+            content = MediaMessageEventContent(
+                url=mxc,
+                file=decryption_info,
+                info=info,
+                msgtype=msgtype,
+            )
+
+            event_id = await self._send_message(
+                intent,
+                content,
+                timestamp=timestamp,
+            )
+            # TODO error handling
+
+            event_ids.append(event_id)
+
+        return event_ids
+
+    async def _handle_third_party_media(
+        self,
+        source: "u.User",
+        intent: IntentAPI,
+        timestamp: Optional[int],
+        third_party_media: Dict[str, Any],
+    ) -> List[EventID]:
+        if not third_party_media:
+            return []
+
+        if third_party_media.get("mediaType") == "TENOR_GIF":
+            gif_url = third_party_media.get("media", {}).get("gif", {}).get("url")
+            if gif_url:
+                msgtype = MessageType.IMAGE
+                # TODO get the width and height from the JSON response
                 mxc, info, decryption_info = await self._reupload_linkedin_file(
-                    url, source, intent, encrypt=self.encrypted, find_size=True
+                    gif_url, source, intent, encrypt=self.encrypted, find_size=True
                 )
                 content = MediaMessageEventContent(
                     url=mxc,
@@ -793,75 +944,11 @@ class Portal(DBPortal, BasePortal):
                     content,
                     timestamp=timestamp,
                 )
-
                 # TODO error handling
+                return [event_id]
 
-        # Handle third party media (gifs)
-        third_party_media = message_event.get("customContent", {}).get(
-            "com.linkedin.voyager.messaging.shared.ThirdPartyMedia"
-        )
-        if third_party_media:
-            if third_party_media.get("mediaType") == "TENOR_GIF":
-                gif_url = third_party_media.get("media", {}).get("gif", {}).get("url")
-                if gif_url:
-                    msgtype = MessageType.IMAGE
-                    # TODO get the width and height from the JSON response
-                    mxc, info, decryption_info = await self._reupload_linkedin_file(
-                        gif_url, source, intent, encrypt=self.encrypted, find_size=True
-                    )
-                    content = MediaMessageEventContent(
-                        url=mxc,
-                        file=decryption_info,
-                        info=info,
-                        msgtype=msgtype,
-                    )
-
-                    event_id = await self._send_message(
-                        intent,
-                        content,
-                        timestamp=timestamp,
-                    )
-                    # TODO error handling
-
-        # Handle the message text itself
-        message_text = message_event.get("attributedBody", {}).get("text")
-        if message_text:
-            content = TextMessageEventContent(
-                msgtype=MessageType.TEXT, body=message_text
-            )
-            event_id = await self._send_message(intent, content, timestamp=timestamp)
-
-            # TODO error handling
-
-        if not event_id:
-            return
-
-        # Handle reactions
-        reaction_summaries = sorted(
-            message.get("reactionSummaries", []),
-            key=lambda m: m.get("firstReactedAt"),
-            reverse=True,
-        )
-        for reaction_summary in reaction_summaries:
-            matrix_reaction = reaction_summary.get("emoji")
-            # TODO figure out how many reactions should be added
-            mxid = await intent.react(self.mxid, event_id, matrix_reaction)
-            self.log.debug(f"Reacted to {event_id}, got {mxid}")
-
-        # TODO store the event to the database
-        # await DBMessage(                 mxid=event_id,mx_room=self.mxid,
-        #                 li_message_urn = message.get("")
-        #                 li_thread_urn=message.get("entityUrn"),
-
-        #     # mxid: EventID
-        #     # mx_room: RoomID
-        #     # li_message_urn: Optional[str]
-        #     # li_thread_urn: str
-        #     # li_sender_urn: str
-        #     # li_receiver_urn: str
-        #     # index: int
-        #     # timestamp: int
-        # )
+        self.log.warning(f"Unsupported third party media: {third_party_media}.")
+        return []
 
     @classmethod
     async def _reupload_linkedin_file(

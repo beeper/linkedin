@@ -42,13 +42,26 @@ class Message(Model):
         return cls(**row)
 
     @classmethod
-    async def get_all_by_li_message_urn(
+    async def get_all_by_li_thread_urn(
+        cls,
+        li_thread_urn: str,
+        li_receiver_urn: str,
+    ) -> List["Message"]:
+        query = Message.select_constructor("li_thread_urn=$1 AND li_receiver_urn=$2")
+        rows = await cls.db.fetch(query, li_thread_urn, li_receiver_urn)
+        return [cls._from_row(row) for row in rows]
+
+    @classmethod
+    async def get_by_li_message_urn(
         cls,
         li_message_urn: str,
         li_receiver_urn: str,
-    ) -> List["Message"]:
-        query = Message.select_constructor("li_message_urn=$1 AND li_receiver_urn=$2")
-        rows = await cls.db.fetch(query, li_message_urn, li_receiver_urn)
+        index: int = 0,
+    ) -> Optional["Message"]:
+        query = Message.select_constructor(
+            "li_message_urn=$1 AND li_receiver_urn=$2 AND index=$3"
+        )
+        rows = await cls.db.fetch(query, li_message_urn, li_receiver_urn, index)
         return [cls._from_row(row) for row in rows]
 
     @classmethod
@@ -86,6 +99,40 @@ class Message(Model):
             self.index,
             self.timestamp,
         )
+
+    @classmethod
+    async def bulk_create(
+        cls,
+        li_message_urn: str,
+        li_thread_urn: str,
+        li_sender_urn: str,
+        li_receiver_urn: str,
+        timestamp: int,
+        event_ids: List[EventID],
+        mx_room: RoomID,
+    ) -> None:
+        if not event_ids:
+            return
+
+        records = [
+            (
+                mxid,
+                mx_room,
+                li_message_urn,
+                li_thread_urn,
+                li_sender_urn,
+                li_receiver_urn,
+                index,
+                timestamp,
+            )
+            for index, mxid in enumerate(event_ids)
+        ]
+        async with cls.db.acquire() as conn, conn.transaction():
+            await conn.copy_records_to_table(
+                "message",
+                records=records,
+                columns=cls._field_list,
+            )
 
     async def delete(self) -> None:
         q = """

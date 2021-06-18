@@ -37,6 +37,12 @@ class Reaction(Model):
             return None
         return cls(**row)
 
+    @classmethod
+    async def get_by_mxid(cls, mxid: EventID, mx_room: RoomID) -> Optional["Reaction"]:
+        query = Reaction.select_constructor("mxid=$1 AND mx_room=$2")
+        row = await cls.db.fetchrow(query, mxid, mx_room)
+        return cls._from_row(row)
+
     async def insert(self):
         query = Reaction.insert_constructor()
         await self.db.execute(
