@@ -290,7 +290,7 @@ class Portal(DBPortal, BasePortal):
         changed = False
 
         if not self.is_direct:
-            print("not direct", conversation)
+            # print("not direct", conversation)
             pass
             # TODO
             # changed = any(

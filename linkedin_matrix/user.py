@@ -215,6 +215,17 @@ class User(DBUser, BaseUser):
         asyncio.create_task(self.post_login())
         return True
 
+    async def reconnect(self) -> None:
+        print("================================")
+        print("reconnect")
+        print("================================")
+        assert self.listen_task
+        self._is_refreshing = True
+        await self.listen_task
+        self.listen_task = None
+        self.start_listen()
+        self._is_refreshing = False
+
     async def is_logged_in(self, _override: bool = False) -> bool:
         if not self.cookies or not self.linkedin_client:
             return False
@@ -392,13 +403,9 @@ class User(DBUser, BaseUser):
     event_urn_re = re.compile(r"urn:li:fs_event:\(([^,]+),([^,]+)\)")
 
     async def handle_linkedin_event(self, event: Dict[str, Any]):
-        print(event)
-
         event_entity_urn = event.get("entityUrn", "")
         match = self.event_urn_re.match(event_entity_urn)
         if not match:
-            print("no match!")
-            print(event_entity_urn)
             return
         thread_urn, message_urn = match.groups()
 
@@ -410,41 +417,47 @@ class User(DBUser, BaseUser):
             .split(":")[-1]
         )
 
-        portal = await po.Portal.get_by_li_thread_urn(thread_urn, li_receiver_urn=self.li_member_urn)
+        portal = await po.Portal.get_by_li_thread_urn(
+            thread_urn, li_receiver_urn=self.li_member_urn
+        )
         puppet = await pu.Puppet.get_by_li_member_urn(sender_urn)
 
         await portal.backfill_lock.wait(message_urn)
         await portal.handle_linkedin_message(self, puppet, event)
 
+    async def listen_to_event_stream(self, session: aiohttp.ClientSession):
+        self.log.info("Starting event stream listener")
+        async with session.get(
+            "https://realtime.www.linkedin.com/realtime/connect",
+            headers={"content-type": "text/event-stream"},
+            timeout=2 ** 128,
+        ) as resp:
+            while True:
+                chunk = await resp.content.readline()
+                if not chunk:
+                    break
+                if not chunk.startswith(b"data:"):
+                    continue
+                data = json.loads(chunk.decode("utf-8")[6:])
+                event = (
+                    data.get("com.linkedin.realtimefrontend.DecoratedEvent", {})
+                    .get("payload", {})
+                    .get("event", {})
+                )
+                if not event:
+                    continue
+
+                await self.handle_linkedin_event(event)
+        self.log.info("Event stream closed")
+
     async def _try_listen(self):
         try:
-            print("listen")
-            # TODO this connect thing times out after a few minutes
             async with aiohttp.ClientSession(
                 cookies=self.linkedin_client.client.cookies,
                 headers=self.REQUEST_HEADERS,
             ) as s:
-                async with s.get(
-                    "https://realtime.www.linkedin.com/realtime/connect",
-                    headers={"content-type": "text/event-stream"},
-                    timeout=2 ** 128,
-                ) as resp:
-                    while True:
-                        chunk = await resp.content.readline()
-                        if not chunk:
-                            break
-                        if not chunk.startswith(b"data:"):
-                            continue
-                        data = json.loads(chunk.decode("utf-8")[6:])
-                        event = (
-                            data.get("com.linkedin.realtimefrontend.DecoratedEvent", {})
-                            .get("payload", {})
-                            .get("event", {})
-                        )
-                        if not event:
-                            continue
-
-                        await self.handle_linkedin_event(event)
+                while True:
+                    await self.listen_to_event_stream(s)
 
         except Exception as e:
             print(e)

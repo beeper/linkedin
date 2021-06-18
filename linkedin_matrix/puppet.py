@@ -23,7 +23,7 @@ from yarl import URL
 
 from .config import Config
 from .db import Puppet as DBPuppet
-from . import user as u, portal as p, matrix as m
+from . import matrix as m, portal as p, user as u
 
 if TYPE_CHECKING:
     from .__main__ import LinkedInBridge
