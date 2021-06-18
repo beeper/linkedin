@@ -166,8 +166,7 @@ class Portal(DBPortal, BasePortal):
 
     @property
     def is_direct(self) -> bool:
-        # TODO
-        return True
+        return not self.li_is_group_chat
 
     # endregion
 
@@ -288,6 +287,7 @@ class Portal(DBPortal, BasePortal):
         changed = False
 
         if not self.is_direct:
+            print("not direct", conversation)
             pass
             # TODO
             # changed = any(
@@ -314,7 +314,7 @@ class Portal(DBPortal, BasePortal):
         changed = False
 
         participants = conversation.get("participants", [])
-        nick_map = {}
+        nick_map = {} # TODO can we support this?
         for participant in participants:
             # TODO turn Participant into an actual class and deserialize it.
             # For now, this will have to suffice
@@ -322,29 +322,27 @@ class Portal(DBPortal, BasePortal):
                 "com.linkedin.voyager.messaging.MessagingMember", {}
             )
             participant_urn = (
-                participant.get("miniProfile", {}).get("objectUrn", "").split(":")[-1]
+                participant.get("miniProfile", {}).get("entityUrn", "").split(":")[-1]
             )
 
             puppet = await p.Puppet.get_by_li_member_urn(participant_urn)
             await puppet.update_info(source, participant)
+            if (
+                self.is_direct
+                and self.li_other_user_urn == puppet.li_member_urn
+                and self.encrypted
+            ):
+                pass
+                # TODO
+                # changed = await self._update_name(puppet.name) or changed
+                # changed = await self._update_photo_from_puppet(puppet) or changed
 
-        return changed
-        nick_map = (
-            info.customization_info.nickname_map if info.customization_info else {}
-        )
-        for participant in info.all_participants.nodes:
-            puppet = await p.Puppet.get_by_fbid(int(participant.id))
-            await puppet.update_info(source, participant.messaging_actor)
-            if self.is_direct and self.fbid == puppet.fbid and self.encrypted:
-                changed = await self._update_name(puppet.name) or changed
-                changed = await self._update_photo_from_puppet(puppet) or changed
             if self.mxid:
-                if puppet.fbid != self.fb_receiver or puppet.is_real_user:
+                if puppet.li_member_urn != self.li_receiver_urn or puppet.is_real_user:
                     await puppet.intent_for(self).ensure_joined(
                         self.mxid, bot=self.main_intent
                     )
-                if puppet.fbid in nick_map:
-                    await self.sync_per_room_nick(puppet, nick_map[puppet.fbid])
+
         return changed
 
     # endregion
@@ -616,7 +614,7 @@ class Portal(DBPortal, BasePortal):
                     message.get("from", {})
                     .get("com.linkedin.voyager.messaging.MessagingMember", {})
                     .get("miniProfile", {})
-                    .get("objectUrn", "")
+                    .get("entityUrn", "")
                     .split(":")[-1]
                 )
                 puppet = await p.Puppet.get_by_li_member_urn(member_urn)

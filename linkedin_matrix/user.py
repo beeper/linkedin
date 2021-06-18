@@ -200,8 +200,8 @@ class User(DBUser, BaseUser):
 
         self.log.info("Loaded session successfully")
         self.li_member_urn = str(
-            user_info["plainId"]
-        )  # TODO figure out what type this actually is
+            user_info.get("miniProfile", {}).get("entityUrn", "").split(":")[-1]
+        )
         self.linkedin_client = linkedin_client
         # TODO
         # self._track_metric(METRIC_LOGGED_IN, True)
@@ -227,8 +227,8 @@ class User(DBUser, BaseUser):
         self.linkedin_client = Linkedin("", "", cookies=cookies)
         profile = self.linkedin_client.get_user_profile()
         self.li_member_urn = str(
-            profile["plainId"]
-        )  # TODO figure out what this actually is
+            profile.get("miniProfile", {}).get("entityUrn", "").split(":")[-1]
+        )
         await self.save()
         self.stop_listen()
         asyncio.create_task(self.post_login())
@@ -307,14 +307,14 @@ class User(DBUser, BaseUser):
         thread_urn = cast(str, conversation.get("entityUrn"))
         self.log.debug(f"Syncing thread {thread_urn}")
 
-        li_is_group_chat = not conversation.get("groupChat", False)
+        li_is_group_chat = conversation.get("groupChat", False)
         li_other_user_urn = None
-        if li_is_group_chat:
+        if not li_is_group_chat:
             li_other_user_urn = (
                 conversation.get("participants", [])[0]
                 .get("com.linkedin.voyager.messaging.MessagingMember", {})
                 .get("miniProfile", {})
-                .get("objectUrn", "")
+                .get("entityUrn", "")
                 .split(":")[-1]
             )
 
