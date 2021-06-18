@@ -276,7 +276,10 @@ class Portal(DBPortal, BasePortal):
             # shouldn't happen currently
             assert False, "update_info called without conversation"
 
-        if conversation.get("entityUrn") != self.li_thread_urn:
+        if (
+            cast(str, conversation.get("entityUrn")).split(":")[-1]
+            != self.li_thread_urn
+        ):
             self.log.warning(
                 "Got different ID (%s) than what was asked for (%s) when fetching",
                 conversation.get("entityUrn"),
@@ -314,7 +317,7 @@ class Portal(DBPortal, BasePortal):
         changed = False
 
         participants = conversation.get("participants", [])
-        nick_map = {} # TODO can we support this?
+        nick_map = {}  # TODO can we support this?
         for participant in participants:
             # TODO turn Participant into an actual class and deserialize it.
             # For now, this will have to suffice
