@@ -48,7 +48,9 @@ class Puppet(Model):
     def _from_row(cls, row: Optional[Record]) -> Optional["Puppet"]:
         if row is None:
             return None
-        return cls(**row)
+        data = {**row}
+        base_url = data.pop("base_url", None)
+        return cls(**data, base_url=URL(base_url) if base_url else None)
 
     @classmethod
     async def get_by_li_member_urn(cls, li_member_urn: str) -> Optional["Puppet"]:
@@ -88,7 +90,7 @@ class Puppet(Model):
             self.custom_mxid,
             self.access_token,
             self.next_batch,
-            str(self.base_url),
+            str(self.base_url) if self.base_url else None,
         )
 
     async def delete(self) -> None:
@@ -123,5 +125,5 @@ class Puppet(Model):
             self.custom_mxid,
             self.access_token,
             self.next_batch,
-            str(self.base_url),
+            str(self.base_url) if self.base_url else None,
         )
