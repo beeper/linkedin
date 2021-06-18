@@ -836,7 +836,7 @@ class Portal(DBPortal, BasePortal):
         )
         reaction_event_id = event_ids[-1]  # react to the last event
         for reaction_summary in reaction_summaries:
-            self._handle_reaction_summary(
+            self.handle_reaction_summary(
                 intent,
                 li_message_urn,
                 sender,
@@ -844,7 +844,7 @@ class Portal(DBPortal, BasePortal):
                 reaction_summary,
             )
 
-    async def _handle_reaction_summary(
+    async def handle_reaction_summary(
         self,
         intent: IntentAPI,
         li_message_urn: str,

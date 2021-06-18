@@ -406,6 +406,9 @@ class User(DBUser, BaseUser):
         event_entity_urn = event.get("entityUrn", "")
         match = self.event_urn_re.match(event_entity_urn)
         if not match:
+            self.log.warning(
+                f"LinkedIn entity URN ({event_entity_urn}) didn't match regex"
+            )
             return
         thread_urn, message_urn = match.groups()
 
@@ -424,6 +427,28 @@ class User(DBUser, BaseUser):
 
         await portal.backfill_lock.wait(message_urn)
         await portal.handle_linkedin_message(self, puppet, event)
+
+    async def handle_linkedin_reaction_summary(self, event: Dict[str, Any]):
+        # TODO #32
+        if not event.get("reactionAdded"):
+            return
+
+        # TODO #31 actually handle this
+        event_entity_urn = event.get("eventUrn", "")
+        match = self.event_urn_re.match(event_entity_urn)
+        if not match:
+            return
+        thread_urn, message_urn = match.groups()
+
+        sender_urn = event.get("actorMiniProfileUrn", "").split(":")[-1]
+
+        portal = await po.Portal.get_by_li_thread_urn(
+            thread_urn, li_receiver_urn=self.li_member_urn
+        )
+        puppet = await pu.Puppet.get_by_li_member_urn(sender_urn)
+
+        await portal.backfill_lock.wait(message_urn)
+        await portal.handle_linkedin_reaction_summary(self, puppet, event)
 
     async def listen_to_event_stream(self, session: aiohttp.ClientSession):
         self.log.info("Starting event stream listener")
