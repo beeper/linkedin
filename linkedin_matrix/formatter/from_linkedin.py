@@ -1,8 +1,8 @@
-from typing import Any, Dict, List, Match, Optional, Union
-from html import escape
 import re
+from html import escape
+from typing import Any, Dict, List, Match, Optional, Union
 
-from mautrix.types import TextMessageEventContent, Format, MessageType
+from mautrix.types import Format, MessageType, TextMessageEventContent
 
 from .. import puppet as pu, user as u
 

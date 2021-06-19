@@ -54,26 +54,18 @@ class LinkedInFormatString(EntityString[SimpleEntity, EntityType], MarkdownStrin
                 )
             )
             return self
-        elif entity_type == EntityType.BOLD:
-            prefix = suffix = "*"
-        elif entity_type == EntityType.ITALIC:
-            prefix = suffix = "_"
-        elif entity_type == EntityType.STRIKETHROUGH:
-            prefix = suffix = "~"
         elif entity_type == EntityType.URL:
             if kwargs["url"] != self.text:
                 suffix = f" ({kwargs['url']})"
         elif entity_type == EntityType.PREFORMATTED:
-            prefix = f"```{kwargs['language']}\n"
-            suffix = "\n```"
+            prefix = "```\n"
+            suffix = "```"
         elif entity_type == EntityType.INLINE_CODE:
             prefix = suffix = "`"
         elif entity_type == EntityType.BLOCKQUOTE:
             children = self.trim().split("\n")
             children = [child.prepend("> ") for child in children]
             return self.join(children, "\n")
-        elif entity_type == EntityType.HEADER:
-            prefix = "#" * kwargs["size"] + " "
         else:
             return self
 
