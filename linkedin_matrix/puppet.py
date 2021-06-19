@@ -197,8 +197,8 @@ class Puppet(DBPuppet, BasePuppet):
             self.photo_id = photo_id
 
             if photo_id:
-                # Use the 100x100 image
-                file_path_segment = picture["artifacts"][0][
+                # Use the largest image
+                file_path_segment = picture["artifacts"][-1][
                     "fileIdentifyingUrlPathSegment"
                 ]
 
