@@ -1,6 +1,7 @@
 import asyncio
 from collections import deque
 from datetime import datetime
+from html import escape
 from io import BytesIO
 from typing import (
     Dict,
@@ -59,6 +60,7 @@ from .db import (
     Reaction as DBReaction,
     UserPortal,
 )
+from .formatter import linkedin_to_matrix, matrix_to_linkedin
 from . import puppet as p, user as u
 
 if TYPE_CHECKING:
@@ -576,6 +578,10 @@ class Portal(DBPortal, BasePortal):
         self.log.debug("Backfilling history through %s", source.mxid)
         messages = conversation.get("events", [])
 
+        # TODO do whatever needs to be done to prevent it from backfilling if there are
+        # no new messages
+        return
+
         if len(messages):
             oldest_message = messages[0]
             before_timestamp = datetime.fromtimestamp(
@@ -654,7 +660,7 @@ class Portal(DBPortal, BasePortal):
                 f"Ignoring puppet-sent message by confirmed puppet user {sender.mxid}"
             )
             return
-        if message.msgtype == MessageType.TEXT or message.msgtype == MessageType.NOTICE:
+        if message.msgtype in (MessageType.TEXT, MessageType.NOTICE, MessageType.EMOTE):
             await self._handle_matrix_text(event_id, sender, message)
         else:
             self.log.warning(f"Unsupported msgtype {message.msgtype} in {event_id}")
@@ -666,13 +672,13 @@ class Portal(DBPortal, BasePortal):
         sender: "u.User",
         message: TextMessageEventContent,
     ):
-        if message.format == Format.HTML and message.formatted_body:
-            text = BeautifulSoup(message.formatted_body, "lxml").text
-        else:
-            text = message.body
-
+        converted = await matrix_to_linkedin(message, self.log)
         conversation_urn = self.li_thread_urn.split(":")[-1]
-        failure = sender.linkedin_client.send_message(text, conversation_urn)
+        failure = sender.linkedin_client.send_message(
+            converted.text,
+            conversation_urn,
+            attributes=[m.to_json() for m in converted.mentions],
+        )
         if failure:
             raise Exception(f"Send message to {conversation_urn} failed")
 
@@ -800,11 +806,9 @@ class Portal(DBPortal, BasePortal):
         )
 
         # Handle the message text itself
-        message_text = message_event.get("attributedBody", {}).get("text")
-        if message_text:
-            content = TextMessageEventContent(
-                msgtype=MessageType.TEXT, body=message_text
-            )
+        message_attributed_body = message_event.get("attributedBody", {})
+        if message_attributed_body:
+            content = await linkedin_to_matrix(message_attributed_body)
             event_ids.append(
                 await self._send_message(intent, content, timestamp=timestamp)
             )
