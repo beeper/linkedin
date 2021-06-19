@@ -59,16 +59,14 @@ async def upgrade_v1(conn: Connection):
             index               SMALLINT,
             timestamp           BIGINT,
 
-            PRIMARY KEY (li_thread_urn, li_receiver_urn, index),
+            PRIMARY KEY (li_message_urn, li_receiver_urn, index),
 
             FOREIGN KEY (li_thread_urn, li_receiver_urn)
              REFERENCES portal (li_thread_urn, li_receiver_urn)
                      ON UPDATE CASCADE
                      ON DELETE CASCADE,
 
-            UNIQUE (mxid, mx_room),
-            UNIQUE (li_thread_urn, li_receiver_urn, index),
-            UNIQUE (li_message_urn, li_sender_urn, li_receiver_urn, index)
+            UNIQUE (mxid, mx_room)
         )
         """,
         """
