@@ -2,7 +2,20 @@ from dataclasses import dataclass
 from typing import Any, cast, Dict, List
 
 from bs4 import BeautifulSoup
-from mautrix.types import TextMessageEventContent, Format, RoomID, RelationType
+from mautrix.appservice import IntentAPI
+from mautrix.types import (
+    ContentURI,
+    EventID,
+    EventType,
+    Format,
+    ImageInfo,
+    MessageEventContent,
+    MessageType,
+    RelationType,
+    RoomID,
+    RoomID,
+    TextMessageEventContent,
+)
 from mautrix.util.formatter import (
     MatrixParser as BaseMatrixParser,
     MarkdownString,
@@ -84,13 +97,25 @@ class MatrixParser(BaseMatrixParser[LinkedInFormatString]):
 
 async def matrix_to_linkedin(
     content: TextMessageEventContent,
+    sender: "u.User",
+    intent: IntentAPI,
     log: TraceLogger,
 ) -> SendParams:
     mentions = []
+
     if content.format == Format.HTML and content.formatted_body:
         parsed = MatrixParser.parse(content.formatted_body)
+
+        if content.msgtype == MessageType.EMOTE:
+            display_name = await intent.get_displayname(sender.mxid)
+            if display_name:
+                parsed.prepend(f"* {display_name} ")
+                mentions.append(Mention(2, len(display_name), sender.li_member_urn))
+            else:
+                log.warning(f"Couldn't find displayname for {sender.mxid}")
+
         text = parsed.text
-        mentions = []
+
         for mention in parsed.entities:
             mxid = mention.extra_info["user_id"]
             user = await u.User.get_by_mxid(mxid, create=False)

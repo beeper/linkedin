@@ -660,8 +660,21 @@ class Portal(DBPortal, BasePortal):
                 f"Ignoring puppet-sent message by confirmed puppet user {sender.mxid}"
             )
             return
+
         if message.msgtype in (MessageType.TEXT, MessageType.NOTICE, MessageType.EMOTE):
             await self._handle_matrix_text(event_id, sender, message)
+        elif message.msgtype == MessageType.AUDIO:
+            print("audio", message)
+        elif message.msgtype == MessageType.FILE:
+            print("file", message)
+        elif message.msgtype == MessageType.IMAGE:
+            print("image", message)
+        elif message.msgtype == MessageType.LOCATION:
+            print("location", message)
+        elif message.msgtype == MessageType.STICKER:
+            print("sticker", message)
+        elif message.msgtype == MessageType.VIDEO:
+            print("video", message)
         else:
             self.log.warning(f"Unsupported msgtype {message.msgtype} in {event_id}")
             return
@@ -672,7 +685,9 @@ class Portal(DBPortal, BasePortal):
         sender: "u.User",
         message: TextMessageEventContent,
     ):
-        converted = await matrix_to_linkedin(message, self.log)
+        converted = await matrix_to_linkedin(
+            message, sender, self.main_intent, self.log
+        )
         conversation_urn = self.li_thread_urn.split(":")[-1]
         failure = sender.linkedin_client.send_message(
             converted.text,
