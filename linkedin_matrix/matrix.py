@@ -1,4 +1,4 @@
-from typing import List, Union, TYPE_CHECKING
+from typing import List, Optional, Union, TYPE_CHECKING
 import time
 
 from mautrix.types import (
@@ -65,3 +65,32 @@ class MatrixHandler(BaseMatrixHandler):
             evt.sender == self.az.bot_mxid
             or pu.Puppet.get_id_from_mxid(evt.sender) is not None
         )
+
+    async def handle_presence(
+        self,
+        user_id: UserID,
+        info: PresenceEventContent,
+    ) -> None:
+        print(f"user ({user_id}) is present {info}")
+        if not self.config["bridge.presence"]:
+            return
+
+    @staticmethod
+    async def handle_typing(room_id: RoomID, typing: List[UserID]) -> None:
+        print(f"room: {room_id}: typing {typing}")
+        portal: Optional[po.Portal] = await po.Portal.get_by_mxid(room_id)
+        if not portal:
+            return
+        # https://www.linkedin.com/voyager/api/messaging/conversations?action=typing
+        # {"conversationId":"2-ZmRhMGVmZDYtNDVjYS00Y2Y2LWE3ZTYtNmFkM2FlMGMxMDA1XzAxMg=="}
+
+    async def handle_ephemeral_event(
+        self,
+        evt: Union[ReceiptEvent, PresenceEvent, TypingEvent],
+    ):
+        if evt.type == EventType.PRESENCE:
+            await self.handle_presence(evt.sender, evt.content)
+        elif evt.type == EventType.TYPING:
+            await self.handle_typing(evt.room_id, evt.content.user_ids)
+        elif evt.type == EventType.RECEIPT:
+            await self.handle_receipt(evt)
