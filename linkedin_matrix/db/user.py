@@ -27,7 +27,7 @@ class User(Model):
 
     @property
     def _cookies_json(self) -> Optional[str]:
-        return json.dumps(dict(self.cookies)) if self.cookies else None
+        return json.dumps(self.cookies.get_dict()) if self.cookies else None
 
     @classmethod
     def _from_row(cls, row: Optional[Record]) -> Optional["User"]:

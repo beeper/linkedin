@@ -18,7 +18,9 @@ from typing import (
     TYPE_CHECKING,
     cast,
 )
+from urllib import parse
 
+import aiohttp
 import magic
 import requests
 from bs4 import BeautifulSoup
@@ -52,6 +54,7 @@ from mautrix.types import (
     MemberStateEventContent,
 )
 from mautrix.util.simple_lock import SimpleLock
+from yarl import URL
 
 from .config import Config
 from .db import (
@@ -668,13 +671,13 @@ class Portal(DBPortal, BasePortal):
         elif message.msgtype == MessageType.FILE:
             print("file", message)
         elif message.msgtype == MessageType.IMAGE:
-            print("image", message)
+            await self._handle_matrix_image(event_id, sender, message)
+        elif message.msgtype == MessageType.VIDEO:
+            print("video", message)
         elif message.msgtype == MessageType.LOCATION:
             print("location", message)
         elif message.msgtype == MessageType.STICKER:
             print("sticker", message)
-        elif message.msgtype == MessageType.VIDEO:
-            print("video", message)
         else:
             self.log.warning(f"Unsupported msgtype {message.msgtype} in {event_id}")
             return
@@ -693,6 +696,63 @@ class Portal(DBPortal, BasePortal):
             converted.text,
             conversation_urn,
             attributes=[m.to_json() for m in converted.mentions],
+        )
+        if failure:
+            raise Exception(f"Send message to {conversation_urn} failed")
+
+    async def _handle_matrix_image(
+        self,
+        event_id: EventID,
+        sender: "u.User",
+        message: MediaMessageEventContent,
+    ):
+        upload_metadata_response = sender.linkedin_client._post(
+            "/voyagerMediaUploadMetadata",
+            params={"action": "upload"},
+            json={
+                "mediaUploadType": "MESSAGING_PHOTO_ATTACHMENT",
+                "fileSize": message.info.size,
+                "filename": message.body,
+            },
+        )
+        if upload_metadata_response.status_code != 200:
+            self.main_intent.send_notice(self.mxid, "Failed to send upload metadata")
+        upload_metadata_response_json = upload_metadata_response.json().get("value", {})
+        print(upload_metadata_response_json)
+        upload_url = upload_metadata_response_json.get("singleUploadUrl")
+        assert upload_url
+
+        if message.file and decrypt_attachment:
+            data = await self.main_intent.download_media(message.file.url)
+            data = decrypt_attachment(
+                data,
+                message.file.key.key,
+                message.file.hashes.get("sha256"),
+                message.file.iv,
+            )
+        elif message.url:
+            data = await self.main_intent.download_media(message.url)
+        else:
+            return
+
+        upload_response = sender.linkedin_client.client.session.put(
+            upload_url, data=data
+        )
+        if upload_response.status_code != 201:
+            self.main_intent.send_notice(self.mxid, "Failed to upload file")
+
+        conversation_urn = self.li_thread_urn.split(":")[-1]
+        failure = sender.linkedin_client.send_message(
+            "",
+            conversation_urn,
+            attachments=[
+                {
+                    "id": upload_metadata_response_json.get("urn"),
+                    "name": message.body,
+                    "byteSize": message.info.size,
+                    "mediaType": message.info.mimetype,
+                }
+            ],
         )
         if failure:
             raise Exception(f"Send message to {conversation_urn} failed")
