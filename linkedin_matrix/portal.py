@@ -665,26 +665,20 @@ class Portal(DBPortal, BasePortal):
             return
 
         if message.msgtype in (MessageType.TEXT, MessageType.NOTICE, MessageType.EMOTE):
-            await self._handle_matrix_text(event_id, sender, message)
-        elif message.msgtype == MessageType.AUDIO:
-            print("audio", message)
-        elif message.msgtype == MessageType.FILE:
-            print("file", message)
-        elif message.msgtype == MessageType.IMAGE:
-            await self._handle_matrix_image(event_id, sender, message)
-        elif message.msgtype == MessageType.VIDEO:
-            print("video", message)
-        elif message.msgtype == MessageType.LOCATION:
-            print("location", message)
-        elif message.msgtype == MessageType.STICKER:
-            print("sticker", message)
+            await self._handle_matrix_text(sender, message)
+        elif message.msgtype in (
+            MessageType.AUDIO,
+            MessageType.FILE,
+            MessageType.IMAGE,
+            MessageType.VIDEO,
+        ):
+            await self._handle_matrix_media(event_id, sender, message)
         else:
             self.log.warning(f"Unsupported msgtype {message.msgtype} in {event_id}")
             return
 
     async def _handle_matrix_text(
         self,
-        event_id: EventID,
         sender: "u.User",
         message: TextMessageEventContent,
     ):
@@ -700,7 +694,7 @@ class Portal(DBPortal, BasePortal):
         if failure:
             raise Exception(f"Send message to {conversation_urn} failed")
 
-    async def _handle_matrix_image(
+    async def _handle_matrix_media(
         self,
         event_id: EventID,
         sender: "u.User",
@@ -718,7 +712,6 @@ class Portal(DBPortal, BasePortal):
         if upload_metadata_response.status_code != 200:
             self.main_intent.send_notice(self.mxid, "Failed to send upload metadata")
         upload_metadata_response_json = upload_metadata_response.json().get("value", {})
-        print(upload_metadata_response_json)
         upload_url = upload_metadata_response_json.get("singleUploadUrl")
         assert upload_url
 

@@ -4,14 +4,15 @@
   * [ ] Message content
     * [x] Text
     * [ ] Media
-      * [ ] Files
-      * [ ] Images
-      * [ ] Videos
-      * [ ] GIFs
+      * [x] Files
+      * [x] Images
+      * [x] Videos
+      * [x] GIFs
+      * [ ] Stickers
     * [ ] ~~Formatting~~ (LinkedIn does not support rich formatting)
     * [ ] Replies
-    * [ ] Mentions
-    * [ ] Emotes
+    * [x] Mentions
+    * [x] Emotes
   * [ ] Message redactions
   * [ ] Message reactions
   * [ ] Presence
@@ -27,13 +28,13 @@
     * [ ] Avatar
     * [ ] Per-room user nick
 * LinkedIn → Matrix
-  * [ ] Message content
+  * [x] Message content
     * [x] Text
     * [x] Media
       * [x] Files
       * [x] Images
       * [x] GIFs
-    * [ ] Mentions
+    * [x] Mentions
   * [ ] Message delete
   * [ ] Message reactions
   * [x] Message history
