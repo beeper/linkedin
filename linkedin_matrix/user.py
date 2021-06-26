@@ -21,17 +21,17 @@ from linkedin_messaging.api_objects import (
 from mautrix.bridge import async_getter_lock, BaseUser
 from mautrix.errors import MNotFound
 from mautrix.types import (
+    EventID,
+    MessageType,
     PushActionType,
     PushRuleKind,
     PushRuleScope,
-    UserID,
     RoomID,
-    EventID,
     TextMessageEventContent,
-    MessageType,
+    UserID,
 )
+from mautrix.util.opt_prometheus import async_time, Gauge, Summary
 from mautrix.util.simple_lock import SimpleLock
-from mautrix.util.opt_prometheus import Summary, Gauge, async_time
 
 from . import portal as po, puppet as pu
 from .config import Config

@@ -79,7 +79,6 @@ class LinkedInBridge(Bridge):
         if self.config["bridge.resend_bridge_info"]:
             self.add_startup_actions(self.resend_bridge_info())
         await super().start()
-        # self.periodic_reconnect_task = asyncio.create_task(self._try_periodic_reconnect_loop())
 
     async def resend_bridge_info(self):
         self.config["bridge.resend_bridge_info"] = False

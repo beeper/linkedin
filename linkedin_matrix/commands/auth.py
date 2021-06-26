@@ -1,6 +1,5 @@
 from typing import cast
 
-from bs4 import BeautifulSoup
 from linkedin_messaging import ChallengeException, LinkedInMessaging
 from mautrix.bridge import custom_puppet as cpu
 from mautrix.bridge.commands import command_handler, HelpSection

@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import (
     Any,
     AsyncGenerator,
@@ -19,13 +19,13 @@ from linkedin_messaging import URN
 from linkedin_messaging.api_objects import MessagingMember, Picture
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import async_getter_lock, BasePuppet
-from mautrix.types import ContentURI, UserID, RoomID, SyncToken
+from mautrix.types import ContentURI, RoomID, SyncToken, UserID
 from mautrix.util.simple_template import SimpleTemplate
 from yarl import URL
 
+from . import matrix as m, portal as p, user as u
 from .config import Config
 from .db import Puppet as DBPuppet
-from . import matrix as m, portal as p, user as u
 
 if TYPE_CHECKING:
     from .__main__ import LinkedInBridge

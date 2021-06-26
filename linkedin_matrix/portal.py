@@ -1,28 +1,24 @@
 import asyncio
 from collections import deque
 from datetime import datetime
-from html import escape
 from io import BytesIO
 from typing import (
-    Dict,
-    Deque,
-    Optional,
-    Tuple,
-    Union,
-    Set,
-    AsyncGenerator,
-    List,
     Any,
+    AsyncGenerator,
     Awaitable,
-    Pattern,
-    TYPE_CHECKING,
     cast,
+    Deque,
+    Dict,
+    List,
+    Optional,
+    Pattern,
+    Set,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
 )
-from urllib import parse
 
-import aiohttp
 import magic
-from bs4 import BeautifulSoup
 from linkedin_messaging import URN
 from linkedin_messaging.api_objects import (
     Conversation,
@@ -34,44 +30,44 @@ from linkedin_messaging.api_objects import (
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import async_getter_lock, BasePortal, NotificationDisabler
 from mautrix.errors import (
-    MForbidden,
-    MNotFound,
     IntentError,
     MatrixError,
+    MForbidden,
+    MNotFound,
     SessionNotFound,
 )
 from mautrix.types import (
-    RoomID,
-    EventType,
-    ContentURI,
-    MessageEventContent,
-    EventID,
-    ImageInfo,
-    MessageType,
-    LocationMessageEventContent,
-    FileInfo,
     AudioInfo,
+    ContentURI,
+    EncryptedFile,
+    EventID,
+    EventType,
+    FileInfo,
     Format,
-    RelationType,
-    TextMessageEventContent,
+    ImageInfo,
+    LocationMessageEventContent,
     MediaMessageEventContent,
     Membership,
-    EncryptedFile,
-    VideoInfo,
     MemberStateEventContent,
+    MessageEventContent,
+    MessageType,
+    RelationType,
+    RoomID,
+    TextMessageEventContent,
+    VideoInfo,
 )
 from mautrix.util.simple_lock import SimpleLock
 from yarl import URL
 
+from . import puppet as p, user as u
 from .config import Config
 from .db import (
-    Portal as DBPortal,
     Message as DBMessage,
+    Portal as DBPortal,
     Reaction as DBReaction,
     UserPortal,
 )
 from .formatter import linkedin_to_matrix, matrix_to_linkedin
-from . import puppet as p, user as u
 
 if TYPE_CHECKING:
     from .__main__ import LinkedInBridge
@@ -310,8 +306,7 @@ class Portal(DBPortal, BasePortal):
 
         changed = await self._update_participants(source, conversation) or changed
         if changed:
-            # TODO
-            # await self.update_bridge_info()
+            await self.update_bridge_info()
             await self.save()
 
         return conversation
@@ -323,7 +318,7 @@ class Portal(DBPortal, BasePortal):
     ) -> bool:
         changed = False
 
-        nick_map = {}  # TODO can we support this?
+        # nick_map = {}  # TODO can we support this?
         for participant in conversation.participants if conversation else []:
             participant_urn = participant.messaging_member.mini_profile.entity_urn
             puppet = await p.Puppet.get_by_li_member_urn(participant_urn)
@@ -397,7 +392,8 @@ class Portal(DBPortal, BasePortal):
                 "content": self.bridge_info,
             },
             {
-                # TODO remove this once https://github.com/matrix-org/matrix-doc/pull/2346 is in spec
+                # TODO remove this once
+                # https://github.com/matrix-org/matrix-doc/pull/2346 is in spec
                 "type": str(StateHalfShotBridge),
                 "state_key": self.bridge_info_state_key,
                 "content": self.bridge_info,
@@ -417,7 +413,8 @@ class Portal(DBPortal, BasePortal):
 
         info = await self.update_info(source, conversation)
         # if not info:
-        #     self.log.debug("update_info() didn't return info, cancelling room creation")
+        #     self.log.debug(
+        #         "update_info() didn't return info, cancelling room creation")
         #     return None
 
         # if self.encrypted or not self.is_direct:

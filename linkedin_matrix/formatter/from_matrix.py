@@ -1,27 +1,14 @@
 from dataclasses import dataclass
 from typing import Any, cast, Dict, List
 
-from bs4 import BeautifulSoup
 from mautrix.appservice import IntentAPI
-from mautrix.types import (
-    ContentURI,
-    EventID,
-    EventType,
-    Format,
-    ImageInfo,
-    MessageEventContent,
-    MessageType,
-    RelationType,
-    RoomID,
-    RoomID,
-    TextMessageEventContent,
-)
+from mautrix.types import Format, MessageType, TextMessageEventContent
 from mautrix.util.formatter import (
-    MatrixParser as BaseMatrixParser,
-    MarkdownString,
     EntityString,
-    SimpleEntity,
     EntityType,
+    MarkdownString,
+    MatrixParser as BaseMatrixParser,
+    SimpleEntity,
 )
 from mautrix.util.logging import TraceLogger
 
@@ -54,7 +41,7 @@ class SendParams:
 
 
 class LinkedInFormatString(EntityString[SimpleEntity, EntityType], MarkdownString):
-    def format(self, entity_type: EntityType, **kwargs) -> "LinkedInFormatString":
+    def format(self, entity_type: EntityType, **kwargs: Any) -> "LinkedInFormatString":
         prefix = suffix = ""
 
         if entity_type == EntityType.USER_MENTION:

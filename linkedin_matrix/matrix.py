@@ -1,32 +1,31 @@
-from typing import List, Optional, Union, TYPE_CHECKING
-import time
+from typing import List, Optional, TYPE_CHECKING, Union
 
+from mautrix.bridge import BaseMatrixHandler
+from mautrix.errors import MatrixError
 from mautrix.types import (
-    EventID,
-    RoomID,
-    UserID,
+    EncryptedEvent,
     Event,
+    EventID,
     EventType,
     MessageEvent,
-    StateEvent,
-    RedactionEvent,
+    MessageType,
+    PresenceEvent,
     PresenceEventContent,
-    ReceiptEvent,
     PresenceState,
     ReactionEvent,
     ReactionEventContent,
+    ReceiptEvent,
+    RedactionEvent,
     RelationType,
-    PresenceEvent,
-    TypingEvent,
-    TextMessageEventContent,
-    MessageType,
-    EncryptedEvent,
+    RoomID,
     SingleReceiptEventContent,
+    StateEvent,
+    TextMessageEventContent,
+    TypingEvent,
+    UserID,
 )
-from mautrix.errors import MatrixError
-from mautrix.bridge import BaseMatrixHandler
 
-from . import user as u, portal as po, puppet as pu
+from . import portal as po, puppet as pu, user as u
 
 if TYPE_CHECKING:
     from .__main__ import LinkedInBridge

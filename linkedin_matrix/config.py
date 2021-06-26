@@ -1,5 +1,5 @@
-from typing import Any, Tuple, List
 import os
+from typing import Any, List, Tuple
 
 from mautrix.bridge.config import BaseBridgeConfig
 from mautrix.types import UserID
