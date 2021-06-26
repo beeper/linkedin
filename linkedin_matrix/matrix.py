@@ -25,7 +25,8 @@ from mautrix.types import (
     UserID,
 )
 
-from . import portal as po, puppet as pu, user as u
+# these have to be in this particular order to avoid circular imports
+from . import user as u, portal as po, puppet as pu  # noqa: I101
 
 if TYPE_CHECKING:
     from .__main__ import LinkedInBridge

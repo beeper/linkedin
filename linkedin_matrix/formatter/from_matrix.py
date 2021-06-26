@@ -1,6 +1,14 @@
 from dataclasses import dataclass
 from typing import Any, cast, Dict, List
 
+from linkedin_messaging import URN
+from linkedin_messaging.api_objects import (
+    Attribute,
+    AttributedBody,
+    AttributeType,
+    MessageCreate,
+    TextEntity,
+)
 from mautrix.appservice import IntentAPI
 from mautrix.types import Format, MessageType, TextMessageEventContent
 from mautrix.util.formatter import (
@@ -13,31 +21,6 @@ from mautrix.util.formatter import (
 from mautrix.util.logging import TraceLogger
 
 from .. import puppet as pu, user as u
-
-
-# TODO move a lot of these classes to linkedin-api
-@dataclass
-class Mention:
-    start: int
-    length: int
-    urn: str
-
-    def to_json(self) -> Dict[str, Any]:
-        return {
-            "start": self.start,
-            "length": self.length,
-            "type": {
-                "com.linkedin.pemberly.text.Entity": {
-                    "urn": f"urn:li:fs_miniProfile:{self.urn}"
-                }
-            },
-        }
-
-
-@dataclass
-class SendParams:
-    text: str
-    mentions: List[Mention]
 
 
 class LinkedInFormatString(EntityString[SimpleEntity, EntityType], MarkdownString):
@@ -87,8 +70,10 @@ async def matrix_to_linkedin(
     sender: "u.User",
     intent: IntentAPI,
     log: TraceLogger,
-) -> SendParams:
-    mentions = []
+) -> MessageCreate:
+    assert sender.li_member_urn
+
+    attributes = []
 
     if content.format == Format.HTML and content.formatted_body:
         parsed = MatrixParser.parse(content.formatted_body)
@@ -97,7 +82,13 @@ async def matrix_to_linkedin(
             display_name = await intent.get_displayname(sender.mxid)
             if display_name:
                 parsed.prepend(f"* {display_name} ")
-                mentions.append(Mention(2, len(display_name), sender.li_member_urn))
+                attributes.append(
+                    Attribute(
+                        2,
+                        len(display_name),
+                        AttributeType(TextEntity(sender.li_member_urn)),
+                    )
+                )
             else:
                 log.warning(f"Couldn't find displayname for {sender.mxid}")
 
@@ -106,6 +97,7 @@ async def matrix_to_linkedin(
         for mention in parsed.entities:
             mxid = mention.extra_info["user_id"]
             user = await u.User.get_by_mxid(mxid, create=False)
+            li_member_urn: URN
             if user and user.li_member_urn:
                 li_member_urn = user.li_member_urn
             else:
@@ -114,8 +106,14 @@ async def matrix_to_linkedin(
                     li_member_urn = puppet.li_member_urn
                 else:
                     continue
-            mentions.append(Mention(mention.offset, mention.length, li_member_urn))
+            attributes.append(
+                Attribute(
+                    mention.offset,
+                    mention.length,
+                    AttributeType(TextEntity(li_member_urn)),
+                )
+            )
     else:
         text = content.body
 
-    return SendParams(text, mentions)
+    return MessageCreate(AttributedBody(text, attributes), body=text)

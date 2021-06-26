@@ -21,10 +21,13 @@ from typing import (
 import magic
 from linkedin_messaging import URN
 from linkedin_messaging.api_objects import (
+    AttributedBody,
     Conversation,
     ConversationEvent,
     MessageAttachment,
+    MessageCreate,
     ReactionSummary,
+    RealTimeEventStreamEvent,
     ThirdPartyMedia,
 )
 from mautrix.appservice import IntentAPI
@@ -236,10 +239,7 @@ class Portal(DBPortal, BasePortal):
 
         portal = cast(
             Portal,
-            await super().get_by_li_thread_urn(
-                li_thread_urn,
-                li_receiver_urn,
-            ),
+            await super().get_by_li_thread_urn(li_thread_urn, li_receiver_urn),
         )
         if portal:
             await portal.postinit()
@@ -655,17 +655,12 @@ class Portal(DBPortal, BasePortal):
         sender: "u.User",
         message: TextMessageEventContent,
     ):
-        converted = await matrix_to_linkedin(
+        assert sender.client
+        message_create = await matrix_to_linkedin(
             message, sender, self.main_intent, self.log
         )
-        conversation_urn = self.li_thread_urn.split(":")[-1]
-        failure = sender.linkedin_client.send_message(
-            converted.text,
-            conversation_urn,
-            attributes=[m.to_json() for m in converted.mentions],
-        )
-        if failure:
-            raise Exception(f"Send message to {conversation_urn} failed")
+        resp = await sender.client.send_message(self.li_thread_urn, message_create)
+        print(resp)
 
     async def _handle_matrix_media(
         self,
@@ -673,20 +668,7 @@ class Portal(DBPortal, BasePortal):
         sender: "u.User",
         message: MediaMessageEventContent,
     ):
-        upload_metadata_response = sender.linkedin_client._post(
-            "/voyagerMediaUploadMetadata",
-            params={"action": "upload"},
-            json={
-                "mediaUploadType": "MESSAGING_PHOTO_ATTACHMENT",
-                "fileSize": message.info.size,
-                "filename": message.body,
-            },
-        )
-        if upload_metadata_response.status_code != 200:
-            self.main_intent.send_notice(self.mxid, "Failed to send upload metadata")
-        upload_metadata_response_json = upload_metadata_response.json().get("value", {})
-        upload_url = upload_metadata_response_json.get("singleUploadUrl")
-        assert upload_url
+        assert sender.client
 
         if message.file and decrypt_attachment:
             data = await self.main_intent.download_media(message.file.url)
@@ -701,27 +683,14 @@ class Portal(DBPortal, BasePortal):
         else:
             return
 
-        upload_response = sender.linkedin_client.client.session.put(
-            upload_url, data=data
+        attachment = await sender.client.upload_media(
+            data, message.body, message.info.mimetype
         )
-        if upload_response.status_code != 201:
-            self.main_intent.send_notice(self.mxid, "Failed to upload file")
-
-        conversation_urn = self.li_thread_urn.split(":")[-1]
-        failure = sender.linkedin_client.send_message(
-            "",
-            conversation_urn,
-            attachments=[
-                {
-                    "id": upload_metadata_response_json.get("urn"),
-                    "name": message.body,
-                    "byteSize": message.info.size,
-                    "mediaType": message.info.mimetype,
-                }
-            ],
+        resp = await sender.client.send_message(
+            self.li_thread_urn,
+            MessageCreate(AttributedBody(), attachments=[attachment]),
         )
-        if failure:
-            raise Exception(f"Send message to {conversation_urn} failed")
+        print(resp)
 
     # endregion
 

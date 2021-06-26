@@ -68,7 +68,7 @@ class User(DBUser, BaseUser):
         client: Optional[LinkedInMessaging] = None,
         notice_room: Optional[RoomID] = None,
     ):
-        super().__init__(mxid, li_member_urn, client, notice_room)
+        super().__init__(mxid, li_member_urn, notice_room, client)
         BaseUser.__init__(self)
         self.notice_room = notice_room
         self._notice_room_lock = asyncio.Lock()
@@ -226,7 +226,6 @@ class User(DBUser, BaseUser):
         return self._is_logged_in or False
 
     async def on_logged_in(self, client: LinkedInMessaging):
-        print("on logged in", client)
         self.client = client
         self.li_member_urn = (
             await self.client.get_user_profile()
@@ -302,6 +301,7 @@ class User(DBUser, BaseUser):
             other_user = conversation.participants[0]
             li_other_user_urn = other_user.messaging_member.mini_profile.entity_urn
 
+        print(conversation)
         portal = await po.Portal.get_by_li_thread_urn(
             conversation.entity_urn,
             li_receiver_urn=self.li_member_urn,
@@ -363,8 +363,7 @@ class User(DBUser, BaseUser):
 
     async def handle_linkedin_event(self, event: RealTimeEventStreamEvent):
         assert isinstance(event.event, ConversationEvent)
-        thread_urn, message_urn = event.event.entity_urn.id_parts
-
+        thread_urn, message_urn = map(URN, event.event.entity_urn.id_parts)
         sender_urn = event.event.from_.messaging_member.mini_profile.entity_urn
 
         portal = await po.Portal.get_by_li_thread_urn(
@@ -373,7 +372,7 @@ class User(DBUser, BaseUser):
         puppet = await pu.Puppet.get_by_li_member_urn(sender_urn)
 
         await portal.backfill_lock.wait(message_urn)
-        await portal.handle_linkedin_message(self, puppet, event)
+        await portal.handle_linkedin_message(self, puppet, event.event)
 
     async def handle_linkedin_reaction_added(self, event: RealTimeEventStreamEvent):
         assert isinstance(event.reaction_summary, ReactionSummary)
