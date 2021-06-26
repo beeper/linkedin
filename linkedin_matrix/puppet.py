@@ -13,8 +13,10 @@ from typing import (
     Union,
 )
 
+import aiohttp
 import magic
-import requests
+from linkedin_messaging import URN
+from linkedin_messaging.api_objects import MessagingMember, Picture
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import async_getter_lock, BasePuppet
 from mautrix.types import ContentURI, UserID, RoomID, SyncToken
@@ -35,12 +37,14 @@ class Puppet(DBPuppet, BasePuppet):
     hs_domain: str
     mxid_template: SimpleTemplate[str]
 
-    by_li_member_urn: Dict[str, "Puppet"] = {}
+    by_li_member_urn: Dict[URN, "Puppet"] = {}
     by_custom_mxid: Dict[UserID, "Puppet"] = {}
+
+    session: aiohttp.ClientSession
 
     def __init__(
         self,
-        li_member_urn: str,
+        li_member_urn: URN,
         name: Optional[str] = None,
         photo_id: Optional[str] = None,
         photo_mxc: Optional[ContentURI] = None,
@@ -72,7 +76,7 @@ class Puppet(DBPuppet, BasePuppet):
         self.default_mxid_intent = self.az.intent.user(self.default_mxid)
         self.intent = self._fresh_intent()
 
-        self.log = self.log.getChild(self.li_member_urn)
+        self.log = self.log.getChild(str(self.li_member_urn))
 
     @classmethod
     def init_cls(cls, bridge: "LinkedInBridge") -> AsyncIterable[Awaitable[None]]:
@@ -99,10 +103,15 @@ class Puppet(DBPuppet, BasePuppet):
             for server, secret in cls.config["bridge.login_shared_secret_map"].items()
         }
         cls.login_device_name = "LinkedIn Messages Bridge"
+        cls.session = aiohttp.ClientSession()
 
         return (
             puppet.try_start() async for puppet in Puppet.get_all_with_custom_mxid()
         )
+
+    @classmethod
+    async def close(cls):
+        await cls.session.close()
 
     def intent_for(self, portal: "p.Portal") -> IntentAPI:
         if portal.li_other_user_urn == self.li_member_urn or (
@@ -117,7 +126,7 @@ class Puppet(DBPuppet, BasePuppet):
     async def update_info(
         self,
         source: Optional[u.User],
-        info: Dict[str, Any] = None,
+        info: MessagingMember = None,
         update_avatar: bool = True,
     ) -> "Puppet":
         if not info:
@@ -128,14 +137,7 @@ class Puppet(DBPuppet, BasePuppet):
         try:
             changed = await self._update_name(info)
             if update_avatar:
-                changed = (
-                    await self._update_photo(
-                        info.get("miniProfile", {})
-                        .get("picture", {})
-                        .get("com.linkedin.common.VectorImage", {}),
-                    )
-                    or changed
-                )
+                changed = await self._update_photo(info.mini_profile.picture) or changed
 
             if changed:
                 await self.save()
@@ -145,16 +147,18 @@ class Puppet(DBPuppet, BasePuppet):
             )
         return self
 
-    @staticmethod
-    async def reupload_avatar(intent: IntentAPI, url: str) -> ContentURI:
-        image_data = requests.get(url)
-        if not image_data.ok:
-            raise Exception("Couldn't download profile picture")
+    async def reupload_avatar(self, intent: IntentAPI, url: str) -> ContentURI:
+        async with self.session.get(url) as req:
+            if not req.ok:
+                raise Exception(
+                    f"Couldn't download avatar for {self.li_member_urn}: {url}"
+                )
 
-        mime = magic.from_buffer(image_data.content, mime=True)
-        return await intent.upload_media(image_data.content, mime_type=mime)
+            image_data = await req.content.read()
+            mime = magic.from_buffer(image_data, mime=True)
+            return await intent.upload_media(image_data, mime_type=mime)
 
-    async def _update_name(self, info: Dict[str, Any]) -> bool:
+    async def _update_name(self, info: MessagingMember) -> bool:
         name = self._get_displayname(info)
         if name != self.name or not self.name_set:
             self.name = name
@@ -168,28 +172,27 @@ class Puppet(DBPuppet, BasePuppet):
         return False
 
     @classmethod
-    def _get_displayname(cls, info: Dict[str, Any]) -> str:
-        profile = info.get("miniProfile", {})
-        first, last = profile.get("firstName"), profile.get("lastName")
-        info = {
+    def _get_displayname(cls, info: MessagingMember) -> str:
+        first, last = info.mini_profile.first_name, info.mini_profile.last_name
+        info_map = {
             "displayname": None,
             "name": f"{first} {last}",
             "first_name": first,
             "last_name": last,
         }
         for preference in cls.config["bridge.displayname_preference"]:
-            if info.get(preference):
-                info["displayname"] = info.get(preference)
+            pref = info_map.get(preference)
+            if pref:
+                info_map["displayname"] = pref
                 break
-        return cls.config["bridge.displayname_template"].format(**info)
+        return cls.config["bridge.displayname_template"].format(**info_map)
 
     photo_id_re = re.compile(r"https://.*?/image/(.*?)/profile-.*?")
 
-    async def _update_photo(self, picture: Dict[str, Any]) -> bool:
-        root_url = picture.get("rootUrl")
+    async def _update_photo(self, picture: Optional[Picture]) -> bool:
         photo_id = None
-        if root_url:
-            match = self.photo_id_re.match(root_url)
+        if picture:
+            match = self.photo_id_re.match(picture.vector_image.root_url)
             if match:
                 photo_id = match.group(1)
 
@@ -197,14 +200,13 @@ class Puppet(DBPuppet, BasePuppet):
             self.photo_id = photo_id
 
             if photo_id:
-                # Use the largest image
-                file_path_segment = picture["artifacts"][-1][
-                    "fileIdentifyingUrlPathSegment"
-                ]
-
+                largest_artifact = picture.vector_image.artifacts[-1]
                 self.photo_mxc = await self.reupload_avatar(
                     self.default_mxid_intent,
-                    root_url + file_path_segment,
+                    (
+                        picture.vector_image.root_url
+                        + largest_artifact.file_identifying_url_path_segment
+                    ),
                 )
             else:
                 self.photo_mxc = ContentURI("")
@@ -232,7 +234,7 @@ class Puppet(DBPuppet, BasePuppet):
     @async_getter_lock
     async def get_by_li_member_urn(
         cls,
-        li_member_urn: str,
+        li_member_urn: URN,
         *,
         create: bool = True,
     ) -> Optional["Puppet"]:
@@ -282,7 +284,6 @@ class Puppet(DBPuppet, BasePuppet):
     @classmethod
     async def get_all_with_custom_mxid(cls) -> AsyncGenerator["Puppet", None]:
         puppets = await super().get_all_with_custom_mxid()
-        print("get_all_with_custom_mxid", puppets)
         for puppet in cast(List[Puppet], puppets):
             try:
                 yield cls.by_li_member_urn[puppet.li_member_urn]
@@ -292,11 +293,12 @@ class Puppet(DBPuppet, BasePuppet):
 
     # TODO which involse these two functions
     @classmethod
-    def get_id_from_mxid(cls, mxid: UserID) -> Optional[str]:
-        return cls.mxid_template.parse(mxid)
+    def get_id_from_mxid(cls, mxid: UserID) -> Optional[URN]:
+        parsed = cls.mxid_template.parse(mxid)
+        return URN(parsed) if parsed else None
 
     @classmethod
-    def get_mxid_from_id(cls, li_member_urn: str) -> UserID:
-        return UserID(cls.mxid_template.format_full(li_member_urn))
+    def get_mxid_from_id(cls, li_member_urn: URN) -> UserID:
+        return UserID(cls.mxid_template.format_full(li_member_urn.id_str()))
 
     # endregion

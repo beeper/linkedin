@@ -1,43 +1,30 @@
-import re
 from html import escape
-from typing import Any, Dict, List, Match, Optional, Union
 
+from linkedin_messaging.api_objects import AttributedBody
 from mautrix.types import Format, MessageType, TextMessageEventContent
 
 from .. import puppet as pu, user as u
 
-MENTION_REGEX = re.compile(r"@([0-9]{1,15})\u2063(.+?)\u2063")
 
-
-async def linkedin_to_matrix(msg: Dict[str, Any]) -> TextMessageEventContent:
-    text = msg.get("text", "")
-    mentions = sorted(
-        msg.get("attributes", []), key=lambda m: m.get("start"), reverse=True
-    )
-
-    content = TextMessageEventContent(msgtype=MessageType.TEXT, body=text)
+async def linkedin_to_matrix(msg: AttributedBody) -> TextMessageEventContent:
+    content = TextMessageEventContent(msgtype=MessageType.TEXT, body=msg.text)
 
     segments = []
     profile_urns = []
-    for m in mentions:
-        start, length = m.get("start"), m.get("length")
-        profile_urn = (
-            m.get("type", {})
-            .get("com.linkedin.pemberly.text.Entity", {})
-            .get("urn", "")
-            .split(":")[-1]
-        )
-        if start is None or length is None or not profile_urn:
+
+    text = msg.text
+    for m in sorted(msg.attributes, key=lambda a: a.start, reverse=True):
+        if m.start is None or m.length is None or not m.type_.text_entity.urn:
             continue
 
         text, original, after = (
-            text[:start],
-            text[start : start + length],
-            text[start + length :],
+            text[: m.start],
+            text[m.start : m.start + m.length],
+            text[m.start + m.length :],
         )
         segments.append(after)
-        segments.append((original, profile_urn))
-        profile_urns.append(profile_urn)
+        segments.append((original, m.type_.text_entity.urn))
+        profile_urns.append(m.type_.text_entity.urn)
 
     segments.append(text)
 

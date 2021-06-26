@@ -22,8 +22,15 @@ from urllib import parse
 
 import aiohttp
 import magic
-import requests
 from bs4 import BeautifulSoup
+from linkedin_messaging import URN
+from linkedin_messaging.api_objects import (
+    Conversation,
+    ConversationEvent,
+    MessageAttachment,
+    ReactionSummary,
+    ThirdPartyMedia,
+)
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import async_getter_lock, BasePortal, NotificationDisabler
 from mautrix.errors import (
@@ -88,7 +95,7 @@ MediaInfo = Union[FileInfo, VideoInfo, AudioInfo, ImageInfo]
 class Portal(DBPortal, BasePortal):
     invite_own_puppet_to_pm: bool = False
     by_mxid: Dict[RoomID, "Portal"] = {}
-    by_li_thread_urn: Dict[Tuple[str, str], "Portal"] = {}
+    by_li_thread_urn: Dict[Tuple[URN, Optional[URN]], "Portal"] = {}
     matrix: "MatrixHandler"
     config: Config
 
@@ -96,10 +103,10 @@ class Portal(DBPortal, BasePortal):
 
     def __init__(
         self,
-        li_thread_urn: str,
-        li_receiver_urn: str,
+        li_thread_urn: URN,
+        li_receiver_urn: Optional[URN],
         li_is_group_chat: bool,
-        li_other_user_urn: Optional[str] = None,
+        li_other_user_urn: Optional[URN] = None,
         mxid: Optional[RoomID] = None,
         name: Optional[str] = None,
         photo_id: Optional[str] = None,
@@ -157,7 +164,7 @@ class Portal(DBPortal, BasePortal):
     # region Properties
 
     @property
-    def li_urn_full(self) -> Tuple[str, str]:
+    def li_urn_full(self) -> Tuple[URN, Optional[URN]]:
         return self.li_thread_urn, self.li_receiver_urn
 
     @property
@@ -219,11 +226,11 @@ class Portal(DBPortal, BasePortal):
     @async_getter_lock
     async def get_by_li_thread_urn(
         cls,
-        li_thread_urn: str,
+        li_thread_urn: URN,
         *,
-        li_receiver_urn: str = None,
+        li_receiver_urn: URN = None,
         li_is_group_chat: bool = False,
-        li_other_user_urn: str = None,
+        li_other_user_urn: URN = None,
         create: bool = True,
     ) -> Optional["Portal"]:
         try:
@@ -274,20 +281,16 @@ class Portal(DBPortal, BasePortal):
     async def update_info(
         self,
         source: Optional["u.User"] = None,
-        conversation: Dict[str, Any] = None,
-    ) -> Dict[str, Any]:
+        conversation: Optional[Conversation] = None,
+    ) -> Conversation:
         if not conversation:
             # shouldn't happen currently
             assert False, "update_info called without conversation"
 
-        if (
-            cast(str, conversation.get("entityUrn")).split(":")[-1]
-            != self.li_thread_urn
-        ):
+        if conversation.entity_urn != self.li_thread_urn:
             self.log.warning(
-                "Got different ID (%s) than what was asked for (%s) when fetching",
-                conversation.get("entityUrn"),
-                self.li_thread_urn,
+                f"Got different ID ({conversation.entity_urn}) than what was asked "
+                f"for ({self.li_thread_urn}) when fetching"
             )
 
         # TODO actually update things
@@ -316,24 +319,15 @@ class Portal(DBPortal, BasePortal):
     async def _update_participants(
         self,
         source: "u.User",
-        conversation: Dict[str, Any],
+        conversation: Optional[Conversation] = None,
     ) -> bool:
         changed = False
 
-        participants = conversation.get("participants", [])
         nick_map = {}  # TODO can we support this?
-        for participant in participants:
-            # TODO turn Participant into an actual class and deserialize it.
-            # For now, this will have to suffice
-            participant = participant.get(
-                "com.linkedin.voyager.messaging.MessagingMember", {}
-            )
-            participant_urn = (
-                participant.get("miniProfile", {}).get("entityUrn", "").split(":")[-1]
-            )
-
+        for participant in conversation.participants if conversation else []:
+            participant_urn = participant.messaging_member.mini_profile.entity_urn
             puppet = await p.Puppet.get_by_li_member_urn(participant_urn)
-            await puppet.update_info(source, participant)
+            await puppet.update_info(source, participant.messaging_member)
             if (
                 self.is_direct
                 and self.li_other_user_urn == puppet.li_member_urn
@@ -359,7 +353,7 @@ class Portal(DBPortal, BasePortal):
     async def create_matrix_room(
         self,
         source: "u.User",
-        conversation: Optional[Dict[str, Any]] = None,
+        conversation: Optional[Conversation] = None,
     ) -> Optional[RoomID]:
         if self.mxid:
             try:
@@ -378,7 +372,7 @@ class Portal(DBPortal, BasePortal):
     async def update_matrix_room(
         self,
         source: "u.User",
-        conversation: Optional[Dict[str, Any]] = None,
+        conversation: Optional[Conversation] = None,
     ):
         try:
             await self._update_matrix_room(source, conversation)
@@ -388,7 +382,7 @@ class Portal(DBPortal, BasePortal):
     async def _create_matrix_room(
         self,
         source: "u.User",
-        conversation: Optional[Dict[str, Any]] = None,
+        conversation: Optional[Conversation] = None,
     ) -> Optional[RoomID]:
         if self.mxid:
             await self._update_matrix_room(source, conversation)
@@ -489,7 +483,7 @@ class Portal(DBPortal, BasePortal):
     async def _update_matrix_room(
         self,
         source: "u.User",
-        conversation: Optional[Dict[str, Any]] = None,
+        conversation: Optional[Conversation] = None,
     ):
         await self.main_intent.invite_user(self.mxid, source.mxid, check_cache=False)
         puppet = await p.Puppet.get_by_custom_mxid(source.mxid)
@@ -499,7 +493,7 @@ class Portal(DBPortal, BasePortal):
 
     @property
     def bridge_info_state_key(self) -> str:
-        return f"com.github.linkedin://linkedin/{self.li_thread_urn}"
+        return f"com.github.linkedin://linkedin/{self.li_thread_urn.id_str()}"
 
     @property
     def bridge_info(self) -> Dict[str, Any]:
@@ -512,7 +506,7 @@ class Portal(DBPortal, BasePortal):
                 "avatar_url": self.config["appservice.bot_avatar"],
             },
             "channel": {
-                "id": self.li_thread_urn,
+                "id": self.li_thread_urn.id_str(),
                 "displayname": self.name,
                 "avatar_url": self.avatar_url,
             },
@@ -526,9 +520,9 @@ class Portal(DBPortal, BasePortal):
         self,
         source: "u.User",
         is_initial: bool,
-        conversation: Optional[Dict[str, Any]] = None,
+        conversation: Optional[Conversation] = None,
     ):
-        limit = (
+        limit: int = (
             self.config["bridge.backfill.initial_limit"]
             if is_initial
             else self.config["bridge.backfill.missed_limit"]
@@ -539,27 +533,24 @@ class Portal(DBPortal, BasePortal):
             limit = None
         last_active = None
 
-        if not is_initial and conversation and len(conversation.get("events", [])) > 0:
-            last_active = conversation["events"][-1].get("lastActivityAt")
+        if not is_initial and conversation and len(conversation.events) > 0:
+            last_active = conversation.events[-1].created_at
 
         most_recent = await DBMessage.get_most_recent(
             self.li_thread_urn, self.li_receiver_urn
         )
         if most_recent and is_initial:
             self.log.debug(
-                "Not backfilling %s: already bridged messages found", self.li_urn_log
+                f"Not backfilling {self.li_urn_log}: already bridged messages found"
             )
         elif (not most_recent or not most_recent.timestamp) and not is_initial:
             self.log.debug(
-                "Not backfilling %s: no most recent message found", self.li_urn_log
+                f"Not backfilling {self.li_urn_log}: no most recent message found"
             )
         elif last_active and most_recent and most_recent.timestamp >= last_active:
             self.log.debug(
-                "Not backfilling %s: last activity is equal to most recent bridged "
-                "message (%s >= %s)",
-                self.li_urn_log,
-                most_recent.timestamp,
-                last_active,
+                f"Not backfilling {self.li_urn_log}: last activity is equal to most "
+                f"recent bridged message ({most_recent.timestamp} >= {last_active})"
             )
         else:
             with self.backfill_lock:
@@ -573,61 +564,46 @@ class Portal(DBPortal, BasePortal):
     async def _backfill(
         self,
         source: "u.User",
-        limit: int,
-        after_timestamp: Optional[int],
-        conversation: Dict[str, Any],
+        limit: Optional[int],
+        after_timestamp: Optional[datetime],
+        conversation: Conversation,
     ):
         assert self.mxid
-        self.log.debug("Backfilling history through %s", source.mxid)
-        messages = conversation.get("events", [])
+        assert source.client, f"No client found for {source.mxid}!"
+        self.log.debug(f"Backfilling history through {source.mxid}")
+        messages = conversation.events
 
         # TODO do whatever needs to be done to prevent it from backfilling if there are
         # no new messages
-        return
+        # return
 
         if len(messages):
             oldest_message = messages[0]
-            before_timestamp = datetime.fromtimestamp(
-                (oldest_message.get("createdAt") // 1000) - 1
-            )
+            before_timestamp = oldest_message.created_at
         else:
             before_timestamp = datetime.now()
 
         self.log.debug(
-            "Fetching up to %d messages through %s",
-            limit,
-            source.li_member_urn,
+            f"Fetching up to {limit} messages through {source.li_member_urn}"
         )
 
-        conversation_urn = conversation.get("entityUrn", "").split(":")[-1]
-
-        while len(messages) < limit:
-            result = source.linkedin_client.get_conversation(
-                conversation_urn,
+        while limit is None or len(messages) < limit:
+            result = await source.client.get_conversation(
+                conversation.entity_urn,
                 created_before=before_timestamp,
             )
-            elements = result.get("elements", [])
-
+            elements = result.elements
             messages = elements + messages
 
             if len(elements) < 20:
                 break
 
-            oldest_message = messages[0]
-            before_timestamp = datetime.fromtimestamp(
-                (oldest_message.get("createdAt") / 1000) - 1
-            )
+            before_timestamp = messages[0].created_at
 
         self._backfill_leave = set()
         async with NotificationDisabler(self.mxid, source):
             for message in messages:
-                member_urn = (
-                    message.get("from", {})
-                    .get("com.linkedin.voyager.messaging.MessagingMember", {})
-                    .get("miniProfile", {})
-                    .get("entityUrn", "")
-                    .split(":")[-1]
-                )
+                member_urn = message.from_.messaging_member.mini_profile.entity_urn
                 puppet = await p.Puppet.get_by_li_member_urn(member_urn)
                 await self.handle_linkedin_message(source, puppet, message)
         for intent in self._backfill_leave:
@@ -783,28 +759,24 @@ class Portal(DBPortal, BasePortal):
         self,
         source: "u.User",
         sender: "p.Puppet",
-        message: Dict[str, Any],
+        message: ConversationEvent,
     ):
         try:
             await self._handle_linkedin_message(source, sender, message)
-        except Exception:
+        except Exception as e:
             self.log.exception(
-                f"Error handling LinkedIn message {message.get('entityUrn')}",
+                f"Error handling LinkedIn message {message.entity_urn}: {e}"
             )
 
     async def _handle_linkedin_message(
         self,
         source: "u.User",
         sender: "p.Puppet",
-        message: Dict[str, Any],
+        message: ConversationEvent,
     ):
         assert self.mxid
         assert self.li_receiver_urn
-
-        li_message_urn = message.get("entityUrn")
-        if li_message_urn is None:
-            self.log.exception("entityUrn was None")
-            return
+        li_message_urn = message.entity_urn
 
         # Check in-memory queue for duplicates
         if li_message_urn in self._dedup:
@@ -850,43 +822,41 @@ class Portal(DBPortal, BasePortal):
             await intent.ensure_joined(self.mxid)
             self._backfill_leave.add(intent)
 
-        message_event = message.get("eventContent", {}).get(
-            "com.linkedin.voyager.messaging.event.MessageEvent", {}
-        )
-        timestamp = message.get("createdAt", int(datetime.now().timestamp() * 1000))
+        message_event = message.event_content.message_event
+        timestamp = message.created_at
 
-        if message_event is None:
-            self.log.exception(f"No message event found in message {li_message_urn}")
-            return
-
-        event_ids = await self._handle_attachments(
-            source,
-            intent,
-            timestamp,
-            message_event.get("attachments", []),
-        ) + await self._handle_third_party_media(
-            source,
-            intent,
-            timestamp,
-            message_event.get("customContent", {}).get(
-                "com.linkedin.voyager.messaging.shared.ThirdPartyMedia"
-            ),
+        event_ids = []
+        event_ids.extend(
+            await self._handle_linkedin_attachments(
+                source, intent, timestamp, message_event.attachments
+            )
         )
+        if (
+            message_event.custom_content
+            and message_event.custom_content.third_party_media
+        ):
+            event_ids.extend(
+                await self._handle_linkedin_third_party_media(
+                    source,
+                    intent,
+                    timestamp,
+                    message_event.custom_content.third_party_media,
+                )
+            )
 
         # Handle the message text itself
-        message_attributed_body = message_event.get("attributedBody", {})
-        if message_attributed_body:
-            content = await linkedin_to_matrix(message_attributed_body)
+        if message_event.attributed_body.text:
+            content = await linkedin_to_matrix(message_event.attributed_body)
             event_ids.append(
                 await self._send_message(intent, content, timestamp=timestamp)
             )
             # TODO error handling
 
+        event_ids = [event_id for event_id in event_ids if event_id]
         if len(event_ids) == 0:
             return
 
         # Save all of the messages in the database.
-        event_ids = [event_id for event_id in event_ids if event_id]
         self.log.debug(f"Handled Messenger message {li_message_urn} -> {event_ids}")
         await DBMessage.bulk_create(
             li_message_urn=li_message_urn,
@@ -902,13 +872,13 @@ class Portal(DBPortal, BasePortal):
 
         # Handle reactions
         reaction_summaries = sorted(
-            message.get("reactionSummaries", []),
-            key=lambda m: m.get("firstReactedAt"),
+            message.reaction_summaries,
+            key=lambda r: r.first_reacted_at,
             reverse=True,
         )
         reaction_event_id = event_ids[-1]  # react to the last event
         for reaction_summary in reaction_summaries:
-            self.handle_reaction_summary(
+            await self.handle_reaction_summary(
                 intent,
                 li_message_urn,
                 sender,
@@ -919,51 +889,50 @@ class Portal(DBPortal, BasePortal):
     async def handle_reaction_summary(
         self,
         intent: IntentAPI,
-        li_message_urn: str,
+        li_message_urn: URN,
         sender: "p.Puppet",
         reaction_event_id: EventID,
-        reaction_summary: Dict[str, Any],
+        reaction_summary: ReactionSummary,
     ) -> Optional[EventID]:
-        reaction = reaction_summary.get("emoji")
-        if not reaction:
+        if not reaction_summary.emoji:
             return None
 
         assert self.mxid
         assert self.li_receiver_urn
 
         # TODO figure out how many reactions should be added
-        mxid = await intent.react(self.mxid, reaction_event_id, reaction)
-        self.log.debug(f"Reacted to {reaction_event_id}, got {mxid}")
+        mxid = await intent.react(self.mxid, reaction_event_id, reaction_summary.emoji)
+        self.log.debug(
+            f"Reacted to {reaction_event_id} with {reaction_summary.emoji}, got {mxid}"
+        )
         await DBReaction(
             mxid=mxid,
             mx_room=self.mxid,
             li_message_urn=li_message_urn,
             li_receiver_urn=self.li_receiver_urn,
             li_sender_urn=sender.li_member_urn,
-            reaction=reaction,
+            reaction=reaction_summary.emoji,
         ).insert()
         return mxid
 
-    async def _handle_attachments(
+    async def _handle_linkedin_attachments(
         self,
         source: "u.User",
         intent: IntentAPI,
-        timestamp: Optional[int],
-        attachments: List[Dict[str, Any]],
+        timestamp: datetime,
+        attachments: List[MessageAttachment],
     ) -> List[EventID]:
         event_ids = []
         for attachment in attachments:
-            media_type = attachment.get("mediaType", "")
+            url = attachment.reference.string
+            if not url:
+                continue
 
             msgtype = MessageType.FILE
-            if media_type.startswith("image/"):
+            if attachment.media_type.startswith("image/"):
                 msgtype = MessageType.IMAGE
             else:
                 msgtype = MessageType.FILE
-
-            url = attachment.get("reference", {}).get("string")
-            if not url:
-                continue
 
             mxc, info, decryption_info = await self._reupload_linkedin_file(
                 url, source, intent, encrypt=self.encrypted, find_size=True
@@ -986,23 +955,26 @@ class Portal(DBPortal, BasePortal):
 
         return event_ids
 
-    async def _handle_third_party_media(
+    async def _handle_linkedin_third_party_media(
         self,
         source: "u.User",
         intent: IntentAPI,
-        timestamp: Optional[int],
-        third_party_media: Dict[str, Any],
+        timestamp: datetime,
+        third_party_media: ThirdPartyMedia,
     ) -> List[EventID]:
         if not third_party_media:
             return []
 
-        if third_party_media.get("mediaType") == "TENOR_GIF":
-            gif_url = third_party_media.get("media", {}).get("gif", {}).get("url")
-            if gif_url:
+        if third_party_media.media_type == "TENOR_GIF":
+            if third_party_media.media.gif.url:
                 msgtype = MessageType.IMAGE
                 # TODO get the width and height from the JSON response
                 mxc, info, decryption_info = await self._reupload_linkedin_file(
-                    gif_url, source, intent, encrypt=self.encrypted, find_size=True
+                    third_party_media.media.gif.url,
+                    source,
+                    intent,
+                    encrypt=self.encrypted,
+                    find_size=True,
                 )
                 content = MediaMessageEventContent(
                     url=mxc,
@@ -1032,34 +1004,41 @@ class Portal(DBPortal, BasePortal):
         filename: Optional[str] = None,
         encrypt: bool = False,
         find_size: bool = False,
+        width: Optional[int] = None,
+        height: Optional[int] = None,
     ) -> Tuple[ContentURI, MediaInfo, Optional[EncryptedFile]]:
         if not url:
             raise ValueError("URL not provided")
-        # TODO move this to the linkedin-api
-        file_data = requests.get(url, cookies=source.linkedin_client.client.cookies)
-        if not file_data.ok:
-            raise Exception("Couldn't download media")
 
-        if len(file_data.content) > cls.matrix.media_config.upload_size:
+        assert source.client
+
+        file_data = await source.client.download_linkedin_media(url)
+        if len(file_data) > cls.matrix.media_config.upload_size:
             raise ValueError("File not available: too large")
 
-        data = file_data.content
-        mime = magic.from_buffer(data, mime=True)
+        mime = magic.from_buffer(file_data, mime=True)
 
-        info = FileInfo(mimetype=mime, size=len(data))
-        if Image and mime.startswith("image/") and find_size:
-            with Image.open(BytesIO(data)) as img:
-                width, height = img.size
-            info = ImageInfo(mimetype=mime, size=len(data), width=width, height=height)
+        info = FileInfo(mimetype=mime, size=len(file_data))
+        if Image and mime.startswith("image/"):
+            if (width is None or height is None) and find_size:
+                with Image.open(BytesIO(file_data)) as img:
+                    width, height = img.size
+            if width and height:
+                info = ImageInfo(
+                    mimetype=mime,
+                    size=len(file_data),
+                    width=width,
+                    height=height,
+                )
 
         upload_mime_type = mime
         decryption_info = None
         if encrypt and encrypt_attachment:
-            data, decryption_info = encrypt_attachment(data)
+            file_data, decryption_info = encrypt_attachment(file_data)
             upload_mime_type = "application/octet-stream"
             filename = None
         url = await intent.upload_media(
-            data, mime_type=upload_mime_type, filename=filename
+            file_data, mime_type=upload_mime_type, filename=filename
         )
         if decryption_info:
             decryption_info.url = url

@@ -4,4 +4,3 @@ flake8-annotations
 flake8-import-order
 mypy
 pytest
-types-requests

@@ -2,6 +2,7 @@ from typing import ClassVar, List, Optional, TYPE_CHECKING
 
 from asyncpg import Record
 from attr import dataclass
+from linkedin_messaging import URN
 from mautrix.types import ContentURI, SyncToken, UserID
 from mautrix.util.async_db import Database
 from yarl import URL
@@ -15,7 +16,7 @@ fake_db = Database("") if TYPE_CHECKING else None
 class Puppet(Model):
     db: ClassVar[Database] = fake_db
 
-    li_member_urn: str
+    li_member_urn: URN
     name: Optional[str]
     photo_id: Optional[str]
     photo_mxc: Optional[ContentURI]
@@ -50,12 +51,17 @@ class Puppet(Model):
             return None
         data = {**row}
         base_url = data.pop("base_url", None)
-        return cls(**data, base_url=URL(base_url) if base_url else None)
+        li_member_urn = data.pop("li_member_urn", None)
+        return cls(
+            **data,
+            base_url=URL(base_url) if base_url else None,
+            li_member_urn=URN(li_member_urn) if li_member_urn else None,
+        )
 
     @classmethod
-    async def get_by_li_member_urn(cls, li_member_urn: str) -> Optional["Puppet"]:
+    async def get_by_li_member_urn(cls, li_member_urn: URN) -> Optional["Puppet"]:
         query = Puppet.select_constructor("li_member_urn=$1")
-        row = await cls.db.fetchrow(query, li_member_urn)
+        row = await cls.db.fetchrow(query, li_member_urn.id_str())
         return cls._from_row(row)
 
     @classmethod
@@ -80,7 +86,7 @@ class Puppet(Model):
         query = Puppet.insert_constructor()
         await self.db.execute(
             query,
-            self.li_member_urn,
+            self.li_member_urn.id_str(),
             self.name,
             self.photo_id,
             self.photo_mxc,
@@ -95,7 +101,8 @@ class Puppet(Model):
 
     async def delete(self) -> None:
         await self.db.execute(
-            "DELETE FROM puppet WHERE li_member_urn=$1", self.li_member_urn
+            "DELETE FROM puppet WHERE li_member_urn=$1",
+            self.li_member_urn.id_str(),
         )
 
     async def save(self) -> None:
@@ -115,7 +122,7 @@ class Puppet(Model):
         """
         await self.db.execute(
             query,
-            self.li_member_urn,
+            self.li_member_urn.id_str(),
             self.name,
             self.photo_id,
             self.photo_mxc,

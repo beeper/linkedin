@@ -63,6 +63,7 @@ class LinkedInBridge(Bridge):
 
     async def stop(self):
         await super().stop()
+        await Puppet.close()
         self.log.debug("Saving user sessions")
         for user in User.by_mxid.values():
             await user.save()

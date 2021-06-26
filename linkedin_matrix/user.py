@@ -1,9 +1,6 @@
 import asyncio
-import json
-import re
 import time
 from typing import (
-    Any,
     AsyncGenerator,
     AsyncIterable,
     Awaitable,
@@ -14,8 +11,13 @@ from typing import (
     TYPE_CHECKING,
 )
 
-import aiohttp
-from linkedin_api import Linkedin
+from linkedin_messaging import LinkedInMessaging, URN
+from linkedin_messaging.api_objects import (
+    Conversation,
+    ConversationEvent,
+    ReactionSummary,
+    RealTimeEventStreamEvent,
+)
 from mautrix.bridge import async_getter_lock, BaseUser
 from mautrix.errors import MNotFound
 from mautrix.types import (
@@ -30,7 +32,6 @@ from mautrix.types import (
 )
 from mautrix.util.simple_lock import SimpleLock
 from mautrix.util.opt_prometheus import Summary, Gauge, async_time
-from requests.cookies import RequestsCookieJar
 
 from . import portal as po, puppet as pu
 from .config import Config
@@ -48,9 +49,8 @@ class User(DBUser, BaseUser):
     config: Config
 
     by_mxid: Dict[UserID, "User"] = {}
-    by_li_member_urn: Dict[str, "User"] = {}
+    by_li_member_urn: Dict[URN, "User"] = {}
 
-    linkedin_client: Linkedin
     listen_task: Optional[asyncio.Task]
 
     _is_connected: Optional[bool]
@@ -65,10 +65,10 @@ class User(DBUser, BaseUser):
         self,
         mxid: UserID,
         li_member_urn: Optional[str] = None,
-        cookies: Optional[RequestsCookieJar] = None,
+        client: Optional[LinkedInMessaging] = None,
         notice_room: Optional[RoomID] = None,
     ):
-        super().__init__(mxid, li_member_urn, cookies, notice_room)
+        super().__init__(mxid, li_member_urn, client, notice_room)
         BaseUser.__init__(self)
         self.notice_room = notice_room
         self._notice_room_lock = asyncio.Lock()
@@ -164,7 +164,7 @@ class User(DBUser, BaseUser):
 
     @classmethod
     @async_getter_lock
-    async def get_by_li_member_urn(cls, li_member_urn: str) -> Optional["User"]:
+    async def get_by_li_member_urn(cls, li_member_urn: URN) -> Optional["User"]:
         try:
             return cls.by_li_member_urn[li_member_urn]
         except KeyError:
@@ -188,25 +188,13 @@ class User(DBUser, BaseUser):
     ) -> bool:
         if self._is_logged_in and not _override:
             return True
-        if not self.cookies:
-            return False
-        linkedin_client = Linkedin("", "", cookies=self.cookies)
-        # TODO check if it actually is logged in
-        while True:
-            try:
-                user_info = linkedin_client.get_user_profile()
-                break
-            except Exception as e:
-                return False
-
-        if not user_info:
+        if not self.client or not await self.client.logged_in():
             return False
 
         self.log.info("Loaded session successfully")
-        self.li_member_urn = str(
-            user_info.get("miniProfile", {}).get("entityUrn", "").split(":")[-1]
-        )
-        self.linkedin_client = linkedin_client
+        self.li_member_urn = (
+            await self.client.get_user_profile()
+        ).mini_profile.entity_urn
         # TODO
         # self._track_metric(METRIC_LOGGED_IN, True)
         self._is_logged_in = True
@@ -227,23 +215,22 @@ class User(DBUser, BaseUser):
         self._is_refreshing = False
 
     async def is_logged_in(self, _override: bool = False) -> bool:
-        if not self.cookies or not self.linkedin_client:
+        if not self.client:
             return False
         if self._is_logged_in is None or _override:
             try:
-                self._is_logged_in = bool(self.linkedin_client.get_user_profile())
+                self._is_logged_in = await self.client.logged_in()
             except Exception:
                 self.log.exception("Exception checking login status")
                 self._is_logged_in = False
-        return self._is_logged_in
+        return self._is_logged_in or False
 
-    async def on_logged_in(self, cookies: RequestsCookieJar):
-        self.cookies = cookies
-        self.linkedin_client = Linkedin("", "", cookies=cookies)
-        profile = self.linkedin_client.get_user_profile()
-        self.li_member_urn = str(
-            profile.get("miniProfile", {}).get("entityUrn", "").split(":")[-1]
-        )
+    async def on_logged_in(self, client: LinkedInMessaging):
+        print("on logged in", client)
+        self.client = client
+        self.li_member_urn = (
+            await self.client.get_user_profile()
+        ).mini_profile.entity_urn
         await self.save()
         self.stop_listen()
         asyncio.create_task(self.post_login())
@@ -290,51 +277,33 @@ class User(DBUser, BaseUser):
             self.log.exception("Failed to sync threads")
 
     async def _sync_threads(self) -> None:
+        assert self.client
         sync_count = self.config["bridge.initial_chat_sync"]
-        self.log.debug("Fetching threads...")
-        user_portals = await UserPortal.all(self.li_member_urn)
-
-        # TODO: implement page limit support in linkedin-api, and also get more pages if
-        # necessary
-        conversations = self.linkedin_client.get_conversations()
-
         if sync_count <= 0:
             return
 
-        for conversation in conversations.get("elements", []):
+        self.log.debug("Fetching threads...")
+        # user_portals = await UserPortal.all(self.li_member_urn)
+
+        async for conversation in self.client.get_all_conversations():
             try:
-                await self._sync_thread(
-                    conversation,
-                    # user_portals,
-                )
+                await self._sync_thread(conversation)
             except Exception:
-                self.log.exception(
-                    "Failed to sync thread %s", conversation.get("entityUrn")
-                )
+                self.log.exception(f"Failed to sync thread {conversation.entity_urn}")
 
         await self.update_direct_chats()
 
-    async def _sync_thread(
-        self,
-        conversation: Dict[str, Any],
-        # user_portals: Dict[str, UserPortal],
-    ):
-        thread_urn = cast(str, conversation.get("entityUrn")).split(":")[-1]
-        self.log.debug(f"Syncing thread {thread_urn}")
+    async def _sync_thread(self, conversation: Conversation):
+        self.log.debug(f"Syncing thread {conversation.entity_urn}")
 
-        li_is_group_chat = conversation.get("groupChat", False)
+        li_is_group_chat = conversation.group_chat
         li_other_user_urn = None
         if not li_is_group_chat:
-            li_other_user_urn = (
-                conversation.get("participants", [])[0]
-                .get("com.linkedin.voyager.messaging.MessagingMember", {})
-                .get("miniProfile", {})
-                .get("entityUrn", "")
-                .split(":")[-1]
-            )
+            other_user = conversation.participants[0]
+            li_other_user_urn = other_user.messaging_member.mini_profile.entity_urn
 
         portal = await po.Portal.get_by_li_thread_urn(
-            thread_urn,
+            conversation.entity_urn,
             li_receiver_urn=self.li_member_urn,
             li_is_group_chat=li_is_group_chat,
             li_other_user_urn=li_other_user_urn,
@@ -350,7 +319,7 @@ class User(DBUser, BaseUser):
             await portal.update_matrix_room(self, conversation)
             await portal.backfill(self, is_initial=False, conversation=conversation)
         if was_created or not self.config["bridge.tag_only_on_create"]:
-            await self._mute_room(portal, conversation.get("muted", False))
+            await self._mute_room(portal, conversation.muted)
 
     async def _mute_room(self, portal: po.Portal, muted: bool):
         if not self.config["bridge.mute_bridging"] or not portal or not portal.mxid:
@@ -385,40 +354,18 @@ class User(DBUser, BaseUser):
     def start_listen(self):
         self.listen_task = asyncio.create_task(self._try_listen())
 
-    # TODO move these somewhere better?
-    REQUEST_HEADERS = {
-        "user-agent": " ".join(
-            [
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5)",
-                "AppleWebKit/537.36 (KHTML, like Gecko)",
-                "Chrome/83.0.4103.116 Safari/537.36",
-            ]
-        ),
-        # "accept": "application/vnd.linkedin.normalized+json+2.1",
-        "accept-language": "en-AU,en-GB;q=0.9,en-US;q=0.8,en;q=0.7",
-        "x-li-lang": "en_US",
-        "x-restli-protocol-version": "2.0.0",
-        "x-li-track": '{"clientVersion":"1.2.6216","osName":"web","timezoneOffset":10,"deviceFormFactor":"DESKTOP","mpName":"voyager-web"}',
-    }
-    event_urn_re = re.compile(r"urn:li:fs_event:\(([^,]+),([^,]+)\)")
-
-    async def handle_linkedin_event(self, event: Dict[str, Any]):
-        event_entity_urn = event.get("entityUrn", "")
-        match = self.event_urn_re.match(event_entity_urn)
-        if not match:
-            self.log.warning(
-                f"LinkedIn entity URN ({event_entity_urn}) didn't match regex"
-            )
-            return
-        thread_urn, message_urn = match.groups()
-
-        sender_urn = (
-            event.get("from", {})
-            .get("com.linkedin.voyager.messaging.MessagingMember", {})
-            .get("miniProfile", {})
-            .get("entityUrn", "")
-            .split(":")[-1]
+    async def _try_listen(self):
+        self.client.add_event_listener("event", self.handle_linkedin_event)
+        self.client.add_event_listener(
+            "reactionAdded", self.handle_linkedin_reaction_added
         )
+        await self.client.start_listener()
+
+    async def handle_linkedin_event(self, event: RealTimeEventStreamEvent):
+        assert isinstance(event.event, ConversationEvent)
+        thread_urn, message_urn = event.event.entity_urn.id_parts
+
+        sender_urn = event.event.from_.messaging_member.mini_profile.entity_urn
 
         portal = await po.Portal.get_by_li_thread_urn(
             thread_urn, li_receiver_urn=self.li_member_urn
@@ -428,67 +375,28 @@ class User(DBUser, BaseUser):
         await portal.backfill_lock.wait(message_urn)
         await portal.handle_linkedin_message(self, puppet, event)
 
-    async def handle_linkedin_reaction_summary(self, event: Dict[str, Any]):
-        # TODO #32
-        if not event.get("reactionAdded"):
-            return
+    async def handle_linkedin_reaction_added(self, event: RealTimeEventStreamEvent):
+        assert isinstance(event.reaction_summary, ReactionSummary)
+        assert isinstance(event.reaction_added, bool)
+        assert isinstance(event.actor_mini_profile_urn, URN)
+
+        print("reaction added", event)
 
         # TODO #31 actually handle this
-        event_entity_urn = event.get("eventUrn", "")
-        match = self.event_urn_re.match(event_entity_urn)
-        if not match:
-            return
-        thread_urn, message_urn = match.groups()
+        # event_entity_urn = event.get("eventUrn", "")
+        # match = self.event_urn_re.match(event_entity_urn)
+        # if not match:
+        #     return
+        # thread_urn, message_urn = match.groups()
 
-        sender_urn = event.get("actorMiniProfileUrn", "").split(":")[-1]
+        # sender_urn = event.get("actorMiniProfileUrn", "").split(":")[-1]
 
-        portal = await po.Portal.get_by_li_thread_urn(
-            thread_urn, li_receiver_urn=self.li_member_urn
-        )
-        puppet = await pu.Puppet.get_by_li_member_urn(sender_urn)
+        # portal = await po.Portal.get_by_li_thread_urn(
+        #     thread_urn, li_receiver_urn=self.li_member_urn
+        # )
+        # puppet = await pu.Puppet.get_by_li_member_urn(sender_urn)
 
-        await portal.backfill_lock.wait(message_urn)
-        await portal.handle_linkedin_reaction_summary(self, puppet, event)
-
-    async def listen_to_event_stream(self, session: aiohttp.ClientSession):
-        self.log.info("Starting event stream listener")
-        async with session.get(
-            "https://realtime.www.linkedin.com/realtime/connect",
-            headers={"content-type": "text/event-stream"},
-            timeout=2 ** 128,
-        ) as resp:
-            while True:
-                chunk = await resp.content.readline()
-                if not chunk:
-                    break
-                if not chunk.startswith(b"data:"):
-                    continue
-                data = json.loads(chunk.decode("utf-8")[6:])
-                event_payload = data.get(
-                    "com.linkedin.realtimefrontend.DecoratedEvent", {}
-                ).get("payload", {})
-
-                event = event_payload.get("event")
-                if event:
-                    await self.handle_linkedin_event(event)
-
-                reaction_summary = event_payload.get("reactionSummary")
-                if reaction_summary:
-                    print("reaction", event_payload)
-                    await self.handle_linkedin_reaction_summary(event_payload)
-
-        self.log.info("Event stream closed")
-
-    async def _try_listen(self):
-        try:
-            async with aiohttp.ClientSession(
-                cookies=self.linkedin_client.client.cookies,
-                headers=self.REQUEST_HEADERS,
-            ) as s:
-                while True:
-                    await self.listen_to_event_stream(s)
-
-        except Exception as e:
-            print(e)
+        # await portal.backfill_lock.wait(message_urn)
+        # await portal.handle_linkedin_reaction_summary(self, puppet, event)
 
     # endregion

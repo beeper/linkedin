@@ -10,7 +10,7 @@ async def upgrade_v1(conn: Connection):
         CREATE TABLE "user" (
             mxid            TEXT PRIMARY KEY,
             li_member_urn   TEXT UNIQUE,
-            cookies         jsonb,
+            client_pickle   BYTEA,
             notice_room     TEXT
         )
         """,
@@ -57,7 +57,7 @@ async def upgrade_v1(conn: Connection):
             li_sender_urn       TEXT,
             li_receiver_urn     TEXT,
             index               SMALLINT,
-            timestamp           BIGINT,
+            timestamp           FLOAT,
 
             PRIMARY KEY (li_message_urn, li_receiver_urn, index),
 

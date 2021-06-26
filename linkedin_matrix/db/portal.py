@@ -2,6 +2,7 @@ from typing import ClassVar, List, Optional, TYPE_CHECKING
 
 from asyncpg import Record
 from attr import dataclass
+from linkedin_messaging import URN
 from mautrix.types import ContentURI, RoomID
 from mautrix.util.async_db import Database
 
@@ -14,10 +15,10 @@ fake_db = Database("") if TYPE_CHECKING else None
 class Portal(Model):
     db: ClassVar[Database] = fake_db
 
-    li_thread_urn: str
-    li_receiver_urn: Optional[str]
+    li_thread_urn: URN
+    li_receiver_urn: Optional[URN]
     li_is_group_chat: bool
-    li_other_user_urn: Optional[str]
+    li_other_user_urn: Optional[URN]
 
     mxid: Optional[RoomID]
     encrypted: bool
@@ -46,16 +47,29 @@ class Portal(Model):
     def _from_row(cls, row: Optional[Record]) -> Optional["Portal"]:
         if row is None:
             return None
-        return cls(**row)
+        data = {**row}
+        li_thread_urn = data.pop("li_thread_urn", None)
+        li_receiver_urn = data.pop("li_receiver_urn", None)
+        li_other_user_urn = data.pop("li_other_user_urn", None)
+        return cls(
+            **data,
+            li_thread_urn=URN(li_thread_urn) if li_thread_urn else None,
+            li_receiver_urn=URN(li_receiver_urn) if li_receiver_urn else None,
+            li_other_user_urn=URN(li_other_user_urn) if li_other_user_urn else None,
+        )
 
     @classmethod
     async def get_by_li_thread_urn(
         cls,
-        li_thread_urn: str,
-        li_receiver_urn: str,
+        li_thread_urn: URN,
+        li_receiver_urn: Optional[URN],
     ) -> Optional["Portal"]:
         query = Portal.select_constructor("li_thread_urn=$1 AND li_receiver_urn=$2")
-        row = await cls.db.fetchrow(query, li_thread_urn, li_receiver_urn)
+        row = await cls.db.fetchrow(
+            query,
+            li_thread_urn.id_str(),
+            li_receiver_urn.id_str() if li_receiver_urn else None,
+        )
         return cls._from_row(row)
 
     @classmethod
@@ -65,9 +79,9 @@ class Portal(Model):
         return cls._from_row(row)
 
     @classmethod
-    async def get_all_by_receiver(cls, li_receiver_urn: str) -> List["Portal"]:
+    async def get_all_by_receiver(cls, li_receiver_urn: URN) -> List["Portal"]:
         query = Portal.select_constructor("li_receiver_urn=$1")
-        rows = await cls.db.fetch(query, li_receiver_urn)
+        rows = await cls.db.fetch(query, li_receiver_urn.id_str())
         return [cls._from_row(row) for row in rows]
 
     @classmethod
@@ -80,10 +94,10 @@ class Portal(Model):
         query = Portal.insert_constructor()
         await self.db.execute(
             query,
-            self.li_thread_urn,
-            self.li_receiver_urn,
+            self.li_thread_urn.id_str(),
+            self.li_receiver_urn.id_str(),
             self.li_is_group_chat,
-            self.li_other_user_urn,
+            self.li_other_user_urn.id_str(),
             self.mxid,
             self.encrypted,
             self.name,
@@ -93,7 +107,11 @@ class Portal(Model):
 
     async def delete(self):
         q = "DELETE FROM portal WHERE li_thread_urn=$1 AND li_receiver_urn=$2"
-        await self.db.execute(q, self.li_thread_urn, self.li_receiver_urn)
+        await self.db.execute(
+            q,
+            self.li_thread_urn.id_str(),
+            self.li_receiver_urn.id_str(),
+        )
 
     async def save(self):
         query = """
@@ -110,10 +128,10 @@ class Portal(Model):
         """
         await self.db.execute(
             query,
-            self.li_thread_urn,
-            self.li_receiver_urn,
+            self.li_thread_urn.id_str(),
+            self.li_receiver_urn.id_str(),
             self.li_is_group_chat,
-            self.li_other_user_urn,
+            self.li_other_user_urn.id_str(),
             self.mxid,
             self.encrypted,
             self.name,

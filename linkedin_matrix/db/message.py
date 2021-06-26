@@ -1,7 +1,9 @@
+from datetime import datetime
 from typing import ClassVar, List, Optional, TYPE_CHECKING
 
 from asyncpg import Record
 from attr import dataclass
+from linkedin_messaging import URN
 from mautrix.types import EventID, RoomID
 from mautrix.util.async_db import Database
 
@@ -16,12 +18,12 @@ class Message(Model):
 
     mxid: EventID
     mx_room: RoomID
-    li_message_urn: Optional[str]
-    li_thread_urn: str
-    li_sender_urn: str
-    li_receiver_urn: str
+    li_message_urn: URN
+    li_thread_urn: URN
+    li_sender_urn: URN
+    li_receiver_urn: URN
     index: int
-    timestamp: int
+    timestamp: datetime
 
     _table_name = "message"
     _field_list = [
@@ -39,29 +41,51 @@ class Message(Model):
     def _from_row(cls, row: Optional[Record]) -> Optional["Message"]:
         if row is None:
             return None
-        return cls(**row)
+        data = {**row}
+        li_message_urn = data.pop("li_message_urn")
+        li_thread_urn = data.pop("li_thread_urn")
+        li_sender_urn = data.pop("li_sender_urn")
+        li_receiver_urn = data.pop("li_receiver_urn")
+        timestamp = data.pop("timestamp")
+        return cls(
+            **data,
+            li_message_urn=URN(li_message_urn),
+            li_thread_urn=URN(li_thread_urn),
+            li_sender_urn=URN(li_sender_urn),
+            li_receiver_urn=URN(li_receiver_urn),
+            timestamp=datetime.fromtimestamp(timestamp)
+        )
 
     @classmethod
     async def get_all_by_li_thread_urn(
         cls,
-        li_thread_urn: str,
-        li_receiver_urn: str,
+        li_thread_urn: URN,
+        li_receiver_urn: URN,
     ) -> List["Message"]:
         query = Message.select_constructor("li_thread_urn=$1 AND li_receiver_urn=$2")
-        rows = await cls.db.fetch(query, li_thread_urn, li_receiver_urn)
+        rows = await cls.db.fetch(
+            query,
+            li_thread_urn.id_str(),
+            li_receiver_urn.id_str(),
+        )
         return [cls._from_row(row) for row in rows]
 
     @classmethod
     async def get_by_li_message_urn(
         cls,
-        li_message_urn: str,
-        li_receiver_urn: str,
+        li_message_urn: URN,
+        li_receiver_urn: URN,
         index: int = 0,
     ) -> Optional["Message"]:
         query = Message.select_constructor(
             "li_message_urn=$1 AND li_receiver_urn=$2 AND index=$3"
         )
-        rows = await cls.db.fetch(query, li_message_urn, li_receiver_urn, index)
+        rows = await cls.db.fetch(
+            query,
+            li_message_urn.id_str(),
+            li_receiver_urn.id_str(),
+            index,
+        )
         return [cls._from_row(row) for row in rows]
 
     @classmethod
@@ -76,14 +100,20 @@ class Message(Model):
 
     @classmethod
     async def get_most_recent(
-        cls, li_thread_urn: str, li_receiver_urn: str
+        cls,
+        li_thread_urn: URN,
+        li_receiver_urn: URN,
     ) -> Optional["Message"]:
         query = (
             Message.select_constructor("li_thread_urn=$1 AND li_receiver_urn=$2 ")
             + " ORDER BY timestamp DESC"
             + " LIMIT 1"
         )
-        row = await cls.db.fetchrow(query, li_thread_urn, li_receiver_urn)
+        row = await cls.db.fetchrow(
+            query,
+            li_thread_urn.id_str(),
+            li_receiver_urn.id_str(),
+        )
         return cls._from_row(row)
 
     async def insert(self) -> None:
@@ -97,17 +127,17 @@ class Message(Model):
             self.li_sender_urn,
             self.li_receiver_urn,
             self.index,
-            self.timestamp,
+            self.timestamp.timestamp(),
         )
 
     @classmethod
     async def bulk_create(
         cls,
-        li_message_urn: str,
-        li_thread_urn: str,
-        li_sender_urn: str,
-        li_receiver_urn: str,
-        timestamp: int,
+        li_message_urn: URN,
+        li_thread_urn: URN,
+        li_sender_urn: URN,
+        li_receiver_urn: URN,
+        timestamp: datetime,
         event_ids: List[EventID],
         mx_room: RoomID,
     ) -> None:
@@ -118,12 +148,12 @@ class Message(Model):
             (
                 mxid,
                 mx_room,
-                li_message_urn,
-                li_thread_urn,
-                li_sender_urn,
-                li_receiver_urn,
+                li_message_urn.id_str(),
+                li_thread_urn.id_str(),
+                li_sender_urn.id_str(),
+                li_receiver_urn.id_str(),
                 index,
-                timestamp,
+                timestamp.timestamp(),
             )
             for index, mxid in enumerate(event_ids)
         ]
@@ -141,4 +171,9 @@ class Message(Model):
                AND li_receiver_urn=$2
                AND index=$3"
         """
-        await self.db.execute(q, self.li_message_urn, self.li_receiver_urn, self.index)
+        await self.db.execute(
+            q,
+            self.li_message_urn.id_str(),
+            self.li_receiver_urn.id_str(),
+            self.index,
+        )

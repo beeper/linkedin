@@ -4,4 +4,4 @@ ruamel.yaml>=0.15.94,<0.18
 commonmark>=0.8,<0.10
 mautrix>=0.9.1,<0.10
 SQLAlchemy
-git+git://github.com/sumnerevans/linkedin-api@master#egg=linkedin-api
+linkedin-messaging>=0.1.2,<0.2.0

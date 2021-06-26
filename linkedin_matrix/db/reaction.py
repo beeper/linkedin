@@ -1,7 +1,8 @@
-from typing import ClassVar, List, Optional, TYPE_CHECKING
+from typing import ClassVar, Optional, TYPE_CHECKING
 
 from asyncpg import Record
 from attr import dataclass
+from linkedin_messaging import URN
 from mautrix.types import EventID, RoomID
 from mautrix.util.async_db import Database
 
@@ -16,9 +17,9 @@ class Reaction(Model):
 
     mxid: EventID
     mx_room: RoomID
-    li_message_urn: str
-    li_receiver_urn: str
-    li_sender_urn: str
+    li_message_urn: URN
+    li_receiver_urn: URN
+    li_sender_urn: URN
     reaction: str
 
     _table_name = "reaction"
@@ -35,7 +36,16 @@ class Reaction(Model):
     def _from_row(cls, row: Optional[Record]) -> Optional["Reaction"]:
         if row is None:
             return None
-        return cls(**row)
+        data = {**row}
+        li_message_urn = data.pop("li_message_urn", None)
+        li_receiver_urn = data.pop("li_receiver_urn", None)
+        li_sender_urn = data.pop("li_sender_urn", None)
+        return cls(
+            **data,
+            li_message_urn=URN(li_message_urn) if li_message_urn else None,
+            li_receiver_urn=URN(li_receiver_urn) if li_receiver_urn else None,
+            li_sender_urn=URN(li_sender_urn) if li_sender_urn else None,
+        )
 
     @classmethod
     async def get_by_mxid(cls, mxid: EventID, mx_room: RoomID) -> Optional["Reaction"]:
@@ -49,9 +59,9 @@ class Reaction(Model):
             query,
             self.mxid,
             self.mx_room,
-            self.li_message_urn,
-            self.li_receiver_urn,
-            self.li_sender_urn,
+            self.li_message_urn.id_str(),
+            self.li_receiver_urn.id_str(),
+            self.li_sender_urn.id_str(),
             self.reaction,
         )
 
@@ -64,9 +74,9 @@ class Reaction(Model):
         """
         await self.db.execute(
             query,
-            self.li_message_urn,
-            self.li_receiver_urn,
-            self.li_sender_urn,
+            self.li_message_urn.id_str(),
+            self.li_receiver_urn.id_str(),
+            self.li_sender_urn.id_str(),
         )
 
     async def save(self):
@@ -84,7 +94,7 @@ class Reaction(Model):
             self.mxid,
             self.mx_room,
             self.reaction,
-            self.li_message_urn,
-            self.li_receiver_urn,
-            self.li_sender_urn,
+            self.li_message_urn.id_str(),
+            self.li_receiver_urn.id_str(),
+            self.li_sender_urn.id_str(),
         )
