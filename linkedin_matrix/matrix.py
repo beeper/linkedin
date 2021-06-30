@@ -1,26 +1,18 @@
 from typing import List, Optional, TYPE_CHECKING, Union
 
 from mautrix.bridge import BaseMatrixHandler
-from mautrix.errors import MatrixError
 from mautrix.types import (
     EncryptedEvent,
     Event,
-    EventID,
     EventType,
     MessageEvent,
-    MessageType,
     PresenceEvent,
     PresenceEventContent,
-    PresenceState,
     ReactionEvent,
-    ReactionEventContent,
     ReceiptEvent,
     RedactionEvent,
-    RelationType,
     RoomID,
-    SingleReceiptEventContent,
     StateEvent,
-    TextMessageEventContent,
     TypingEvent,
     UserID,
 )

@@ -1,5 +1,4 @@
-from dataclasses import dataclass
-from typing import Any, cast, Dict, List
+from typing import Any, cast
 
 from linkedin_messaging import URN
 from linkedin_messaging.api_objects import (

@@ -5,13 +5,11 @@ from io import BytesIO
 from typing import (
     Any,
     AsyncGenerator,
-    Awaitable,
     cast,
     Deque,
     Dict,
     List,
     Optional,
-    Pattern,
     Set,
     Tuple,
     TYPE_CHECKING,
@@ -27,18 +25,11 @@ from linkedin_messaging.api_objects import (
     MessageAttachment,
     MessageCreate,
     ReactionSummary,
-    RealTimeEventStreamEvent,
     ThirdPartyMedia,
 )
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import async_getter_lock, BasePortal, NotificationDisabler
-from mautrix.errors import (
-    IntentError,
-    MatrixError,
-    MForbidden,
-    MNotFound,
-    SessionNotFound,
-)
+from mautrix.errors import MatrixError
 from mautrix.types import (
     AudioInfo,
     ContentURI,
@@ -46,21 +37,16 @@ from mautrix.types import (
     EventID,
     EventType,
     FileInfo,
-    Format,
     ImageInfo,
-    LocationMessageEventContent,
     MediaMessageEventContent,
     Membership,
-    MemberStateEventContent,
     MessageEventContent,
     MessageType,
-    RelationType,
     RoomID,
     TextMessageEventContent,
     VideoInfo,
 )
 from mautrix.util.simple_lock import SimpleLock
-from yarl import URL
 
 from . import puppet as p, user as u
 from .config import Config
@@ -68,7 +54,6 @@ from .db import (
     Message as DBMessage,
     Portal as DBPortal,
     Reaction as DBReaction,
-    UserPortal,
 )
 from .formatter import linkedin_to_matrix, matrix_to_linkedin
 

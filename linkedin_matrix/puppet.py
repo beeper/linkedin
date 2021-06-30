@@ -1,7 +1,6 @@
 import re
 from datetime import datetime
 from typing import (
-    Any,
     AsyncGenerator,
     AsyncIterable,
     Awaitable,
@@ -10,7 +9,6 @@ from typing import (
     List,
     Optional,
     TYPE_CHECKING,
-    Union,
 )
 
 import aiohttp
@@ -19,7 +17,7 @@ from linkedin_messaging import URN
 from linkedin_messaging.api_objects import MessagingMember, Picture
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import async_getter_lock, BasePuppet
-from mautrix.types import ContentURI, RoomID, SyncToken, UserID
+from mautrix.types import ContentURI, SyncToken, UserID
 from mautrix.util.simple_template import SimpleTemplate
 from yarl import URL
 

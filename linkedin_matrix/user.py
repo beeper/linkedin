@@ -21,13 +21,10 @@ from linkedin_messaging.api_objects import (
 from mautrix.bridge import async_getter_lock, BaseUser
 from mautrix.errors import MNotFound
 from mautrix.types import (
-    EventID,
-    MessageType,
     PushActionType,
     PushRuleKind,
     PushRuleScope,
     RoomID,
-    TextMessageEventContent,
     UserID,
 )
 from mautrix.util.opt_prometheus import async_time, Gauge, Summary
@@ -35,7 +32,7 @@ from mautrix.util.simple_lock import SimpleLock
 
 from . import portal as po, puppet as pu
 from .config import Config
-from .db import User as DBUser, UserPortal
+from .db import User as DBUser
 
 if TYPE_CHECKING:
     from .__main__ import LinkedInBridge
