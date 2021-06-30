@@ -99,6 +99,8 @@ class Portal(DBPortal, BasePortal):
     config: Config
 
     backfill_lock: SimpleLock
+    _dedup: Deque[URN]
+    _send_locks: Dict[int, asyncio.Lock]
 
     def __init__(
         self,
@@ -160,6 +162,18 @@ class Portal(DBPortal, BasePortal):
 
     # endregion
 
+    # region Send lock handling
+
+    def require_send_lock(self, li_member_urn: URN) -> asyncio.Lock:
+        try:
+            lock = self._send_locks[li_member_urn]
+        except KeyError:
+            lock = asyncio.Lock()
+            self._send_locks[li_member_urn] = lock
+        return lock
+
+    # endregion
+
     # region Properties
 
     @property
@@ -177,10 +191,6 @@ class Portal(DBPortal, BasePortal):
     @property
     def is_direct(self) -> bool:
         return not self.li_is_group_chat
-
-    # endregion
-
-    # region Properties
 
     @property
     def li_urn_log(self) -> str:
@@ -638,7 +648,7 @@ class Portal(DBPortal, BasePortal):
             return
 
         if message.msgtype in (MessageType.TEXT, MessageType.NOTICE, MessageType.EMOTE):
-            await self._handle_matrix_text(sender, message)
+            await self._handle_matrix_text(event_id, sender, message)
         elif message.msgtype in (
             MessageType.AUDIO,
             MessageType.FILE,
@@ -650,8 +660,32 @@ class Portal(DBPortal, BasePortal):
             self.log.warning(f"Unsupported msgtype {message.msgtype} in {event_id}")
             return
 
+    async def _send_linkedin_message(
+        self,
+        event_id: EventID,
+        sender: "u.User",
+        message_create: MessageCreate,
+    ) -> DBMessage:
+        assert sender.client
+        async with self.require_send_lock(sender.li_member_urn):
+            resp = await sender.client.send_message(self.li_thread_urn, message_create)
+            message = DBMessage(
+                mxid=event_id,
+                mx_room=self.mxid,
+                li_message_urn=resp.value.event_urn,
+                li_thread_urn=self.li_thread_urn,
+                li_sender_urn=sender.li_member_urn,
+                li_receiver_urn=self.li_receiver_urn,
+                index=0,
+                timestamp=datetime.now(),
+            )
+            self._dedup.append(resp.value.event_urn)
+            await message.insert()
+            return message
+
     async def _handle_matrix_text(
         self,
+        event_id: EventID,
         sender: "u.User",
         message: TextMessageEventContent,
     ):
@@ -659,8 +693,7 @@ class Portal(DBPortal, BasePortal):
         message_create = await matrix_to_linkedin(
             message, sender, self.main_intent, self.log
         )
-        resp = await sender.client.send_message(self.li_thread_urn, message_create)
-        print(resp)
+        await self._send_linkedin_message(event_id, sender, message_create)
 
     async def _handle_matrix_media(
         self,
@@ -686,11 +719,11 @@ class Portal(DBPortal, BasePortal):
         attachment = await sender.client.upload_media(
             data, message.body, message.info.mimetype
         )
-        resp = await sender.client.send_message(
-            self.li_thread_urn,
+        self._send_linkedin_message(
+            event_id,
+            sender,
             MessageCreate(AttributedBody(), attachments=[attachment]),
         )
-        print(resp)
 
     # endregion
 
@@ -745,22 +778,24 @@ class Portal(DBPortal, BasePortal):
         li_message_urn = message.entity_urn
 
         # Check in-memory queue for duplicates
-        if li_message_urn in self._dedup:
-            self.log.trace(
-                f"Not handling message {li_message_urn}, found ID in dedup queue"
-            )
-            return
-        self._dedup.appendleft(li_message_urn)
+        async with self.require_send_lock(sender.li_member_urn):
+            if li_message_urn in self._dedup:
+                self.log.trace(
+                    f"Not handling message {li_message_urn}, found ID in dedup queue"
+                )
+                return
+            self._dedup.appendleft(li_message_urn)
 
-        # Check database for duplicates
-        dbm = await DBMessage.get_by_li_message_urn(
-            li_message_urn, self.li_receiver_urn
-        )
-        if dbm:
-            self.log.debug(
-                f"Not handling message {li_message_urn}, found duplicate in database"
+            # Check database for duplicates
+            dbm = await DBMessage.get_by_li_message_urn(
+                li_message_urn, self.li_receiver_urn
             )
-            return
+            if dbm:
+                self.log.debug(
+                    f"Not handling message {li_message_urn}, found duplicate in "
+                    "database."
+                )
+                return
 
         self.log.trace("LinkedIn event content: %s", message)
         if not self.mxid:

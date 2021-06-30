@@ -301,7 +301,6 @@ class User(DBUser, BaseUser):
             other_user = conversation.participants[0]
             li_other_user_urn = other_user.messaging_member.mini_profile.entity_urn
 
-        print(conversation)
         portal = await po.Portal.get_by_li_thread_urn(
             conversation.entity_urn,
             li_receiver_urn=self.li_member_urn,
