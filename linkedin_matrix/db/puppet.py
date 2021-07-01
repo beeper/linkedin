@@ -1,21 +1,16 @@
-from typing import ClassVar, List, Optional, TYPE_CHECKING
+from typing import cast, List, Optional
 
 from asyncpg import Record
 from attr import dataclass
 from linkedin_messaging import URN
 from mautrix.types import ContentURI, SyncToken, UserID
-from mautrix.util.async_db import Database
 from yarl import URL
 
 from .model_base import Model
 
-fake_db = Database("") if TYPE_CHECKING else None
-
 
 @dataclass
 class Puppet(Model):
-    db: ClassVar[Database] = fake_db
-
     li_member_urn: URN
     name: Optional[str]
     photo_id: Optional[str]
@@ -51,11 +46,11 @@ class Puppet(Model):
             return None
         data = {**row}
         base_url = data.pop("base_url", None)
-        li_member_urn = data.pop("li_member_urn", None)
+        li_member_urn = data.pop("li_member_urn")
         return cls(
             **data,
             base_url=URL(base_url) if base_url else None,
-            li_member_urn=URN(li_member_urn) if li_member_urn else None,
+            li_member_urn=URN(li_member_urn),
         )
 
     @classmethod
@@ -80,7 +75,7 @@ class Puppet(Model):
     async def get_all_with_custom_mxid(cls) -> List["Puppet"]:
         query = Puppet.select_constructor("custom_mxid <> ''")
         rows = await cls.db.fetch(query)
-        return [cls._from_row(row) for row in rows]
+        return [cast(Puppet, cls._from_row(row)) for row in rows if row]
 
     async def insert(self) -> None:
         query = Puppet.insert_constructor()

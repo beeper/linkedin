@@ -1,21 +1,16 @@
 from datetime import datetime
-from typing import ClassVar, List, Optional, TYPE_CHECKING
+from typing import List, Optional
 
 from asyncpg import Record
 from attr import dataclass
 from linkedin_messaging import URN
 from mautrix.types import EventID, RoomID
-from mautrix.util.async_db import Database
 
 from .model_base import Model
-
-fake_db = Database("") if TYPE_CHECKING else None
 
 
 @dataclass
 class Message(Model):
-    db: ClassVar[Database] = fake_db
-
     mxid: EventID
     mx_room: RoomID
     li_message_urn: URN
@@ -80,13 +75,13 @@ class Message(Model):
         query = Message.select_constructor(
             "li_message_urn=$1 AND li_receiver_urn=$2 AND index=$3"
         )
-        rows = await cls.db.fetch(
+        row = await cls.db.fetchrow(
             query,
             li_message_urn.id_str(),
             li_receiver_urn.id_str(),
             index,
         )
-        return [cls._from_row(row) for row in rows]
+        return cls._from_row(row)
 
     @classmethod
     async def delete_all_by_room(cls, room_id: RoomID) -> None:

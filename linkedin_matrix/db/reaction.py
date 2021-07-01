@@ -1,20 +1,15 @@
-from typing import ClassVar, Optional, TYPE_CHECKING
+from typing import Optional
 
 from asyncpg import Record
 from attr import dataclass
 from linkedin_messaging import URN
 from mautrix.types import EventID, RoomID
-from mautrix.util.async_db import Database
 
 from .model_base import Model
-
-fake_db = Database("") if TYPE_CHECKING else None
 
 
 @dataclass
 class Reaction(Model):
-    db: ClassVar[Database] = fake_db
-
     mxid: EventID
     mx_room: RoomID
     li_message_urn: URN
@@ -37,14 +32,14 @@ class Reaction(Model):
         if row is None:
             return None
         data = {**row}
-        li_message_urn = data.pop("li_message_urn", None)
-        li_receiver_urn = data.pop("li_receiver_urn", None)
-        li_sender_urn = data.pop("li_sender_urn", None)
+        li_message_urn = data.pop("li_message_urn")
+        li_receiver_urn = data.pop("li_receiver_urn")
+        li_sender_urn = data.pop("li_sender_urn")
         return cls(
             **data,
-            li_message_urn=URN(li_message_urn) if li_message_urn else None,
-            li_receiver_urn=URN(li_receiver_urn) if li_receiver_urn else None,
-            li_sender_urn=URN(li_sender_urn) if li_sender_urn else None,
+            li_message_urn=URN(li_message_urn),
+            li_receiver_urn=URN(li_receiver_urn),
+            li_sender_urn=URN(li_sender_urn),
         )
 
     @classmethod

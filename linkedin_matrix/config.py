@@ -1,9 +1,14 @@
 import os
-from typing import Any, List, Tuple
+from typing import Any, Callable, cast, List, Tuple
 
 from mautrix.bridge.config import BaseBridgeConfig
 from mautrix.types import UserID
-from mautrix.util.config import ConfigUpdateHelper, ForbiddenDefault, ForbiddenKey
+from mautrix.util.config import (
+    ConfigUpdateHelper,
+    ForbiddenDefault,
+    ForbiddenKey,
+    RecursiveDict,
+)
 
 
 class Config(BaseBridgeConfig):
@@ -30,7 +35,7 @@ class Config(BaseBridgeConfig):
 
     def do_update(self, helper: ConfigUpdateHelper) -> None:
         super().do_update(helper)
-        copy, copy_dict, base = helper
+        copy, copy_dict, base = helper.copy, helper.copy_dict, helper.base
 
         copy("homeserver.asmux")
 

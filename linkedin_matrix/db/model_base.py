@@ -1,7 +1,13 @@
-from typing import List
+from typing import ClassVar, List, TYPE_CHECKING
+
+from mautrix.util.async_db import Database
+
+fake_db = Database("") if TYPE_CHECKING else None
 
 
 class Model:
+    db: ClassVar[Database] = fake_db
+
     _table_name: str
     _field_list: List[str]
 

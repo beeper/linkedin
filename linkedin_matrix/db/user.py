@@ -1,20 +1,15 @@
-from typing import ClassVar, List, Optional, TYPE_CHECKING
+from typing import List, Optional
 
 from asyncpg import Record
 from attr import dataclass
 from linkedin_messaging import LinkedInMessaging, URN
 from mautrix.types import RoomID, UserID
-from mautrix.util.async_db import Database
 
 from .model_base import Model
-
-fake_db = Database("") if TYPE_CHECKING else None
 
 
 @dataclass
 class User(Model):
-    db: ClassVar[Database] = fake_db
-
     mxid: UserID
     li_member_urn: Optional[URN]
     notice_room: Optional[RoomID]

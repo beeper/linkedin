@@ -1,3 +1,5 @@
+from typing import List
+
 import setuptools
 
 from linkedin_matrix.get_version import (
@@ -17,7 +19,7 @@ with open("requirements.txt") as reqs:
 
 with open("optional-requirements.txt") as reqs:
     extras_require = {}
-    current = []
+    current: List[str] = []
     for line in reqs.read().splitlines():
         if line.startswith("#/"):
             extras_require[line[2:]] = current = []

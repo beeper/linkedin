@@ -1,5 +1,7 @@
 from html import escape
+from typing import List, Tuple, Union
 
+from linkedin_messaging import URN
 from linkedin_messaging.api_objects import AttributedBody
 from mautrix.types import Format, MessageType, TextMessageEventContent
 
@@ -9,7 +11,7 @@ from .. import puppet as pu, user as u
 async def linkedin_to_matrix(msg: AttributedBody) -> TextMessageEventContent:
     content = TextMessageEventContent(msgtype=MessageType.TEXT, body=msg.text)
 
-    segments = []
+    segments: List[Union[str, Tuple[str, URN]]] = []
     profile_urns = []
 
     text = msg.text

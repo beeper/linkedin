@@ -4,4 +4,4 @@ ruamel.yaml>=0.15.94,<0.18
 commonmark>=0.8,<0.10
 mautrix>=0.9.1,<0.10
 SQLAlchemy
-linkedin-messaging>=0.1.2,<0.2.0
+linkedin-messaging>=0.1.4,<0.2.0

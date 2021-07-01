@@ -1,20 +1,15 @@
-from typing import ClassVar, List, Optional, TYPE_CHECKING
+from typing import List, Optional
 
 from asyncpg import Record
 from attr import dataclass
 from linkedin_messaging import URN
 from mautrix.types import ContentURI, RoomID
-from mautrix.util.async_db import Database
 
 from .model_base import Model
-
-fake_db = Database("") if TYPE_CHECKING else None
 
 
 @dataclass
 class Portal(Model):
-    db: ClassVar[Database] = fake_db
-
     li_thread_urn: URN
     li_receiver_urn: Optional[URN]
     li_is_group_chat: bool

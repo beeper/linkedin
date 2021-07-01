@@ -1,18 +1,13 @@
-from typing import ClassVar, Dict, Optional, TYPE_CHECKING
+from typing import Dict, Optional
 
 from asyncpg import Record
 from attr import dataclass
-from mautrix.util.async_db import Database
 
 from .model_base import Model
-
-fake_db = Database("") if TYPE_CHECKING else None
 
 
 @dataclass
 class UserPortal(Model):
-    db: ClassVar[Database] = fake_db
-
     user: str
     portal: str
     portal_receiver: str

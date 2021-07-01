@@ -2,5 +2,7 @@ black
 flake8
 flake8-annotations
 flake8-import-order
+flake8-print
 mypy
 pytest
+types-chardet

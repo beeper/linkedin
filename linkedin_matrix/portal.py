@@ -85,7 +85,7 @@ class Portal(DBPortal, BasePortal):
 
     backfill_lock: SimpleLock
     _dedup: Deque[URN]
-    _send_locks: Dict[int, asyncio.Lock]
+    _send_locks: Dict[URN, asyncio.Lock]
 
     def __init__(
         self,
@@ -301,6 +301,7 @@ class Portal(DBPortal, BasePortal):
 
         changed = await self._update_participants(source, conversation) or changed
         if changed:
+            # TODO
             await self.update_bridge_info()
             await self.save()
 
