@@ -57,9 +57,9 @@
 * Misc
   * [ ] Multi-user support
   * [ ] Shared group chat portals
-  * [ ] Automatic portal creation
-    * [ ] At startup
-    * [ ] When added to chat
-    * [ ] When receiving message
+  * [x] Automatic portal creation
+    * [x] At startup
+    * [x] When added to chat
+    * [x] When receiving message
   * [ ] Private chat creation by inviting Matrix puppet of LinkedIn user to new room
-  * [ ] Option to use own Matrix account for messages sent from other LinkedIn clients
+  * [x] Option to use own Matrix account for messages sent from other LinkedIn clients
