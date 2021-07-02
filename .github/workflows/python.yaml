@@ -1,5 +1,5 @@
 # Tests on Python 3.7+
-name: Python Test
+name: Python
 
 on:
   push:
@@ -66,8 +66,8 @@ jobs:
       run: |
         poetry build
 
-  deploy:
-    name: Deploy to pypi
+  test_deploy:
+    name: Test Deploy to PyPi
     runs-on: ubuntu-latest
     needs: [build]
 
@@ -89,8 +89,26 @@ jobs:
         poetry config pypi-token.pypi ${{ secrets.PYPI_DEPLOY_TOKEN }}
         poetry publish --dry-run
 
+  deploy:
+    name: Deploy to PyPi
+    runs-on: ubuntu-latest
+    needs: [test_deploy]
+    if: ${{ github.event_name == 'release' && github.event.action == 'created' }}
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Run image
+      uses: abatilo/actions-poetry@v2.1.2
+
+    - name: Run build
+      run: |
+        poetry build
+
     - name: Actual publish
-      if: ${{ github.event_name == 'release' && github.event.action == 'created' }}
       run: |
         poetry config pypi-token.pypi ${{ secrets.PYPI_DEPLOY_TOKEN }}
         poetry publish
