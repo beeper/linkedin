@@ -25,7 +25,7 @@ class UserPortal(Model):
     async def all(cls, user: str) -> Dict[str, "UserPortal"]:
         query = UserPortal.select_constructor('"user"=$1')
         rows = await cls.db.fetch(query, user)
-        return {up.portal: up for up in (cls._from_row(row) for row in rows)}
+        return {up.portal: up for up in (cls._from_row(row) for row in rows) if up}
 
     @classmethod
     async def get(

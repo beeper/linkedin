@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import cast, List, Optional
 
 from asyncpg import Record
 from attr import dataclass
@@ -42,7 +42,7 @@ class User(Model):
     async def all_logged_in(cls) -> List["User"]:
         query = User.select_constructor("li_member_urn <> ''")
         rows = await cls.db.fetch(query)
-        return [cls._from_row(row) for row in rows]
+        return [cast(User, cls._from_row(row)) for row in rows if row]
 
     @classmethod
     async def get_by_li_member_urn(cls, li_member_urn: URN) -> Optional["User"]:

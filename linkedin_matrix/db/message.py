@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import cast, List, Optional
 
 from asyncpg import Record
 from attr import dataclass
@@ -63,7 +63,7 @@ class Message(Model):
             li_thread_urn.id_str(),
             li_receiver_urn.id_str(),
         )
-        return [cls._from_row(row) for row in rows]
+        return [cast(Message, cls._from_row(row)) for row in rows if row]
 
     @classmethod
     async def get_by_li_message_urn(

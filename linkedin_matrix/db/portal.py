@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import cast, List, Optional
 
 from asyncpg import Record
 from attr import dataclass
@@ -43,12 +43,12 @@ class Portal(Model):
         if row is None:
             return None
         data = {**row}
-        li_thread_urn = data.pop("li_thread_urn", None)
+        li_thread_urn = data.pop("li_thread_urn")
         li_receiver_urn = data.pop("li_receiver_urn", None)
         li_other_user_urn = data.pop("li_other_user_urn", None)
         return cls(
             **data,
-            li_thread_urn=URN(li_thread_urn) if li_thread_urn else None,
+            li_thread_urn=URN(li_thread_urn),
             li_receiver_urn=URN(li_receiver_urn) if li_receiver_urn else None,
             li_other_user_urn=URN(li_other_user_urn) if li_other_user_urn else None,
         )
@@ -77,20 +77,20 @@ class Portal(Model):
     async def get_all_by_li_receiver_urn(cls, li_receiver_urn: URN) -> List["Portal"]:
         query = Portal.select_constructor("li_receiver_urn=$1")
         rows = await cls.db.fetch(query, li_receiver_urn.id_str())
-        return [cls._from_row(row) for row in rows]
+        return [cast(Portal, cls._from_row(row)) for row in rows if row]
 
     @classmethod
     async def all(cls) -> List["Portal"]:
         query = Portal.select_constructor()
         rows = await cls.db.fetch(query)
-        return [cls._from_row(row) for row in rows]
+        return [cast(Portal, cls._from_row(row)) for row in rows if row]
 
     async def insert(self):
         query = Portal.insert_constructor()
         await self.db.execute(
             query,
             self.li_thread_urn.id_str(),
-            self.li_receiver_urn.id_str(),
+            self.li_receiver_urn.id_str() if self.li_receiver_urn else None,
             self.li_is_group_chat,
             self.li_other_user_urn.id_str() if self.li_other_user_urn else None,
             self.mxid,
@@ -105,7 +105,7 @@ class Portal(Model):
         await self.db.execute(
             q,
             self.li_thread_urn.id_str(),
-            self.li_receiver_urn.id_str(),
+            self.li_receiver_urn.id_str() if self.li_receiver_urn else None,
         )
 
     async def save(self):
@@ -124,7 +124,7 @@ class Portal(Model):
         await self.db.execute(
             query,
             self.li_thread_urn.id_str(),
-            self.li_receiver_urn.id_str(),
+            self.li_receiver_urn.id_str() if self.li_receiver_urn else None,
             self.li_is_group_chat,
             self.li_other_user_urn.id_str() if self.li_other_user_urn else None,
             self.mxid,

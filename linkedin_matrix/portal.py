@@ -46,6 +46,7 @@ from mautrix.types import (
     TextMessageEventContent,
     VideoInfo,
 )
+from mautrix.types.primitive import UserID
 from mautrix.util.simple_lock import SimpleLock
 
 from . import puppet as p, user as u
@@ -69,7 +70,7 @@ except ImportError:
 try:
     from mautrix.crypto.attachments import decrypt_attachment, encrypt_attachment
 except ImportError:
-    decrypt_attachment = encrypt_attachment = None
+    decrypt_attachment = encrypt_attachment = None  # type: ignore
 
 StateBridge = EventType.find("m.bridge", EventType.Class.STATE)
 StateHalfShotBridge = EventType.find("uk.half-shot.bridge", EventType.Class.STATE)
@@ -500,7 +501,7 @@ class Portal(DBPortal, BasePortal):
                         )
 
             try:
-                await self.backfill(source, is_initial=True, conversation=conversation)
+                await self.backfill(source, conversation, is_initial=True)
             except Exception:
                 self.log.exception("Failed to backfill new portal")
 
@@ -547,17 +548,18 @@ class Portal(DBPortal, BasePortal):
     async def backfill(
         self,
         source: "u.User",
+        conversation: Optional[Conversation],
         is_initial: bool,
-        conversation: Optional[Conversation] = None,
     ):
-        limit: int = (
+        assert self.li_receiver_urn
+        limit: Optional[int] = (
             self.config["bridge.backfill.initial_limit"]
             if is_initial
             else self.config["bridge.backfill.missed_limit"]
         )
         if limit == 0:
             return
-        elif limit < 0:
+        elif limit and limit < 0:
             limit = None
         last_active = None
 
@@ -580,7 +582,7 @@ class Portal(DBPortal, BasePortal):
                 f"Not backfilling {self.li_urn_log}: last activity is equal to most "
                 f"recent bridged message ({most_recent.timestamp} >= {last_active})"
             )
-        else:
+        elif conversation:
             with self.backfill_lock:
                 await self._backfill(
                     source,
@@ -593,7 +595,7 @@ class Portal(DBPortal, BasePortal):
         self,
         source: "u.User",
         limit: Optional[int],
-        after_timestamp: Optional[datetime],
+        after_timestamp: Optional[datetime],  # TODO (54)
         conversation: Conversation,
     ):
         assert self.mxid
@@ -665,14 +667,22 @@ class Portal(DBPortal, BasePortal):
             return
 
         if message.msgtype in (MessageType.TEXT, MessageType.NOTICE, MessageType.EMOTE):
-            await self._handle_matrix_text(event_id, sender, message)
+            await self._handle_matrix_text(
+                event_id,
+                sender,
+                cast(TextMessageEventContent, message),
+            )
         elif message.msgtype in (
             MessageType.AUDIO,
             MessageType.FILE,
             MessageType.IMAGE,
             MessageType.VIDEO,
         ):
-            await self._handle_matrix_media(event_id, sender, message)
+            await self._handle_matrix_media(
+                event_id,
+                sender,
+                cast(MediaMessageEventContent, message),
+            )
         else:
             self.log.warning(f"Unsupported msgtype {message.msgtype} in {event_id}")
             return
@@ -683,7 +693,11 @@ class Portal(DBPortal, BasePortal):
         sender: "u.User",
         message_create: MessageCreate,
     ) -> DBMessage:
+        assert self.mxid
+        assert self.li_receiver_urn
         assert sender.client
+        assert sender.li_member_urn
+
         async with self.require_send_lock(sender.li_member_urn):
             resp = await sender.client.send_message(self.li_thread_urn, message_create)
             message = DBMessage(
@@ -719,15 +733,21 @@ class Portal(DBPortal, BasePortal):
         message: MediaMessageEventContent,
     ):
         assert sender.client
+        if not message.info:
+            return
 
-        if message.file and decrypt_attachment:
+        if message.file and message.file.url and decrypt_attachment:
             data = await self.main_intent.download_media(message.file.url)
-            data = decrypt_attachment(
-                data,
-                message.file.key.key,
-                message.file.hashes.get("sha256"),
-                message.file.iv,
-            )
+            file_hash = message.file.hashes.get("sha256")
+            if file_hash:
+                data = decrypt_attachment(
+                    data,
+                    message.file.key.key,
+                    file_hash,
+                    message.file.iv,
+                )
+            else:
+                return
         elif message.url:
             data = await self.main_intent.download_media(message.url)
         else:
@@ -753,15 +773,16 @@ class Portal(DBPortal, BasePortal):
         mid: str,
         invite: bool = True,
     ) -> bool:
+        assert self.mxid
         if (
             self.is_direct
             and sender.li_member_urn == source.li_member_urn
             and not sender.is_real_user
         ):
             if self.invite_own_puppet_to_pm and invite:
-                await self.main_intent.invite_user(self.mxid, sender.mxid)
+                await self.main_intent.invite_user(self.mxid, UserID(sender.mxid))
             elif (
-                await self.az.state_store.get_membership(self.mxid, sender.mxid)
+                await self.az.state_store.get_membership(self.mxid, UserID(sender.mxid))
                 != Membership.JOIN
             ):
                 self.log.warning(

@@ -11,7 +11,7 @@ from .user_portal import UserPortal
 
 def init(db: Database) -> None:
     for table in (Message, Portal, Puppet, Reaction, User, UserPortal):
-        table.db = db
+        table.db = db  # type: ignore
 
 
 __all__ = (

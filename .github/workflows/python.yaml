@@ -43,7 +43,7 @@ jobs:
     - name: Lint with mypy
       if: always()
       run: |
-        poetry run mypy .
+        poetry run mypy linkedin_matrix
 
     - name: Run custom style checks
       if: always()

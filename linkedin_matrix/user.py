@@ -61,7 +61,7 @@ class User(DBUser, BaseUser):
     def __init__(
         self,
         mxid: UserID,
-        li_member_urn: Optional[str] = None,
+        li_member_urn: Optional[URN] = None,
         client: Optional[LinkedInMessaging] = None,
         notice_room: Optional[RoomID] = None,
     ):
@@ -308,7 +308,7 @@ class User(DBUser, BaseUser):
             was_created = True
         else:
             await portal.update_matrix_room(self, conversation)
-            await portal.backfill(self, is_initial=False, conversation=conversation)
+            await portal.backfill(self, conversation, is_initial=False)
         if was_created or not self.config["bridge.tag_only_on_create"]:
             await self._mute_room(portal, conversation.muted)
 

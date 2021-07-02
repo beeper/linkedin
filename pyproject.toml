@@ -27,11 +27,11 @@ asyncpg = "^0.22.0"
 python-magic = "^0.4.24"
 "ruamel.yaml" = "^0.17.10"
 commonmark = "^0.9.1"
-mautrix = "^0.9.8"
 linkedin-messaging = "^0.1.4"
 Pillow = {version = "^8.3.0", optional = true}
 unpaddedbase64 = {version = "^2.1.0", optional = true}
 python-olm = {version = "^3.2.4", optional = true}
+mautrix = {git = "https://github.com/sumnerevans/mautrix-python", rev = "initialstate-invariant"}
 
 [tool.poetry.dev-dependencies]
 black = "^21.6b0"
@@ -52,3 +52,15 @@ e2be = ["python-olm", "unpaddedbase64"]
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+# MyPy Config
+
+[[tool.mypy.overrides]]
+module = [
+    # https://github.com/MagicStack/asyncpg/pull/577
+    "asyncpg",
+    "bs4",
+    "PIL",
+    "ruamel",
+]
+ignore_missing_imports = true

@@ -313,6 +313,7 @@ description = "A Python 3 asyncio Matrix framework."
 category = "main"
 optional = false
 python-versions = "~=3.7"
+develop = false
 
 [package.dependencies]
 aiohttp = ">=3,<4"
@@ -322,6 +323,12 @@ yarl = ">=1,<2"
 [package.extras]
 detect_mimetype = ["python-magic (>=0.4.15,<0.5)"]
 test = ["pytest"]
+
+[package.source]
+type = "git"
+url = "https://github.com/sumnerevans/mautrix-python"
+reference = "add-pep-561-typing-info"
+resolved_reference = "a9e69da37bcda00043a652f471b6a3da2eddada4"
 
 [[package]]
 name = "mccabe"
@@ -648,7 +655,7 @@ images = ["Pillow"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "d4691d010f3a6ad2425c423e79a85c1d31dad93bcd0b7ee3a39e03bba4237c1c"
+content-hash = "7983b6003a256b1e58ffffe39163dcfb85f644d7d29b4cb794e9164d00493f20"
 
 [metadata.files]
 aiohttp = [
@@ -846,10 +853,7 @@ marshmallow-enum = [
     {file = "marshmallow-enum-1.5.1.tar.gz", hash = "sha256:38e697e11f45a8e64b4a1e664000897c659b60aa57bfa18d44e226a9920b6e58"},
     {file = "marshmallow_enum-1.5.1-py2.py3-none-any.whl", hash = "sha256:57161ab3dbfde4f57adeb12090f39592e992b9c86d206d02f6bd03ebec60f072"},
 ]
-mautrix = [
-    {file = "mautrix-0.9.8-py3-none-any.whl", hash = "sha256:726d2454a4863671640d490db77463e061acff575173d89002447285df4bc653"},
-    {file = "mautrix-0.9.8.tar.gz", hash = "sha256:d78c8007ad36b3dc23bf11c583d0ac9745e106ecb7f82926aafedec4eff2a9fb"},
-]
+mautrix = []
 mccabe = [
     {file = "mccabe-0.6.1-py2.py3-none-any.whl", hash = "sha256:ab8a6258860da4b6677da4bd2fe5dc2c659cff31b3ee4f7f5d64e79735b80d42"},
     {file = "mccabe-0.6.1.tar.gz", hash = "sha256:dd8d182285a0fe56bace7f45b5e7d1a6ebcbf524e8f3bd87eb0f125271b8831f"},

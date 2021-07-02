@@ -6,7 +6,8 @@ fake_db = Database("") if TYPE_CHECKING else None
 
 
 class Model:
-    db: ClassVar[Database] = fake_db
+    # Ignore type errors here since the variable will always be set in db/__init__.py.
+    db: ClassVar[Database] = fake_db  # type: ignore
 
     _table_name: str
     _field_list: List[str]

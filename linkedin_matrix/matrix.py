@@ -1,4 +1,4 @@
-from typing import List, Optional, TYPE_CHECKING, Union
+from typing import cast, List, Optional, TYPE_CHECKING, Union
 
 from mautrix.bridge import BaseMatrixHandler
 from mautrix.types import (
@@ -81,8 +81,10 @@ class MatrixHandler(BaseMatrixHandler):
         evt: Union[ReceiptEvent, PresenceEvent, TypingEvent],
     ):
         if evt.type == EventType.PRESENCE:
+            evt = cast(PresenceEvent, evt)
             await self.handle_presence(evt.sender, evt.content)
         elif evt.type == EventType.TYPING:
+            evt = cast(TypingEvent, evt)
             await self.handle_typing(evt.room_id, evt.content.user_ids)
         elif evt.type == EventType.RECEIPT:
-            await self.handle_receipt(evt)
+            await self.handle_receipt(cast(ReceiptEvent, evt))
