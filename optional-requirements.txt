@@ -1,9 +1,0 @@
-# Format: #/name defines a new extras_require group called name
-# Uncommented lines after the group definition insert things into that group.
-
-#/animated_stickers
-pillow>=4,<9
-
-#/e2be
-python-olm>=3,<4
-unpaddedbase64>=1,<2
