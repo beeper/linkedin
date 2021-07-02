@@ -254,6 +254,22 @@ class Portal(DBPortal, BasePortal):
         return None
 
     @classmethod
+    async def get_all_by_li_receiver_urn(
+        cls,
+        li_receiver_urn: URN,
+    ) -> AsyncGenerator["Portal", None]:
+        portals = await super().get_all_by_li_receiver_urn(li_receiver_urn)
+        for portal in portals:
+            portal = cast(Portal, portal)
+            try:
+                yield cls.by_li_thread_urn[
+                    (portal.li_thread_urn, portal.li_receiver_urn)
+                ]
+            except KeyError:
+                await portal.postinit()
+                yield portal
+
+    @classmethod
     async def all(cls) -> AsyncGenerator["Portal", None]:
         portals = await super().all()
         for portal in cast(List[Portal], portals):

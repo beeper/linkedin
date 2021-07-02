@@ -248,11 +248,10 @@ class User(DBUser, BaseUser):
     # region Thread Syncing
 
     async def get_direct_chats(self) -> Dict[UserID, List[RoomID]]:
-        # TODO
-        return {}
+        assert self.li_member_urn
         return {
-            pu.Puppet.get_mxid_from_id(portal.fbid): [portal.mxid]
-            async for portal in po.Portal.get_all_by_receiver(self.fbid)
+            pu.Puppet.get_mxid_from_id(portal.li_other_user_urn): [portal.mxid]
+            async for portal in po.Portal.get_all_by_li_receiver_urn(self.li_member_urn)
             if portal.mxid
         }
 

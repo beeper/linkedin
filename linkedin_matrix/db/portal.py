@@ -74,7 +74,7 @@ class Portal(Model):
         return cls._from_row(row)
 
     @classmethod
-    async def get_all_by_receiver(cls, li_receiver_urn: URN) -> List["Portal"]:
+    async def get_all_by_li_receiver_urn(cls, li_receiver_urn: URN) -> List["Portal"]:
         query = Portal.select_constructor("li_receiver_urn=$1")
         rows = await cls.db.fetch(query, li_receiver_urn.id_str())
         return [cls._from_row(row) for row in rows]
