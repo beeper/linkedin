@@ -63,13 +63,13 @@ class MatrixHandler(BaseMatrixHandler):
         user_id: UserID,
         info: PresenceEventContent,
     ) -> None:
-        print(f"user ({user_id}) is present {info}")
+        # TODO
+        self.log.info(f"user ({user_id}) is present {info}")
         if not self.config["bridge.presence"]:
             return
 
-    @staticmethod
-    async def handle_typing(room_id: RoomID, typing: List[UserID]) -> None:
-        print(f"room: {room_id}: typing {typing}")
+    async def handle_typing(self, room_id: RoomID, typing: List[UserID]) -> None:
+        self.log.info(f"room: {room_id}: typing {typing}")
         portal: Optional[po.Portal] = await po.Portal.get_by_mxid(room_id)
         if not portal:
             return

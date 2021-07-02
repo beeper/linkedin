@@ -201,9 +201,6 @@ class User(DBUser, BaseUser):
         return True
 
     async def reconnect(self) -> None:
-        print("================================")
-        print("reconnect")
-        print("================================")
         assert self.listen_task
         self._is_refreshing = True
         await self.listen_task
@@ -390,7 +387,7 @@ class User(DBUser, BaseUser):
         assert isinstance(event.reaction_added, bool)
         assert isinstance(event.actor_mini_profile_urn, URN)
 
-        print("reaction added", event)
+        self.log.info("reaction added", event)
 
         # TODO #31 actually handle this
         # event_entity_urn = event.get("eventUrn", "")

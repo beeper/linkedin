@@ -1,14 +1,9 @@
 import os
-from typing import Any, Callable, cast, List, Tuple
+from typing import Any, List, Tuple
 
 from mautrix.bridge.config import BaseBridgeConfig
 from mautrix.types import UserID
-from mautrix.util.config import (
-    ConfigUpdateHelper,
-    ForbiddenDefault,
-    ForbiddenKey,
-    RecursiveDict,
-)
+from mautrix.util.config import ConfigUpdateHelper, ForbiddenDefault, ForbiddenKey
 
 
 class Config(BaseBridgeConfig):
