@@ -307,6 +307,29 @@ class Portal(DBPortal, BasePortal):
 
         return conversation
 
+    async def update_bridge_info(self):
+        if not self.mxid:
+            self.log.debug("Not updating bridge info: no Matrix room created")
+            return
+        try:
+            self.log.debug("Updating bridge info...")
+            await self.main_intent.send_state_event(
+                self.mxid,
+                StateBridge,
+                self.bridge_info,
+                self.bridge_info_state_key,
+            )
+            # TODO (#52) remove this once
+            # https://github.com/matrix-org/matrix-doc/pull/2346 is in spec
+            await self.main_intent.send_state_event(
+                self.mxid,
+                StateHalfShotBridge,
+                self.bridge_info,
+                self.bridge_info_state_key,
+            )
+        except Exception:
+            self.log.warning("Failed to update bridge info", exc_info=True)
+
     async def _update_participants(
         self,
         source: "u.User",
@@ -388,7 +411,7 @@ class Portal(DBPortal, BasePortal):
                 "content": self.bridge_info,
             },
             {
-                # TODO remove this once
+                # TODO (#52) remove this once
                 # https://github.com/matrix-org/matrix-doc/pull/2346 is in spec
                 "type": str(StateHalfShotBridge),
                 "state_key": self.bridge_info_state_key,

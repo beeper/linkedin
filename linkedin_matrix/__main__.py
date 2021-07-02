@@ -85,7 +85,6 @@ class LinkedInBridge(Bridge):
         self.config.save()
         self.log.info("Re-sending bridge info state event to all portals")
         async for portal in Portal.all():
-            # TODO
             await portal.update_bridge_info()
         self.log.info("Finished re-sending bridge info state events")
 
