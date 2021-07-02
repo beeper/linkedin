@@ -292,16 +292,15 @@ class User(DBUser, BaseUser):
     async def _sync_thread(self, conversation: Conversation):
         self.log.debug(f"Syncing thread {conversation.entity_urn}")
 
-        li_is_group_chat = conversation.group_chat
         li_other_user_urn = None
-        if not li_is_group_chat:
+        if not conversation.group_chat:
             other_user = conversation.participants[0]
             li_other_user_urn = other_user.messaging_member.mini_profile.entity_urn
 
         portal = await po.Portal.get_by_li_thread_urn(
             conversation.entity_urn,
             li_receiver_urn=self.li_member_urn,
-            li_is_group_chat=li_is_group_chat,
+            li_is_group_chat=conversation.group_chat,
             li_other_user_urn=li_other_user_urn,
         )
         assert portal
@@ -351,6 +350,7 @@ class User(DBUser, BaseUser):
         self.listen_task = asyncio.create_task(self._try_listen())
 
     async def _try_listen(self):
+        assert self.client
         self.client.add_event_listener("event", self.handle_linkedin_event)
         self.client.add_event_listener(
             "reactionAdded", self.handle_linkedin_reaction_added
@@ -358,13 +358,28 @@ class User(DBUser, BaseUser):
         await self.client.start_listener()
 
     async def handle_linkedin_event(self, event: RealTimeEventStreamEvent):
+        assert self.client
         assert isinstance(event.event, ConversationEvent)
+
         thread_urn, message_urn = map(URN, event.event.entity_urn.id_parts)
         sender_urn = event.event.from_.messaging_member.mini_profile.entity_urn
 
         portal = await po.Portal.get_by_li_thread_urn(
-            thread_urn, li_receiver_urn=self.li_member_urn
+            thread_urn,
+            li_receiver_urn=self.li_member_urn,
+            create=False,
         )
+        if not portal:
+            # Force a thread sync for all of the recent conversations. This should be a
+            # noop for most of them except the newly created conversation.
+            conversations = await self.client.get_conversations()
+            for conversation in conversations.elements:
+                await self._sync_thread(conversation)
+
+            # Nothing more to do, since the backfill should handle the message coming
+            # in.
+            return
+
         puppet = await pu.Puppet.get_by_li_member_urn(sender_urn)
 
         await portal.backfill_lock.wait(message_urn)

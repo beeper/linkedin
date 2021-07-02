@@ -705,7 +705,7 @@ class Portal(DBPortal, BasePortal):
         attachment = await sender.client.upload_media(
             data, message.body, message.info.mimetype
         )
-        self._send_linkedin_message(
+        await self._send_linkedin_message(
             event_id,
             sender,
             MessageCreate(AttributedBody(), attachments=[attachment]),
