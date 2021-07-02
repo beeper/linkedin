@@ -192,7 +192,7 @@ class User(DBUser, BaseUser):
         self.li_member_urn = (
             await self.client.get_user_profile()
         ).mini_profile.entity_urn
-        # TODO
+        # TODO (#51)
         # self._track_metric(METRIC_LOGGED_IN, True)
         self._is_logged_in = True
         self.is_connected = None
@@ -388,7 +388,7 @@ class User(DBUser, BaseUser):
 
         self.log.info("reaction added", event)
 
-        # TODO #31 actually handle this
+        # TODO (#31) actually handle this
         # event_entity_urn = event.get("eventUrn", "")
         # match = self.event_urn_re.match(event_entity_urn)
         # if not match:

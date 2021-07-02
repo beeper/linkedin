@@ -300,13 +300,10 @@ class Portal(DBPortal, BasePortal):
                 f"for ({self.li_thread_urn}) when fetching"
             )
 
-        # TODO actually update things
         changed = False
 
         if not self.is_direct:
-            # print("not direct", conversation)
-            pass
-            # TODO
+            # TODO (#53)
             # changed = any(
             #     await asyncio.gather(
             #         self._update_name(info.name),
@@ -314,10 +311,10 @@ class Portal(DBPortal, BasePortal):
             #         loop=self.loop,
             #     )
             # )
+            pass
 
         changed = await self._update_participants(source, conversation) or changed
         if changed:
-            # TODO
             await self.update_bridge_info()
             await self.save()
 
@@ -353,7 +350,6 @@ class Portal(DBPortal, BasePortal):
     ) -> bool:
         changed = False
 
-        # nick_map = {}  # TODO can we support this?
         for participant in conversation.participants if conversation else []:
             participant_urn = participant.messaging_member.mini_profile.entity_urn
             puppet = await p.Puppet.get_by_li_member_urn(participant_urn)
@@ -364,7 +360,7 @@ class Portal(DBPortal, BasePortal):
                 and self.encrypted
             ):
                 pass
-                # TODO
+                # TODO (#53)
                 # changed = await self._update_name(puppet.name) or changed
                 # changed = await self._update_photo_from_puppet(puppet) or changed
 
@@ -604,10 +600,6 @@ class Portal(DBPortal, BasePortal):
         assert source.client, f"No client found for {source.mxid}!"
         self.log.debug(f"Backfilling history through {source.mxid}")
         messages = conversation.events
-
-        # TODO do whatever needs to be done to prevent it from backfilling if there are
-        # no new messages
-        # return
 
         if len(messages):
             oldest_message = messages[0]
@@ -876,7 +868,7 @@ class Portal(DBPortal, BasePortal):
             event_ids.append(
                 await self._send_message(intent, content, timestamp=timestamp)
             )
-            # TODO error handling
+            # TODO (#55) error handling
 
         event_ids = [event_id for event_id in event_ids if event_id]
         if len(event_ids) == 0:
@@ -893,7 +885,7 @@ class Portal(DBPortal, BasePortal):
             timestamp=timestamp,
             event_ids=event_ids,
         )
-        # TODO
+        # TODO (#48)
         # await self._send_delivery_receipt(event_ids[-1])
 
         # Handle reactions
@@ -926,7 +918,7 @@ class Portal(DBPortal, BasePortal):
         assert self.mxid
         assert self.li_receiver_urn
 
-        # TODO figure out how many reactions should be added
+        # TODO (#32) figure out how many reactions should be added
         mxid = await intent.react(self.mxid, reaction_event_id, reaction_summary.emoji)
         self.log.debug(
             f"Reacted to {reaction_event_id} with {reaction_summary.emoji}, got {mxid}"
@@ -975,7 +967,7 @@ class Portal(DBPortal, BasePortal):
                 content,
                 timestamp=timestamp,
             )
-            # TODO error handling
+            # TODO (#55) error handling
 
             event_ids.append(event_id)
 
@@ -994,13 +986,13 @@ class Portal(DBPortal, BasePortal):
         if third_party_media.media_type == "TENOR_GIF":
             if third_party_media.media.gif.url:
                 msgtype = MessageType.IMAGE
-                # TODO get the width and height from the JSON response
                 mxc, info, decryption_info = await self._reupload_linkedin_file(
                     third_party_media.media.gif.url,
                     source,
                     intent,
                     encrypt=self.encrypted,
-                    find_size=True,
+                    width=third_party_media.media.gif.original_width,
+                    height=third_party_media.media.gif.original_height,
                 )
                 content = MediaMessageEventContent(
                     url=mxc,
@@ -1014,7 +1006,7 @@ class Portal(DBPortal, BasePortal):
                     content,
                     timestamp=timestamp,
                 )
-                # TODO error handling
+                # TODO (#55) error handling
                 return [event_id]
 
         self.log.warning(f"Unsupported third party media: {third_party_media}.")

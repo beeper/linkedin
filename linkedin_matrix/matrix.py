@@ -63,7 +63,7 @@ class MatrixHandler(BaseMatrixHandler):
         user_id: UserID,
         info: PresenceEventContent,
     ) -> None:
-        # TODO
+        # TODO (#50)
         self.log.info(f"user ({user_id}) is present {info}")
         if not self.config["bridge.presence"]:
             return

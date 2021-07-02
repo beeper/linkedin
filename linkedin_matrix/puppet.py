@@ -69,7 +69,6 @@ class Puppet(DBPuppet, BasePuppet):
         )
         self._last_info_sync: Optional[datetime] = None
 
-        # TODO this is where I should convert to a proper MXID
         self.default_mxid = self.get_mxid_from_id(li_member_urn)
         self.default_mxid_intent = self.az.intent.user(self.default_mxid)
         self.intent = self._fresh_intent()
@@ -124,12 +123,10 @@ class Puppet(DBPuppet, BasePuppet):
     async def update_info(
         self,
         source: Optional[u.User],
-        info: MessagingMember = None,
+        info: MessagingMember,
         update_avatar: bool = True,
     ) -> "Puppet":
-        if not info:
-            # TODO fetch the user info directly from the API?
-            return self
+        assert source
 
         self._last_info_sync = datetime.now()
         try:
@@ -258,7 +255,6 @@ class Puppet(DBPuppet, BasePuppet):
 
     @classmethod
     async def get_by_mxid(cls, mxid: UserID, create: bool = True) -> Optional["Puppet"]:
-        # TODO and here (on the conversion back)
         li_member_urn = cls.get_id_from_mxid(mxid)
         if li_member_urn:
             return await cls.get_by_li_member_urn(li_member_urn, create=create)
@@ -289,7 +285,6 @@ class Puppet(DBPuppet, BasePuppet):
                 puppet._add_to_cache()
                 yield puppet
 
-    # TODO which involse these two functions
     @classmethod
     def get_id_from_mxid(cls, mxid: UserID) -> Optional[URN]:
         parsed = cls.mxid_template.parse(mxid)
