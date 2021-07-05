@@ -24,14 +24,14 @@ url = "https://gitlab.matrix.org/api/v4/projects/27/packages/pypi/simple"
 [tool.poetry.dependencies]
 python = "^3.7"
 asyncpg = "^0.22.0"
-python-magic = "^0.4.24"
-"ruamel.yaml" = "^0.17.10"
 commonmark = "^0.9.1"
 linkedin-messaging = "^0.1.7"
+mautrix = "^0.9.8"
+python-magic = "^0.4.24"
+"ruamel.yaml" = "^0.17.10"
 Pillow = {version = "^8.3.0", optional = true}
-unpaddedbase64 = {version = "^2.1.0", optional = true}
 python-olm = {version = "^3.2.4", optional = true}
-mautrix = {git = "https://github.com/sumnerevans/mautrix-python", rev = "initialstate-invariant"}
+unpaddedbase64 = {version = "^2.1.0", optional = true}
 
 [tool.poetry.dev-dependencies]
 black = "^21.6b0"
