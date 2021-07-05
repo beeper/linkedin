@@ -1,3 +1,9 @@
+# v0.1.1
+
+* Fixed the `bridge.resend_bridge_info` option.
+* Addressed many linter errors.
+* Fixed handling of InMail messages.
+
 # v0.1.0
 
 Initial Alpha release. **Note that LinkedIn may flag the traffic from your

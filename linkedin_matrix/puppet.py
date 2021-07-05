@@ -132,7 +132,12 @@ class Puppet(DBPuppet, BasePuppet):
         try:
             changed = await self._update_name(info)
             if update_avatar:
-                changed = await self._update_photo(info.mini_profile.picture) or changed
+                changed = (
+                    await self._update_photo(
+                        info.alternate_image or info.mini_profile.picture
+                    )
+                    or changed
+                )
 
             if changed:
                 await self.save()
@@ -170,10 +175,10 @@ class Puppet(DBPuppet, BasePuppet):
     def _get_displayname(cls, info: MessagingMember) -> str:
         first, last = info.mini_profile.first_name, info.mini_profile.last_name
         info_map = {
-            "displayname": None,
-            "name": f"{first} {last}",
-            "first_name": first,
-            "last_name": last,
+            "displayname": info.alternate_name,
+            "name": info.alternate_name or f"{first} {last}",
+            "first_name": info.alternate_name or first,
+            "last_name": last or "",
         }
         for preference in cls.config["bridge.displayname_preference"]:
             pref = info_map.get(preference)
@@ -182,19 +187,24 @@ class Puppet(DBPuppet, BasePuppet):
                 break
         return cls.config["bridge.displayname_template"].format(**info_map)
 
-    photo_id_re = re.compile(r"https://.*?/image/(.*?)/profile-.*?")
+    photo_id_re = re.compile(r"https://.*?/image/(.*?)/(profile|spinmail)-.*?")
 
     async def _update_photo(self, picture: Optional[Picture]) -> bool:
         photo_id = None
         if picture:
             match = self.photo_id_re.match(picture.vector_image.root_url)
+            # Handle InMail pictures which don't have any root_url
+            if not match and len(picture.vector_image.artifacts) > 0:
+                match = self.photo_id_re.match(
+                    picture.vector_image.artifacts[0].file_identifying_url_path_segment
+                )
             if match:
                 photo_id = match.group(1)
 
         if photo_id != self.photo_id or not self.avatar_set:
             self.photo_id = photo_id
 
-            if photo_id:
+            if photo_id and picture:
                 largest_artifact = picture.vector_image.artifacts[-1]
                 self.photo_mxc = await self.reupload_avatar(
                     self.default_mxid_intent,

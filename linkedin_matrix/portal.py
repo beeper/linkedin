@@ -56,7 +56,12 @@ from .db import (
     Portal as DBPortal,
     Reaction as DBReaction,
 )
-from .formatter import linkedin_to_matrix, matrix_to_linkedin
+from .formatter import (
+    linkedin_subject_to_matrix,
+    linkedin_spinmail_to_matrix,
+    linkedin_to_matrix,
+    matrix_to_linkedin,
+)
 
 if TYPE_CHECKING:
     from .__main__ import LinkedInBridge
@@ -865,26 +870,50 @@ class Portal(DBPortal, BasePortal):
         timestamp = message.created_at
 
         event_ids = []
+
+        # Handle subject
+        if message_event.subject:
+            event_ids.append(
+                await self._send_message(
+                    intent,
+                    linkedin_subject_to_matrix(message_event.subject),
+                    timestamp=timestamp,
+                )
+            )
+
+        # Handle attachments
         event_ids.extend(
             await self._handle_linkedin_attachments(
                 source, intent, timestamp, message_event.attachments
             )
         )
-        if (
-            message_event.custom_content
-            and message_event.custom_content.third_party_media
-        ):
-            event_ids.extend(
-                await self._handle_linkedin_third_party_media(
-                    source,
-                    intent,
-                    timestamp,
-                    message_event.custom_content.third_party_media,
-                )
-            )
 
-        # Handle the message text itself
-        if message_event.attributed_body.text:
+        # Handle custom content
+        if message_event.custom_content:
+            if message_event.custom_content.third_party_media:
+                event_ids.extend(
+                    await self._handle_linkedin_third_party_media(
+                        source,
+                        intent,
+                        timestamp,
+                        message_event.custom_content.third_party_media,
+                    )
+                )
+
+            # Handle InMail message text
+            if message_event.custom_content.sp_inmail_content:
+                event_ids.append(
+                    await self._send_message(
+                        intent,
+                        await linkedin_spinmail_to_matrix(
+                            message_event.custom_content.sp_inmail_content
+                        ),
+                        timestamp=timestamp,
+                    )
+                )
+
+        # Handle the normal message text itself
+        if message_event.attributed_body and message_event.attributed_body.text:
             content = await linkedin_to_matrix(message_event.attributed_body)
             event_ids.append(
                 await self._send_message(intent, content, timestamp=timestamp)
