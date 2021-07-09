@@ -125,6 +125,24 @@ async def enter_2fa_code(evt: CommandEvent) -> None:
 
 # endregion
 
+# region Log out
+@command_handler(
+    needs_auth=False,
+    management_only=False,
+    help_section=SECTION_AUTH,
+    help_text="Log out of LinkedIn",
+)
+async def logout(evt: CommandEvent):
+    print("log out")
+    if evt.sender.client and not await evt.sender.client.logged_in():
+        await evt.reply("You are not logged in.")
+        return
+
+    evt.sender.client.logout()
+
+
+# endregion
+
 # region Matrix Puppeting
 
 

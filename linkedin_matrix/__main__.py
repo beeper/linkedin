@@ -12,6 +12,7 @@ from .puppet import Puppet
 from .portal import Portal  # noqa: I100 (needs to be after because it relies on Puppet)
 from .user import User
 from .version import linkified_version, version
+from .web import ProvisioningAPI
 
 # This has to be imported after the rest of the modules because it relies on them
 # being imported already.
@@ -30,9 +31,10 @@ class LinkedInBridge(Bridge):
     config_class = Config
     matrix_class = MatrixHandler
 
-    db: Database
     config: Config
+    db: Database
     matrix: MatrixHandler
+    provisioning_api: ProvisioningAPI
     state_store: PgBridgeStateStore
 
     def make_state_store(self):
@@ -61,6 +63,12 @@ class LinkedInBridge(Bridge):
         for user in User.by_li_member_urn.values():
             user.stop_listen()
 
+    def prepare_bridge(self) -> None:
+        super().prepare_bridge()
+        cfg = self.config["appservice.provisioning"]
+        self.provisioning_api = ProvisioningAPI(cfg["shared_secret"])
+        self.az.app.add_subapp(cfg["prefix"], self.provisioning_api.app)
+
     async def stop(self):
         await super().stop()
         await Puppet.close()
@@ -71,7 +79,7 @@ class LinkedInBridge(Bridge):
     async def start(self):
         await self.db.start()
         await self.state_store.upgrade_table.upgrade(self.db.pool)
-        if self.matrix.e2ee:
+        if self.matrix.e2ee and self.matrix.e2ee.crypto_db:
             self.matrix.e2ee.crypto_db.override_pool(self.db.pool)
         self.add_startup_actions(User.init_cls(self))
         self.add_startup_actions(Puppet.init_cls(self))

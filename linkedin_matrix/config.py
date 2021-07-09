@@ -41,10 +41,11 @@ class Config(BaseBridgeConfig):
         copy("appservice.public.external")
         copy("appservice.public.prefix")
 
-        if self["appservice.public.shared_secret"] == "generate":
-            base["appservice.public.shared_secret"] = self._new_token()
-        else:
-            copy("appservice.public.shared_secret")
+        copy("appservice.provisioning.enabled")
+        copy("appservice.provisioning.prefix")
+        copy("appservice.provisioning.shared_secret")
+        if base["appservice.provisioning.shared_secret"] == "generate":
+            base["appservice.provisioning.shared_secret"] = self._new_token()
 
         # bridge
         copy("bridge.backfill.disable_notifications")
