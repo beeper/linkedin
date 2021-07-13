@@ -35,21 +35,16 @@ appservice:
         min_size: 5
         max_size: 10
 
-    # Public part of web server for out-of-Matrix interaction with the bridge.
-    public:
-        # Whether or not the public-facing endpoints should be enabled.
-        enabled: false
-        # The prefix to use in the public-facing endpoints.
-        prefix: /public
-        # The base URL where the public-facing endpoints are available. The prefix is not added
-        # implicitly.
-        external: https://example.com/public
-        # Shared secret for integration managers such as mautrix-manager.
-        # If set to "generate", a random string will be generated on the next startup.
-        # If null, integration manager access to the API will not be possible.
+    # Provisioning API part of the web server for automated portal creation and fetching information.
+    # Used by things like mautrix-manager (https://github.com/tulir/mautrix-manager).
+    provisioning:
+        # Whether or not the provisioning API should be enabled.
+        enabled: true
+        # The prefix to use in the provisioning API endpoints.
+        prefix: /_matrix/provision/v1
+        # The shared secret to authorize users of the API.
+        # Set to "generate" to generate and save a new token.
         shared_secret: generate
-        # Allow logging in within Matrix. If false, users can only log in using the web interface.
-        allow_matrix_login: true
 
     # The unique ID of this appservice.
     id: linkedin

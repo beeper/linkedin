@@ -3,6 +3,7 @@ import logging
 from typing import Awaitable, Dict
 
 from aiohttp import web
+from linkedin_messaging import LinkedInMessaging
 from mautrix.types import UserID
 from mautrix.util.logging import TraceLogger
 
@@ -66,7 +67,11 @@ class ProvisioningAPI:
         return u.User.get_by_mxid(UserID(user_id))
 
     async def status(self, request: web.Request) -> web.Response:
-        user = await self.check_token(request)
+        try:
+            user = await self.check_token(request)
+        except web.HTTPError as e:
+            return e
+
         data = {
             "permissions": user.permission_level,
             "mxid": user.mxid,
@@ -77,29 +82,32 @@ class ProvisioningAPI:
         return web.json_response(data, headers=self._acao_headers)
 
     async def login(self, request: web.Request) -> web.Response:
-        user = await self.check_token(request)
+        try:
+            user = await self.check_token(request)
+        except web.HTTPError as e:
+            return e
 
         try:
             data = await request.json()
         except json.JSONDecodeError:
-            raise web.HTTPBadRequest(
+            return web.HTTPBadRequest(
                 body='{"error": "Malformed JSON"}', headers=self._headers
             )
 
-        try:
-            auth_token = data["auth_token"]
-            csrf_token = data["csrf_token"]
-        except KeyError:
-            raise web.HTTPBadRequest(
+        if "li_at" not in data or "JSESSIONID" not in data:
+            return web.HTTPBadRequest(
                 body='{"error": "Missing keys"}', headers=self._headers
             )
 
         try:
-            await user.connect(auth_token=auth_token, csrf_token=csrf_token)
+            client = LinkedInMessaging()
+            client.session.cookie_jar.update_cookies(data)
+            client.session.headers["csrf-token"] = data["JSESSIONID"].strip('"')
+            await user.on_logged_in(client)
         except Exception:
             self.log.debug("Failed to log in", exc_info=True)
             raise web.HTTPUnauthorized(
-                body='{"error": "Twitter authorization failed"}', headers=self._headers
+                body='{"error": "LinkedIn authorization failed"}', headers=self._headers
             )
         return web.Response(body="{}", status=200, headers=self._headers)
 
