@@ -20,11 +20,6 @@ class Config(BaseBridgeConfig):
             ForbiddenDefault(
                 "appservice.database", "postgres://username:password@hostname/db"
             ),
-            ForbiddenDefault(
-                "appservice.public.external",
-                "https://example.com/public",
-                condition="appservice.public.enabled",
-            ),
             ForbiddenDefault("bridge.permissions", ForbiddenKey("example.com")),
         ]
 
@@ -36,15 +31,11 @@ class Config(BaseBridgeConfig):
 
         # appservice
         copy("appservice.bot_avatar")
-        copy("appservice.public.allow_matrix_login")
-        copy("appservice.public.enabled")
-        copy("appservice.public.external")
-        copy("appservice.public.prefix")
-
-        if self["appservice.public.shared_secret"] == "generate":
-            base["appservice.public.shared_secret"] = self._new_token()
-        else:
-            copy("appservice.public.shared_secret")
+        copy("appservice.provisioning.enabled")
+        copy("appservice.provisioning.prefix")
+        copy("appservice.provisioning.shared_secret")
+        if base["appservice.provisioning.shared_secret"] == "generate":
+            base["appservice.provisioning.shared_secret"] = self._new_token()
 
         # bridge
         copy("bridge.backfill.disable_notifications")

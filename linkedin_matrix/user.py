@@ -243,6 +243,25 @@ class User(DBUser, BaseUser):
         await self.sync_threads()
         self.start_listen()
 
+    async def logout(self):
+        if self.listen_task:
+            self.listen_task.cancel()
+        if self.client:
+            await self.client.logout()
+        puppet = await pu.Puppet.get_by_li_member_urn(self.li_member_urn, create=False)
+        if puppet and puppet.is_real_user:
+            await puppet.switch_mxid(None, None)
+        if self.li_member_urn:
+            try:
+                del self.by_li_member_urn[self.li_member_urn]
+            except KeyError:
+                pass
+        self._is_logged_in = False
+        self.client = None
+        self.li_member_urn = None
+        self.notice_room = None
+        await self.save()
+
     # endregion
 
     # region Thread Syncing
