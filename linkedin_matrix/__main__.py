@@ -25,7 +25,7 @@ class LinkedInBridge(Bridge):
     command = "linkedin-matrix"
     description = "A Matrix-LinkedIn Messages puppeting bridge."
     repo_url = "https://github.com/sumnerevans/linkedin-matrix"
-    real_user_content_key = "com.github.sumnerevans.linkedinmatrix.puppet"
+    real_user_content_key = "com.sumnerevans.linkedin.puppet"
     version = version
     markdown_version = linkified_version
     config_class = Config
