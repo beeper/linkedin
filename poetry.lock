@@ -478,7 +478,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
 name = "python-olm"
-version = "3.2.4"
+version = "3.2.1"
 description = "python CFFI bindings for the olm cryptographic ratchet library"
 category = "main"
 optional = true
@@ -648,7 +648,7 @@ images = ["Pillow"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "84445daed130d70d9551c4997f206f7cc57c7dcb8fe2d969e636e1ad8b49b8b9"
+content-hash = "06a3ebd3753936f82468e94fd04add7eeaea358d1deb02a61ab433cc7bd10901"
 
 [metadata.files]
 aiohttp = [
@@ -740,6 +740,11 @@ cffi = [
     {file = "cffi-1.14.6-cp27-cp27m-win_amd64.whl", hash = "sha256:7bcac9a2b4fdbed2c16fa5681356d7121ecabf041f18d97ed5b8e0dd38a80224"},
     {file = "cffi-1.14.6-cp27-cp27mu-manylinux1_i686.whl", hash = "sha256:ed38b924ce794e505647f7c331b22a693bee1538fdf46b0222c4717b42f744e7"},
     {file = "cffi-1.14.6-cp27-cp27mu-manylinux1_x86_64.whl", hash = "sha256:e22dcb48709fc51a7b58a927391b23ab37eb3737a98ac4338e2448bef8559b33"},
+    {file = "cffi-1.14.6-cp35-cp35m-macosx_10_9_x86_64.whl", hash = "sha256:aedb15f0a5a5949ecb129a82b72b19df97bbbca024081ed2ef88bd5c0a610534"},
+    {file = "cffi-1.14.6-cp35-cp35m-manylinux1_i686.whl", hash = "sha256:48916e459c54c4a70e52745639f1db524542140433599e13911b2f329834276a"},
+    {file = "cffi-1.14.6-cp35-cp35m-manylinux1_x86_64.whl", hash = "sha256:f627688813d0a4140153ff532537fbe4afea5a3dffce1f9deb7f91f848a832b5"},
+    {file = "cffi-1.14.6-cp35-cp35m-win32.whl", hash = "sha256:f0010c6f9d1a4011e429109fda55a225921e3206e7f62a0c22a35344bfd13cca"},
+    {file = "cffi-1.14.6-cp35-cp35m-win_amd64.whl", hash = "sha256:57e555a9feb4a8460415f1aac331a2dc833b1115284f7ded7278b54afc5bd218"},
     {file = "cffi-1.14.6-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:e8c6a99be100371dbb046880e7a282152aa5d6127ae01783e37662ef73850d8f"},
     {file = "cffi-1.14.6-cp36-cp36m-manylinux1_i686.whl", hash = "sha256:19ca0dbdeda3b2615421d54bef8985f72af6e0c47082a8d26122adac81a95872"},
     {file = "cffi-1.14.6-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:d950695ae4381ecd856bcaf2b1e866720e4ab9a1498cba61c602e56630ca7195"},
@@ -995,29 +1000,30 @@ python-magic = [
     {file = "python_magic-0.4.24-py2.py3-none-any.whl", hash = "sha256:4fec8ee805fea30c07afccd1592c0f17977089895bdfaae5fec870a84e997626"},
 ]
 python-olm = [
-    {file = "python_olm-3.2.4-cp27-cp27m-manylinux1_i686.whl", hash = "sha256:018323a41bc1f3b1f9bd1fc5c012555b600238592379c986285b73508b32de46"},
-    {file = "python_olm-3.2.4-cp27-cp27m-manylinux1_x86_64.whl", hash = "sha256:3bef2a60f89590c3f2b9fd5253493f39a8ec2dfbb9c5813f36a22abecc03c3ca"},
-    {file = "python_olm-3.2.4-cp27-cp27m-manylinux2010_x86_64.whl", hash = "sha256:c4c51d201824cbe69957439583a56a02fb2575679c4de74ef7ae5d01f7f6b71e"},
-    {file = "python_olm-3.2.4-cp35-cp35m-manylinux1_i686.whl", hash = "sha256:54dffbe656f2f2d6a33689320772c3574f5eb5c69e7d12f39a206028b60c8113"},
-    {file = "python_olm-3.2.4-cp35-cp35m-manylinux1_x86_64.whl", hash = "sha256:c1c60ab1c4b254b94d95fd5be823b18d50eb9d6838eedf4217d99eee94c62719"},
-    {file = "python_olm-3.2.4-cp35-cp35m-manylinux2010_x86_64.whl", hash = "sha256:f69aef5b8c07ac1f1c08fbe74d16dfde3832830b1b4d9260c9bb6a7127e5e752"},
-    {file = "python_olm-3.2.4-cp35-cp35m-manylinux2014_aarch64.whl", hash = "sha256:8e45141e1af0df3985b04aacf6d074bf229ae231ddc92efba2f7f52da899ccb6"},
-    {file = "python_olm-3.2.4-cp36-cp36m-manylinux1_i686.whl", hash = "sha256:d78279b933abee15eb7f6f4a78ca7d57663d3dd0e13632079c67cd8ac4163294"},
-    {file = "python_olm-3.2.4-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:93b449f3e88e1d7836f39489dd1bec19404503979fb033e11de8c589945eddbe"},
-    {file = "python_olm-3.2.4-cp36-cp36m-manylinux2010_x86_64.whl", hash = "sha256:0e55888824b3ef7217cfffa4af132443a01822d9e0a70fcc68542bfeda3bab7f"},
-    {file = "python_olm-3.2.4-cp36-cp36m-manylinux2014_aarch64.whl", hash = "sha256:930e4da7420564dde3bd67a908ad6e83af55c1d20f3cc26fa0dd760d5db166ba"},
-    {file = "python_olm-3.2.4-cp37-cp37m-manylinux1_i686.whl", hash = "sha256:8bdbf252ef157fd7d4716e6e429bf4d12364779637b05cdeddd1902a37d65415"},
-    {file = "python_olm-3.2.4-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:df1ef9e6bf91dc78b7b89009b17e41acffad5e310b092e77fe0d0dd6ccc651e9"},
-    {file = "python_olm-3.2.4-cp37-cp37m-manylinux2010_x86_64.whl", hash = "sha256:1ac2c5c29c3214ea3bc26439fcb1112c326365d79bc0c700b243273f25513da3"},
-    {file = "python_olm-3.2.4-cp37-cp37m-manylinux2014_aarch64.whl", hash = "sha256:aec795ee563488bb320daa1d178bd5398f4f8764321250e9042f459f585d6ac3"},
-    {file = "python_olm-3.2.4-cp38-cp38-manylinux1_i686.whl", hash = "sha256:4777e0fc321adb719681639cab405d5df12fbc49accf4b1ef7bfdd3708c20bac"},
-    {file = "python_olm-3.2.4-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:ccea98e005b53c8ce01289c7e9d8072fa10bb0904eee1211fe0f24054b4e56f3"},
-    {file = "python_olm-3.2.4-cp38-cp38-manylinux2010_x86_64.whl", hash = "sha256:fb60bcd151a775e20319d3b9e8ca225e15b0ad9b81b5056041f539bdb2bf15d6"},
-    {file = "python_olm-3.2.4-cp38-cp38-manylinux2014_aarch64.whl", hash = "sha256:00d4a384ffd3ba7a7056d74379611fd6e9ace87d5059a7c2b962d8bd52f77458"},
-    {file = "python_olm-3.2.4-cp39-cp39-manylinux1_i686.whl", hash = "sha256:92d4f2f2f8e0e2e4964608caef51a17d0cc9ce4f0af400137c951179e8dce9b6"},
-    {file = "python_olm-3.2.4-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:fa01e6d4897164dc1ac964ae390e06a2211adc9a341165ccceba25fd1d324405"},
-    {file = "python_olm-3.2.4-cp39-cp39-manylinux2010_x86_64.whl", hash = "sha256:c24d90e3d2d52d4712f273c4553398ee8f02e4ad78ed3a6424ac71aef2c1c47a"},
-    {file = "python_olm-3.2.4-cp39-cp39-manylinux2014_aarch64.whl", hash = "sha256:48d7e367fcc41a62b9c538eeb40c03c6781cbd3b3e90127f24e1a8aae632e070"},
+    {file = "python_olm-3.2.1-cp27-cp27m-manylinux1_i686.linux_x86_64.whl", hash = "sha256:0e4797de5dee08effd7d1d6aed27cc0829829429740ccc2b64b1e05c7fbf0621"},
+    {file = "python_olm-3.2.1-cp27-cp27m-manylinux1_i686.whl", hash = "sha256:3b42251d9e04938dcd9735ded307565b50d3aa3a87d5a69e3e2fc149748a2fbb"},
+    {file = "python_olm-3.2.1-cp27-cp27m-manylinux1_x86_64.whl", hash = "sha256:c50de65c39c355b6a1ee1484fcbcc4ab7d4b53b17edfcae2a7e0002ed50e6eb6"},
+    {file = "python_olm-3.2.1-cp27-cp27m-manylinux2010_x86_64.whl", hash = "sha256:46ecb53a9d6b415a32363eaa91b2c73c13a097a6a9c4f29a7c36c90184b9b1a4"},
+    {file = "python_olm-3.2.1-cp35-cp35m-linux_x86_64.manylinux1_i686.whl", hash = "sha256:840397e5097ca468af3bcfb7d0d268413c6391503c60298861e6a1343b6961d1"},
+    {file = "python_olm-3.2.1-cp35-cp35m-manylinux1_i686.whl", hash = "sha256:dbc98014fd599540d44d0c5f1e16b95cfac418c663be12c4bd30c2bd1813ea60"},
+    {file = "python_olm-3.2.1-cp35-cp35m-manylinux1_x86_64.whl", hash = "sha256:f93aa47dc3b50fd961bb4c8f9ce4cad2f65b55c5a337df1e697045569178260c"},
+    {file = "python_olm-3.2.1-cp35-cp35m-manylinux2010_x86_64.whl", hash = "sha256:0207e36e18fbebf54ef2faafce8f3fb4c8a2488aca184d936630d67897edae0e"},
+    {file = "python_olm-3.2.1-cp36-cp36m-manylinux1_i686.linux_x86_64.whl", hash = "sha256:f5eb838d28ebe865bcb838c22732f3fdf4829be3d673e84d8d3a125c68d08df5"},
+    {file = "python_olm-3.2.1-cp36-cp36m-manylinux1_i686.whl", hash = "sha256:1856bb56b98481447bdc3e7438587411ea316b13dbbabcbbf79a7291a1f8d25e"},
+    {file = "python_olm-3.2.1-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:e221c08d89cefc5f22c2280b4d801cadf53d2f072d07b765fa534b9c89212639"},
+    {file = "python_olm-3.2.1-cp36-cp36m-manylinux2010_x86_64.whl", hash = "sha256:de710b22445bc9ea66395e6fac80ffda050be3a62be8c04be3c4f3fcd14a3a26"},
+    {file = "python_olm-3.2.1-cp37-cp37m-manylinux1_i686.linux_x86_64.whl", hash = "sha256:9f20950023e824d27c9bfaf3d47dda8008c1744ed9cea5d7b929d1258b956734"},
+    {file = "python_olm-3.2.1-cp37-cp37m-manylinux1_i686.whl", hash = "sha256:aa089b03ae8931dcdf6df321391f4c461e4697f392ee640f424e7c5eff52cabe"},
+    {file = "python_olm-3.2.1-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:bae2c58045d313d9dc942278add7a82bc4b7883a96842aff44de999ef74bb49f"},
+    {file = "python_olm-3.2.1-cp37-cp37m-manylinux2010_x86_64.whl", hash = "sha256:c5beff526648b437d1938eba228f0af4ccaee0e9a3f218b9f4ce57bc68105aa1"},
+    {file = "python_olm-3.2.1-cp38-cp38-linux_x86_64.manylinux1_i686.whl", hash = "sha256:1ae2cf3e88525141bcce1fcc843be72022722ac02fd1acc13927c6527f55de7b"},
+    {file = "python_olm-3.2.1-cp38-cp38-manylinux1_i686.whl", hash = "sha256:cd3bde753aec51d684d1f5de4fafaf859805ee23e2e11a59564b91c7f0b588e7"},
+    {file = "python_olm-3.2.1-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:d90977c015aa446ed874a417b47648bcf6e56d1c1ed1ab95f5ab0497e776a385"},
+    {file = "python_olm-3.2.1-cp38-cp38-manylinux2010_x86_64.whl", hash = "sha256:1b3a43153d8461109c96098c00405446c40ccd8f4f50dbd338013238832aada2"},
+    {file = "python_olm-3.2.1-cp39-cp39-linux_x86_64.manylinux1_i686.whl", hash = "sha256:c8d6587e55c10e57190cbe4860e60a6670acb28e6a87fcdb074db7d4971c1ed8"},
+    {file = "python_olm-3.2.1-cp39-cp39-manylinux1_i686.whl", hash = "sha256:49f3208e50d36862c08c107a2a24040eae3b67c70051dd1e9743a7d762dc6f17"},
+    {file = "python_olm-3.2.1-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:c48024822be75684a11d6e0a18a4b6d87e68d06ed4dc1984033afb459a0131cc"},
+    {file = "python_olm-3.2.1-cp39-cp39-manylinux2010_x86_64.whl", hash = "sha256:f77c14ac9203710d6ada23f9c2d31f4cb39f74b250bf2c41309ffd22cd366377"},
 ]
 regex = [
     {file = "regex-2021.7.6-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:e6a1e5ca97d411a461041d057348e578dc344ecd2add3555aedba3b408c9f874"},
