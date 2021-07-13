@@ -9,7 +9,7 @@ from mautrix.util.config import ConfigUpdateHelper, ForbiddenDefault, ForbiddenK
 class Config(BaseBridgeConfig):
     def __getitem__(self, key: str) -> Any:
         try:
-            return os.environ[f"MAUTRIX_FACEBOOK_{key.replace('.', '_').upper()}"]
+            return os.environ[f"MAUTRIX_LINKEDIN_{key.replace('.', '_').upper()}"]
         except KeyError:
             return super().__getitem__(key)
 

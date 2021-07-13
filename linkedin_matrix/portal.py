@@ -925,7 +925,7 @@ class Portal(DBPortal, BasePortal):
             return
 
         # Save all of the messages in the database.
-        self.log.debug(f"Handled Messenger message {li_message_urn} -> {event_ids}")
+        self.log.debug(f"Handled LinkedIn message {li_message_urn} -> {event_ids}")
         await DBMessage.bulk_create(
             li_message_urn=li_message_urn,
             li_thread_urn=self.li_thread_urn,

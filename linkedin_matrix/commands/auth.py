@@ -153,8 +153,7 @@ async def logout(evt: CommandEvent):
     management_only=True,
     help_args="<_access token_>",
     help_section=SECTION_AUTH,
-    help_text="Replace your Facebook Messenger account's "
-    "Matrix puppet with your Matrix account",
+    help_text="Replace your LinkedIn account's Matrix puppet with your Matrix account",
 )
 async def login_matrix(evt: CommandEvent) -> None:
     puppet = await pu.Puppet.get_by_li_member_urn(evt.sender.li_member_urn)
@@ -165,7 +164,7 @@ async def login_matrix(evt: CommandEvent) -> None:
     try:
         await puppet.switch_mxid(" ".join(evt.args), evt.sender.mxid)
         await evt.reply(
-            "Successfully replaced your Facebook Messenger account's "
+            "Successfully replaced your LinkedIn account's "
             "Matrix puppet with your Matrix account."
         )
     except cpu.OnlyLoginSelf:
@@ -178,7 +177,7 @@ async def login_matrix(evt: CommandEvent) -> None:
     needs_auth=True,
     management_only=True,
     help_section=SECTION_AUTH,
-    help_text="Revert your Facebook Messenger account's Matrix puppet to the original",
+    help_text="Revert your LinkedIn account's Matrix puppet to the original",
 )
 async def logout_matrix(evt: CommandEvent) -> None:
     puppet = await pu.Puppet.get_by_li_member_urn(evt.sender.li_member_urn)
@@ -186,7 +185,7 @@ async def logout_matrix(evt: CommandEvent) -> None:
         await evt.reply("You're not logged in with your Matrix account")
         return
     await puppet.switch_mxid(None, None)
-    await evt.reply("Restored the original puppet for your Facebook Messenger account")
+    await evt.reply("Restored the original puppet for your LinkedIn account")
 
 
 # endregion
