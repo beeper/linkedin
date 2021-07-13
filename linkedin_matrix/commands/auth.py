@@ -126,6 +126,8 @@ async def enter_2fa_code(evt: CommandEvent) -> None:
 # endregion
 
 # region Log out
+
+
 @command_handler(
     needs_auth=False,
     management_only=False,
@@ -133,12 +135,12 @@ async def enter_2fa_code(evt: CommandEvent) -> None:
     help_text="Log out of LinkedIn",
 )
 async def logout(evt: CommandEvent):
-    print("log out")
-    if evt.sender.client and not await evt.sender.client.logged_in():
+    if not evt.sender.client or not await evt.sender.client.logged_in():
         await evt.reply("You are not logged in.")
         return
 
-    evt.sender.client.logout()
+    await evt.sender.logout()
+    await evt.reply("Successfully logged out")
 
 
 # endregion

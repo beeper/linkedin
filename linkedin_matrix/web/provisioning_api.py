@@ -104,6 +104,11 @@ class ProvisioningAPI:
         return web.Response(body="{}", status=200, headers=self._headers)
 
     async def logout(self, request: web.Request) -> web.Response:
-        user = await self.check_token(request)
-        await user.client.logout()
+        try:
+            user = await self.check_token(request)
+            if user.client:
+                await user.logout()
+        except web.HTTPError:
+            pass
+
         return web.json_response({}, headers=self._acao_headers)
