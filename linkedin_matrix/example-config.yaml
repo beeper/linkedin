@@ -231,7 +231,7 @@ logging:
         file:
             class: logging.handlers.RotatingFileHandler
             formatter: normal
-            filename: ./mautrix-linkedin.log
+            filename: ./linkedin-matrix.log
             maxBytes: 10485760
             backupCount: 10
         console:

@@ -10,7 +10,7 @@
       * [x] GIFs
       * [ ] Stickers
     * [ ] ~~Formatting~~ (LinkedIn does not support rich formatting)
-    * [ ] Replies
+    * [ ] ~~Replies~~ (LinkedIn does not support replies)
     * [x] Mentions
     * [x] Emotes
   * [ ] Message redactions
