@@ -49,7 +49,7 @@ RUN apk add --virtual .build-deps \
       libpng-dev \
  && pip install "poetry==$POETRY_VERSION" \
  && poetry config virtualenvs.create false \
- && poetry install --no-dev --no-interaction --no-ansi -E images -E e2be \
+ && poetry install --no-dev --no-interaction --no-ansi -E images -E e2be -E metrics \
  && apk del .build-deps
 
 VOLUME /data
