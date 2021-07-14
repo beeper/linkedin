@@ -192,8 +192,7 @@ class User(DBUser, BaseUser):
         self.li_member_urn = (
             await self.client.get_user_profile()
         ).mini_profile.entity_urn
-        # TODO (#51)
-        # self._track_metric(METRIC_LOGGED_IN, True)
+        self._track_metric(METRIC_LOGGED_IN, True)
         self._is_logged_in = True
         self.is_connected = None
         self.stop_listen()
@@ -256,6 +255,7 @@ class User(DBUser, BaseUser):
                 del self.by_li_member_urn[self.li_member_urn]
             except KeyError:
                 pass
+        self._track_metric(METRIC_LOGGED_IN, True)
         self._is_logged_in = False
         self.client = None
         self.li_member_urn = None
