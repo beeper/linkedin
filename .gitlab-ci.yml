@@ -82,8 +82,7 @@ publish actual:
   stage: deploy
   only:
     variables:
-      # Only actually publish if it's a version tag on master.
-      - $CI_COMMIT_BRANCH == "master"
+      # Only actually publish if it's a version tag.
       - $CI_COMMIT_TAG =~ /^v.*/
   before_script:
     - pip3 install poetry
@@ -96,8 +95,7 @@ publish release:
   stage: publish release
   only:
     variables:
-      # Only actually publish if it's a version tag on master.
-      - $CI_COMMIT_BRANCH == "master"
+      # Only actually publish if it's a version tag.
       - $CI_COMMIT_TAG =~ /^v.*/
   before_script:
     - apk add curl
