@@ -94,6 +94,6 @@ publish release:
       # Only actually publish if it's a version tag.
       - $CI_COMMIT_TAG =~ /^v.*/
   before_script:
-    - apk add curl jq
+    - apk add curl jq bash
   script:
     - ./cicd/publish-gitlab-release.sh
