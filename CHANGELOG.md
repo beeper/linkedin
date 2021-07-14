@@ -1,3 +1,17 @@
+# v0.2.0
+
+* Updated `linkedin-messaging` to
+  [v0.2.1](https://github.com/sumnerevans/linkedin-messaging-api/releases/tag/v0.2.1).
+* Pinned `python-olm` at 3.2.1.
+* Implemented logout. (#56)
+* Migrated to GitLab from GitHub. Be sure to update your remotes!
+* Added automated Docker container build. See the image registry here:
+  https://gitlab.com/beeper/linkedin-matrix/container_registry.
+* Changed `real_user_content_key` to `com.sumnerevans.linkedin.puppet`.
+* Added provisioning API for managing the bridge over HTTP(S).
+* Fixed some instances of text that was copied from other bridges to correctly
+  reference LinkedIn.
+
 # v0.1.1
 
 * Fixed the `bridge.resend_bridge_info` option.

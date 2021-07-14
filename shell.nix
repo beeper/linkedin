@@ -9,7 +9,6 @@ let
       "python.linting.mypyEnabled" = true;
       "python.linting.pylintEnabled" = false;
       "python.pythonPath" = ".venv/bin/python";
-      "test" = false;
     }
   );
 in

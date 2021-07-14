@@ -1,5 +1,6 @@
 # linkedin-matrix
 
+[![pipeline status](https://gitlab.com/beeper/linkedin-matrix/badges/master/pipeline.svg)](https://gitlab.com/beeper/linkedin-matrix/-/commits/master) 
 [![Matrix Chat](https://img.shields.io/matrix/linkedin-matrix:nevarro.space?server_fqdn=matrix.nevarro.space)](https://matrix.to/#/#linkedin-matrix:nevarro.space?via=nevarro.space&via=sumnerevans.com)
 [![Apache 2.0](https://img.shields.io/github/license/sumnerevans/linkedin-matrix)](https://github.com/sumnerevans/linkedin-matrix/blob/master/LICENSE)
 
