@@ -57,8 +57,8 @@ from .db import (
     Reaction as DBReaction,
 )
 from .formatter import (
-    linkedin_subject_to_matrix,
     linkedin_spinmail_to_matrix,
+    linkedin_subject_to_matrix,
     linkedin_to_matrix,
     matrix_to_linkedin,
 )
