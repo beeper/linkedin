@@ -1,0 +1,28 @@
+image: docker:stable
+
+stages:
+- build
+- manifest
+
+default:
+  services:
+    - docker:dind
+  before_script:
+  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
+build amd64:
+  stage: build
+  tags:
+  - docker
+  script:
+  - docker pull $CI_REGISTRY_IMAGE:latest || true
+  - docker build --pull --cache-from $CI_REGISTRY_IMAGE:latest --build-arg TARGETARCH=amd64 --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA-amd64 .
+  - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA-amd64
+  - docker rmi $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA-amd64
+  after_script:
+  - |
+    if [ "$CI_COMMIT_BRANCH" = "master" ]; then
+      apk add --update curl
+      rm -rf /var/cache/apk/*
+      curl "$NOVA_ADMIN_API_URL" -H "Content-Type: application/json" -d '{"password":"'"$NOVA_ADMIN_NIGHTLY_PASS"'","bridge":"'$NOVA_BRIDGE_TYPE'","image":"'$CI_REGISTRY_IMAGE':'$CI_COMMIT_SHA'-amd64"}'
+    fi
