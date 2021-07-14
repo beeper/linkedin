@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "linkedin_matrix"
-version = "0.2.0"
+version = "0.2.1"
 description = "A Matrix-LinkedIn Messages puppeting bridge."
 authors = ["Sumner Evans <inquiries@sumnerevans.com>"]
 readme = "README.md"

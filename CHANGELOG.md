@@ -1,3 +1,8 @@
+# v0.2.1
+
+* Added `prometheus-client` as an optional dependency.
+* Added a couple basic metrics to the bridge.
+
 # v0.2.0
 
 * Updated `linkedin-messaging` to
