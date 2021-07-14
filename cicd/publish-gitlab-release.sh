@@ -1,4 +1,4 @@
-#! /usr/bin/env sh
+#! /usr/bin/env bash
 
 set -e
 
@@ -25,7 +25,7 @@ if [[ $(head -n 1 CHANGELOG.md) == "# ${CI_COMMIT_TAG}" ]]; then
     done < CHANGELOG.md
     # i is now the index of the line of the second header.
 
-    changes=$(head -n $(( $i - 1 )) CHANGELOG.md | tail -n $(( $i - 3 )))
+    changes=$(head -n $(( $i - 1 )) CHANGELOG.md | tail -n $(( $i - 3 )) | jq -sR .)
 fi
 
 if [[ "$changes" == "" ]]; then
@@ -38,7 +38,7 @@ data="
 {
     \"name\": \"${CI_COMMIT_TAG}\",
     \"tag_name\": \"${CI_COMMIT_TAG}\",
-    \"description\": \"${changes}\"
+    \"description\": ${changes}
 }
 "
 
@@ -46,6 +46,8 @@ echo "URL:"
 echo "$url"
 echo "DATA:"
 echo "$data"
+
+set -xe
 
 curl \
     --header 'Content-Type: application/json' \
