@@ -405,7 +405,7 @@ class User(DBUser, BaseUser):
         assert isinstance(event.reaction_added, bool)
         assert isinstance(event.actor_mini_profile_urn, URN)
 
-        self.log.info("reaction added", event)
+        self.log.info(f"reaction added {event}")
 
         # TODO (#31) actually handle this
         # event_entity_urn = event.get("eventUrn", "")
