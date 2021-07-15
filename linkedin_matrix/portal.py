@@ -799,11 +799,39 @@ class Portal(DBPortal, BasePortal):
             try:
                 await reaction.delete()
                 await sender.client.remove_emoji_reaction(
-                    self.li_thread_urn, message.li_message_urn, emoji=reaction.reaction
+                    self.li_thread_urn, reaction.li_message_urn, emoji=reaction.reaction
                 )
                 await self._send_delivery_receipt(redaction_event_id)
             except Exception:
                 self.log.exception("Removing reaction failed")
+
+    async def handle_matrix_reaction(
+        self,
+        sender: "u.User",
+        event_id: EventID,
+        reacting_to: EventID,
+        reaction: str,
+    ):
+        assert sender.li_member_urn
+        assert self.mxid
+        async with self.require_send_lock(sender.li_member_urn):
+            message = await DBMessage.get_by_mxid(reacting_to, self.mxid)
+            if not message:
+                self.log.debug(f"Ignoring reaction to unknown event {reacting_to}")
+                return
+
+            await sender.client.add_emoji_reaction(
+                self.li_thread_urn, message.li_message_urn, reaction
+            )
+            await DBReaction(
+                mxid=event_id,
+                mx_room=message.mx_room,
+                li_message_urn=message.li_message_urn,
+                li_receiver_urn=self.li_receiver_urn,
+                li_sender_urn=sender.li_member_urn,
+                reaction=reaction,
+            ).insert()
+        await self._send_delivery_receipt(event_id)
 
     # endregion
 
