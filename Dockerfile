@@ -30,6 +30,7 @@ RUN apk add --virtual .build-deps \
       python3-dev \
       libffi-dev \
       cargo \
+      git \
       build-base \
       openssl-dev \
       # Pillow \
