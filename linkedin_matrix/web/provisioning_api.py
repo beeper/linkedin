@@ -101,12 +101,17 @@ class ProvisioningAPI:
 
         try:
             client = LinkedInMessaging()
+            data["JSESSIONID"] = data["JSESSIONID"].strip('"')
             client.session.cookie_jar.update_cookies(data)
-            client.session.headers["csrf-token"] = data["JSESSIONID"].strip('"')
+            client.session.headers["csrf-token"] = data["JSESSIONID"]
+            self.log.debug(data)
+            for c in client.session.cookie_jar:
+                self.log.debug(c)
+            self.log.debug(client.session.headers)
             await user.on_logged_in(client)
         except Exception:
-            self.log.debug("Failed to log in", exc_info=True)
-            raise web.HTTPUnauthorized(
+            self.log.exception("Failed to log in", exc_info=True)
+            return web.HTTPUnauthorized(
                 body='{"error": "LinkedIn authorization failed"}', headers=self._headers
             )
         return web.Response(body="{}", status=200, headers=self._headers)
