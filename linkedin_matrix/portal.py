@@ -25,6 +25,7 @@ from linkedin_messaging.api_objects import (
     MessageAttachment,
     MessageCreate,
     ReactionSummary,
+    RealTimeEventStreamEvent,
     ThirdPartyMedia,
 )
 from mautrix.appservice import IntentAPI
@@ -77,6 +78,15 @@ try:
 except ImportError:
     decrypt_attachment = encrypt_attachment = None  # type: ignore
 
+
+class FakeLock:
+    async def __aenter__(self):
+        pass
+
+    async def __aexit__(self, exc_type: Any, exc: Any, tb: Any):
+        pass
+
+
 StateBridge = EventType.find("m.bridge", EventType.Class.STATE)
 StateHalfShotBridge = EventType.find("uk.half-shot.bridge", EventType.Class.STATE)
 MediaInfo = Union[FileInfo, VideoInfo, AudioInfo, ImageInfo]
@@ -92,6 +102,7 @@ class Portal(DBPortal, BasePortal):
     backfill_lock: SimpleLock
     _dedup: Deque[URN]
     _send_locks: Dict[URN, asyncio.Lock]
+    _noop_lock: FakeLock = FakeLock()
 
     def __init__(
         self,
@@ -162,6 +173,13 @@ class Portal(DBPortal, BasePortal):
             lock = asyncio.Lock()
             self._send_locks[li_member_urn] = lock
         return lock
+
+    def optional_send_lock(self, li_member_urn: URN) -> Union[asyncio.Lock, FakeLock]:
+        try:
+            return self._send_locks[li_member_urn]
+        except KeyError:
+            pass
+        return self._noop_lock
 
     # endregion
 
@@ -1015,7 +1033,7 @@ class Portal(DBPortal, BasePortal):
         )
         reaction_event_id = event_ids[-1]  # react to the last event
         for reaction_summary in reaction_summaries:
-            await self.handle_reaction_summary(
+            await self._handle_reaction_summary(
                 intent,
                 li_message_urn,
                 sender,
@@ -1047,7 +1065,7 @@ class Portal(DBPortal, BasePortal):
                 )
             await db_message.delete()
 
-    async def handle_reaction_summary(
+    async def _handle_reaction_summary(
         self,
         intent: IntentAPI,
         li_message_urn: URN,
@@ -1061,7 +1079,7 @@ class Portal(DBPortal, BasePortal):
         assert self.mxid
         assert self.li_receiver_urn
 
-        # TODO (#32) figure out how many reactions should be added
+        # TODO (#33) figure out how many reactions should be added
         mxid = await intent.react(self.mxid, reaction_event_id, reaction_summary.emoji)
         self.log.debug(
             f"Reacted to {reaction_event_id} with {reaction_summary.emoji}, got {mxid}"
@@ -1204,5 +1222,76 @@ class Portal(DBPortal, BasePortal):
         if decryption_info:
             decryption_info.url = url
         return url, info, decryption_info
+
+    async def handle_linkedin_reaction_add(
+        self,
+        source: "u.User",
+        sender: "p.Puppet",
+        event: RealTimeEventStreamEvent,
+    ):
+        assert event.event_urn
+        assert self.li_receiver_urn
+        reaction = event.reaction_summary.emoji
+        # Make up a URN for the reacton for dedup purposes
+        dedup_id = URN(
+            f"({event.event_urn.id_str()},{sender.li_member_urn.id_str()},{reaction})"
+        )
+        async with self.optional_send_lock(sender.li_member_urn):
+            if dedup_id in self._dedup:
+                return
+            self._dedup.appendleft(dedup_id)
+
+        if not await self._bridge_own_message_pm(
+            source, sender, f"reaction to {event.event_urn}"
+        ):
+            return
+
+        intent = sender.intent_for(self)
+
+        message = await DBMessage.get_by_li_message_urn(
+            event.event_urn, self.li_receiver_urn
+        )
+        if not message:
+            self.log.debug(f"Ignoring reaction to unknown message {event.event_urn}")
+            return
+
+        mxid = await intent.react(message.mx_room, message.mxid, reaction)
+        self.log.debug(f"Reacted to {message.mxid}, got {mxid}")
+
+        await DBReaction(
+            mxid=mxid,
+            mx_room=message.mx_room,
+            li_message_urn=message.li_message_urn,
+            li_receiver_urn=self.li_receiver_urn,
+            li_sender_urn=sender.li_member_urn,
+            reaction=reaction,
+        ).insert()
+        self._dedup.remove(dedup_id)
+
+    async def handle_linkedin_reaction_remove(
+        self,
+        source: "u.User",
+        sender: "p.Puppet",
+        event: RealTimeEventStreamEvent,
+    ):
+        if (
+            not self.mxid
+            or not self.li_receiver_urn
+            or not event.event_urn
+            or not event.reaction_summary
+        ):
+            return
+        reaction = await DBReaction.get_by_li_message_urn_and_emoji(
+            event.event_urn,
+            self.li_receiver_urn,
+            sender.li_member_urn,
+            event.reaction_summary.emoji,
+        )
+        if reaction:
+            try:
+                await sender.intent_for(self).redact(reaction.mx_room, reaction.mxid)
+            except MForbidden:
+                await self.main_intent.redact(reaction.mx_room, reaction.mxid)
+            await reaction.delete()
 
     # endregion

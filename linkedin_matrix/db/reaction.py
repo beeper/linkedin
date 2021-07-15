@@ -48,6 +48,31 @@ class Reaction(Model):
         row = await cls.db.fetchrow(query, mxid, mx_room)
         return cls._from_row(row)
 
+    @classmethod
+    async def get_by_li_message_urn_and_emoji(
+        cls,
+        li_message_urn: URN,
+        li_receiver_urn: URN,
+        li_sender_urn: URN,
+        reaction: str,
+    ) -> Optional["Reaction"]:
+        query = Reaction.select_constructor(
+            """
+                li_message_urn=$1
+            AND li_receiver_urn=$2
+            AND li_sender_urn=$3
+            AND reaction=$4
+            """
+        )
+        row = await cls.db.fetchrow(
+            query,
+            li_message_urn.id_str(),
+            li_receiver_urn.id_str(),
+            li_sender_urn.id_str(),
+            reaction,
+        )
+        return cls._from_row(row)
+
     async def insert(self):
         query = Reaction.insert_constructor()
         await self.db.execute(

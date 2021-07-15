@@ -404,24 +404,19 @@ class User(DBUser, BaseUser):
         assert isinstance(event.reaction_summary, ReactionSummary)
         assert isinstance(event.reaction_added, bool)
         assert isinstance(event.actor_mini_profile_urn, URN)
+        assert isinstance(event.event_urn, URN)
 
-        self.log.info(f"reaction added {event}")
+        thread_urn, message_urn = map(URN, event.event_urn.id_parts)
 
-        # TODO (#31) actually handle this
-        # event_entity_urn = event.get("eventUrn", "")
-        # match = self.event_urn_re.match(event_entity_urn)
-        # if not match:
-        #     return
-        # thread_urn, message_urn = match.groups()
+        portal = await po.Portal.get_by_li_thread_urn(
+            thread_urn, li_receiver_urn=self.li_member_urn
+        )
+        puppet = await pu.Puppet.get_by_li_member_urn(event.actor_mini_profile_urn)
 
-        # sender_urn = event.get("actorMiniProfileUrn", "").split(":")[-1]
-
-        # portal = await po.Portal.get_by_li_thread_urn(
-        #     thread_urn, li_receiver_urn=self.li_member_urn
-        # )
-        # puppet = await pu.Puppet.get_by_li_member_urn(sender_urn)
-
-        # await portal.backfill_lock.wait(message_urn)
-        # await portal.handle_linkedin_reaction_summary(self, puppet, event)
+        await portal.backfill_lock.wait(message_urn)
+        if event.reaction_added:
+            await portal.handle_linkedin_reaction_add(self, puppet, event)
+        else:
+            await portal.handle_linkedin_reaction_remove(self, puppet, event)
 
     # endregion
