@@ -52,15 +52,15 @@ class Message(Model):
         )
 
     @classmethod
-    async def get_all_by_li_thread_urn(
+    async def get_all_by_li_message_urn(
         cls,
-        li_thread_urn: URN,
+        li_message_urn: URN,
         li_receiver_urn: URN,
     ) -> List["Message"]:
-        query = Message.select_constructor("li_thread_urn=$1 AND li_receiver_urn=$2")
+        query = Message.select_constructor("li_message_urn=$1 AND li_receiver_urn=$2")
         rows = await cls.db.fetch(
             query,
-            li_thread_urn.id_str(),
+            li_message_urn.id_str(),
             li_receiver_urn.id_str(),
         )
         return [cast(Message, cls._from_row(row)) for row in rows if row]

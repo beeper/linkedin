@@ -29,7 +29,7 @@ from linkedin_messaging.api_objects import (
 )
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import async_getter_lock, BasePortal, NotificationDisabler
-from mautrix.errors import MatrixError
+from mautrix.errors import MatrixError, MForbidden
 from mautrix.types import (
     AudioInfo,
     ContentURI,
@@ -870,7 +870,10 @@ class Portal(DBPortal, BasePortal):
         message: ConversationEvent,
     ):
         try:
-            await self._handle_linkedin_message(source, sender, message)
+            if message.event_content.message_event.recalled_at:
+                await self._handle_linkedin_message_deletion(sender, message)
+            else:
+                await self._handle_linkedin_message(source, sender, message)
         except Exception as e:
             self.log.exception(
                 f"Error handling LinkedIn message {message.entity_urn}: {e}"
@@ -1019,6 +1022,30 @@ class Portal(DBPortal, BasePortal):
                 reaction_event_id,
                 reaction_summary,
             )
+
+    async def _handle_linkedin_message_deletion(
+        self,
+        sender: "p.Puppet",
+        message: ConversationEvent,
+    ):
+        if not self.mxid or not self.li_receiver_urn:
+            return
+        for db_message in await DBMessage.get_all_by_li_message_urn(
+            message.entity_urn, self.li_receiver_urn
+        ):
+            try:
+                await sender.intent_for(self).redact(
+                    db_message.mx_room,
+                    db_message.mxid,
+                    timestamp=message.created_at,
+                )
+            except MForbidden:
+                await self.main_intent.redact(
+                    db_message.mx_room,
+                    db_message.mxid,
+                    timestamp=message.created_at,
+                )
+            await db_message.delete()
 
     async def handle_reaction_summary(
         self,
