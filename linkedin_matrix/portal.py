@@ -646,6 +646,13 @@ class Portal(DBPortal, BasePortal):
 
     # region Matrix event handling
 
+    async def _send_delivery_receipt(self, event_id: EventID) -> None:
+        if event_id and self.config["bridge.delivery_receipts"] and self.mxid:
+            try:
+                await self.az.intent.mark_read(self.mxid, event_id)
+            except Exception:
+                self.log.exception(f"Failed to send delivery receipt for {event_id}")
+
     async def handle_matrix_message(
         self,
         sender: "u.User",
@@ -766,6 +773,37 @@ class Portal(DBPortal, BasePortal):
             sender,
             MessageCreate(AttributedBody(), attachments=[attachment]),
         )
+
+    async def handle_matrix_redaction(
+        self,
+        sender: "u.User",
+        event_id: EventID,
+        redaction_event_id: EventID,
+    ):
+        if not self.mxid:
+            return
+
+        message = await DBMessage.get_by_mxid(event_id, self.mxid)
+        if message:
+            try:
+                await message.delete()
+                await sender.client.delete_message(
+                    self.li_thread_urn, message.li_message_urn
+                )
+                await self._send_delivery_receipt(redaction_event_id)
+            except Exception:
+                self.log.exception("Delete message failed")
+
+        reaction = await DBReaction.get_by_mxid(event_id, self.mxid)
+        if reaction:
+            try:
+                await reaction.delete()
+                await sender.client.remove_emoji_reaction(
+                    self.li_thread_urn, message.li_message_urn, emoji=reaction.reaction
+                )
+                await self._send_delivery_receipt(redaction_event_id)
+            except Exception:
+                self.log.exception("Removing reaction failed")
 
     # endregion
 

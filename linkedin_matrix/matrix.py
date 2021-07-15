@@ -4,6 +4,7 @@ from mautrix.bridge import BaseMatrixHandler
 from mautrix.types import (
     EncryptedEvent,
     Event,
+    EventID,
     EventType,
     MessageEvent,
     PresenceEvent,
@@ -16,6 +17,8 @@ from mautrix.types import (
     TypingEvent,
     UserID,
 )
+from mautrix.types.event.message import RelationType
+from mautrix.types.event.reaction import ReactionEventContent
 
 # these have to be in this particular order to avoid circular imports
 from . import user as u, portal as po, puppet as pu  # noqa: I101
@@ -58,6 +61,60 @@ class MatrixHandler(BaseMatrixHandler):
             or pu.Puppet.get_id_from_mxid(evt.sender) is not None
         )
 
+    async def handle_leave(self, room_id: RoomID, user_id: UserID, _) -> None:
+        portal = await po.Portal.get_by_mxid(room_id)
+        if not portal:
+            return
+
+        user = await u.User.get_by_mxid(user_id, create=False)
+        if not user:
+            return
+
+        await portal.handle_matrix_leave(user)
+
+    @staticmethod
+    async def handle_redaction(
+        room_id: RoomID,
+        user_id: UserID,
+        event_id: EventID,
+        redaction_event_id: EventID,
+    ):
+        user = await u.User.get_by_mxid(user_id)
+        if not user:
+            return
+
+        portal = await po.Portal.get_by_mxid(room_id)
+        if not portal:
+            return
+
+        await portal.handle_matrix_redaction(user, event_id, redaction_event_id)
+
+    @classmethod
+    async def handle_reaction(
+        cls,
+        room_id: RoomID,
+        user_id: UserID,
+        event_id: EventID,
+        content: ReactionEventContent,
+    ) -> None:
+        if content.relates_to.rel_type != RelationType.ANNOTATION:
+            cls.log.debug(
+                f"Ignoring m.reaction event in {room_id} from {user_id} with "
+                f"unexpected relation type {content.relates_to.rel_type}"
+            )
+            return
+        user = await u.User.get_by_mxid(user_id)
+        if not user:
+            return
+
+        portal = await po.Portal.get_by_mxid(room_id)
+        if not portal:
+            return
+
+        await portal.handle_matrix_reaction(
+            user, event_id, content.relates_to.event_id, content.relates_to.key
+        )
+
     async def handle_presence(
         self,
         user_id: UserID,
@@ -88,3 +145,13 @@ class MatrixHandler(BaseMatrixHandler):
             await self.handle_typing(evt.room_id, evt.content.user_ids)
         elif evt.type == EventType.RECEIPT:
             await self.handle_receipt(cast(ReceiptEvent, evt))
+
+    async def handle_event(self, evt: Event) -> None:
+        if evt.type == EventType.ROOM_REDACTION:
+            await self.handle_redaction(
+                evt.room_id, evt.sender, evt.redacts, evt.event_id
+            )
+        elif evt.type == EventType.REACTION:
+            await self.handle_reaction(
+                evt.room_id, evt.sender, evt.event_id, evt.content
+            )

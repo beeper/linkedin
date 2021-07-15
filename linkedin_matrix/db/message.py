@@ -164,7 +164,7 @@ class Message(Model):
             DELETE FROM message
              WHERE li_message_urn=$1
                AND li_receiver_urn=$2
-               AND index=$3"
+               AND index=$3
         """
         await self.db.execute(
             q,
