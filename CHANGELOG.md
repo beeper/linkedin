@@ -1,3 +1,13 @@
+# v0.3.0
+
+* Updated `linkedin-messaging` to
+  [v0.3.0](https://github.com/sumnerevans/linkedin-messaging-api/releases/tag/v0.3.0).
+* Handle redactions to/from LinkedIn. (#18, #32, #37, #38)
+* Handle real-time reactions to/from LinkedIn. (#19, #31, #32)
+* Enabled sending app-service bot delivery receipts to the chat.
+* Fixed `reaction` database table primary key to support multiple reactions per
+  user, per message.
+
 # v0.2.1
 
 * Added `prometheus-client` as an optional dependency.
