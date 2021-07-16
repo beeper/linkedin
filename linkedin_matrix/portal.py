@@ -740,6 +740,7 @@ class Portal(DBPortal, BasePortal):
                 index=0,
                 timestamp=datetime.now(),
             )
+            await self._send_delivery_receipt(event_id)
             self._dedup.append(resp.value.event_urn)
             await message.insert()
             return message
@@ -808,7 +809,6 @@ class Portal(DBPortal, BasePortal):
                 await sender.client.delete_message(
                     self.li_thread_urn, message.li_message_urn
                 )
-                await self._send_delivery_receipt(redaction_event_id)
             except Exception:
                 self.log.exception("Delete message failed")
 
@@ -819,9 +819,10 @@ class Portal(DBPortal, BasePortal):
                 await sender.client.remove_emoji_reaction(
                     self.li_thread_urn, reaction.li_message_urn, emoji=reaction.reaction
                 )
-                await self._send_delivery_receipt(redaction_event_id)
             except Exception:
                 self.log.exception("Removing reaction failed")
+
+        await self._send_delivery_receipt(redaction_event_id)
 
     async def handle_matrix_reaction(
         self,
@@ -849,6 +850,7 @@ class Portal(DBPortal, BasePortal):
                 li_sender_urn=sender.li_member_urn,
                 reaction=reaction,
             ).insert()
+
         await self._send_delivery_receipt(event_id)
 
     # endregion
