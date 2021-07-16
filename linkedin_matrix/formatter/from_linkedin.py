@@ -27,7 +27,13 @@ async def linkedin_to_matrix(msg: AttributedBody) -> TextMessageEventContent:
 
     text = msg.text
     for m in sorted(msg.attributes, key=lambda a: a.start, reverse=True):
-        if m.start is None or m.length is None or not m.type_.text_entity.urn:
+        if (
+            m.start is None
+            or m.length is None
+            or not m.type_
+            or not m.type_.text_entity
+            or not m.type_.text_entity.urn
+        ):
             continue
 
         text, original, after = (

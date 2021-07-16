@@ -130,12 +130,10 @@ class Puppet(DBPuppet, BasePuppet):
         try:
             changed = await self._update_name(info)
             if update_avatar:
-                changed = (
-                    await self._update_photo(
-                        info.alternate_image or info.mini_profile.picture
-                    )
-                    or changed
+                photo = info.alternate_image or (
+                    info.mini_profile.picture if info.mini_profile else None
                 )
+                changed = await self._update_photo(photo) or changed
 
             if changed:
                 await self.save()
@@ -171,6 +169,8 @@ class Puppet(DBPuppet, BasePuppet):
 
     @classmethod
     def _get_displayname(cls, info: MessagingMember) -> str:
+        if not info.mini_profile:
+            raise Exception(f"No mini_profile found for {info.entity_urn}")
         first, last = info.mini_profile.first_name, info.mini_profile.last_name
         info_map = {
             "displayname": info.alternate_name,
@@ -189,12 +189,12 @@ class Puppet(DBPuppet, BasePuppet):
 
     async def _update_photo(self, picture: Optional[Picture]) -> bool:
         photo_id = None
-        if picture:
-            match = self.photo_id_re.match(picture.vector_image.root_url)
+        if picture and (vi := picture.vector_image):
+            match = self.photo_id_re.match(vi.root_url)
             # Handle InMail pictures which don't have any root_url
-            if not match and len(picture.vector_image.artifacts) > 0:
+            if not match and len(vi.artifacts) > 0:
                 match = self.photo_id_re.match(
-                    picture.vector_image.artifacts[0].file_identifying_url_path_segment
+                    vi.artifacts[0].file_identifying_url_path_segment
                 )
             if match:
                 photo_id = match.group(1)
@@ -202,14 +202,11 @@ class Puppet(DBPuppet, BasePuppet):
         if photo_id != self.photo_id or not self.avatar_set:
             self.photo_id = photo_id
 
-            if photo_id and picture:
-                largest_artifact = picture.vector_image.artifacts[-1]
+            if photo_id and picture and (vi := picture.vector_image):
+                largest_artifact = vi.artifacts[-1]
                 self.photo_mxc = await self.reupload_avatar(
                     self.default_mxid_intent,
-                    (
-                        picture.vector_image.root_url
-                        + largest_artifact.file_identifying_url_path_segment
-                    ),
+                    (vi.root_url + largest_artifact.file_identifying_url_path_segment),
                 )
             else:
                 self.photo_mxc = ContentURI("")

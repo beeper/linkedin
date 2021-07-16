@@ -186,10 +186,14 @@ class User(DBUser, BaseUser):
         if not self.client or not await self.client.logged_in():
             return False
 
+        if (
+            mp := (await self.client.get_user_profile()).mini_profile
+        ) and mp.entity_urn:
+            self.li_member_urn = mp.entity_urn
+        else:
+            return False
+
         self.log.info("Loaded session successfully")
-        self.li_member_urn = (
-            await self.client.get_user_profile()
-        ).mini_profile.entity_urn
         self._track_metric(METRIC_LOGGED_IN, True)
         self._is_logged_in = True
         self.is_connected = None
@@ -218,9 +222,12 @@ class User(DBUser, BaseUser):
 
     async def on_logged_in(self, client: LinkedInMessaging):
         self.client = client
-        self.li_member_urn = (
-            await self.client.get_user_profile()
-        ).mini_profile.entity_urn
+        if (
+            mp := (await self.client.get_user_profile()).mini_profile
+        ) and mp.entity_urn:
+            self.li_member_urn = mp.entity_urn
+        else:
+            raise Exception("No mini_profile.entity_urn on the user profile!")
         await self.save()
         self.stop_listen()
         asyncio.create_task(self.post_login())
@@ -269,7 +276,7 @@ class User(DBUser, BaseUser):
         return {
             pu.Puppet.get_mxid_from_id(portal.li_other_user_urn): [portal.mxid]
             async for portal in po.Portal.get_all_by_li_receiver_urn(self.li_member_urn)
-            if portal.mxid
+            if portal.mxid and portal.li_other_user_urn
         }
 
     @async_time(METRIC_SYNC_THREADS)
@@ -308,7 +315,14 @@ class User(DBUser, BaseUser):
         li_other_user_urn = None
         if not conversation.group_chat:
             other_user = conversation.participants[0]
-            li_other_user_urn = other_user.messaging_member.mini_profile.entity_urn
+            if (
+                (mm := other_user.messaging_member)
+                and (mp := mm.mini_profile)
+                and mp.entity_urn
+            ):
+                li_other_user_urn = mp.entity_urn
+            else:
+                raise Exception("Other chat participant didn't have an entity_urn!")
 
         portal = await po.Portal.get_by_li_thread_urn(
             conversation.entity_urn,
@@ -373,9 +387,19 @@ class User(DBUser, BaseUser):
     async def handle_linkedin_event(self, event: RealTimeEventStreamEvent):
         assert self.client
         assert isinstance(event.event, ConversationEvent)
+        assert event.event.entity_urn
 
         thread_urn, message_urn = map(URN, event.event.entity_urn.id_parts)
-        sender_urn = event.event.from_.messaging_member.mini_profile.entity_urn
+        if (
+            (e := event.event)
+            and (f := e.from_)
+            and (mm := f.messaging_member)
+            and (mp := mm.mini_profile)
+            and (entity_urn := mp.entity_urn)
+        ):
+            sender_urn = entity_urn
+        else:
+            raise Exception("Invalid sender: no entity_urn found!", event)
 
         portal = await po.Portal.get_by_li_thread_urn(
             thread_urn,

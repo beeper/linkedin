@@ -363,7 +363,14 @@ class Portal(DBPortal, BasePortal):
         changed = False
 
         for participant in conversation.participants if conversation else []:
-            participant_urn = participant.messaging_member.mini_profile.entity_urn
+            if (
+                not (mm := participant.messaging_member)
+                or not (mp := mm.mini_profile)
+                or not (entity_urn := mp.entity_urn)
+            ):
+                self.log.error(f"No entity_urn on participant! {participant}")
+                continue
+            participant_urn = entity_urn
             puppet = await p.Puppet.get_by_li_member_urn(participant_urn)
             await puppet.update_info(source, participant.messaging_member)
             if (
@@ -640,7 +647,17 @@ class Portal(DBPortal, BasePortal):
         self._backfill_leave = set()
         async with NotificationDisabler(self.mxid, source):
             for message in messages:
-                member_urn = message.from_.messaging_member.mini_profile.entity_urn
+                if (
+                    not (f := message.from_)
+                    or not (mm := f.messaging_member)
+                    or not (mp := mm.mini_profile)
+                    or not (entity_urn := mp.entity_urn)
+                ):
+                    self.log.error(
+                        "No entity_urn found on message mini_profile!", message
+                    )
+                    continue
+                member_urn = entity_urn
                 puppet = await p.Puppet.get_by_li_member_urn(member_urn)
                 await self.handle_linkedin_message(source, puppet, message)
         for intent in self._backfill_leave:
@@ -718,6 +735,9 @@ class Portal(DBPortal, BasePortal):
 
         async with self.require_send_lock(sender.li_member_urn):
             resp = await sender.client.send_message(self.li_thread_urn, message_create)
+            if not resp.value or not resp.value.event_urn:
+                raise Exception("Failed to send! Response value was None.")
+
             message = DBMessage(
                 mxid=event_id,
                 mx_room=self.mxid,
@@ -787,7 +807,7 @@ class Portal(DBPortal, BasePortal):
         event_id: EventID,
         redaction_event_id: EventID,
     ):
-        if not self.mxid:
+        if not self.mxid or not sender.client:
             return
 
         message = await DBMessage.get_by_mxid(event_id, self.mxid)
@@ -819,8 +839,8 @@ class Portal(DBPortal, BasePortal):
         reacting_to: EventID,
         reaction: str,
     ):
-        assert sender.li_member_urn
-        assert self.mxid
+        if not sender.li_member_urn or not self.mxid or not sender.client:
+            return
         async with self.require_send_lock(sender.li_member_urn):
             message = await DBMessage.get_by_mxid(reacting_to, self.mxid)
             if not message:
@@ -878,7 +898,11 @@ class Portal(DBPortal, BasePortal):
         message: ConversationEvent,
     ):
         try:
-            if message.event_content.message_event.recalled_at:
+            if (
+                (ec := message.event_content)
+                and (me := ec.message_event)
+                and me.recalled_at
+            ):
                 await self._handle_linkedin_message_deletion(sender, message)
             else:
                 await self._handle_linkedin_message(source, sender, message)
@@ -948,76 +972,78 @@ class Portal(DBPortal, BasePortal):
                 await intent.ensure_joined(self.mxid)
                 self._backfill_leave.add(intent)
 
-            message_event = message.event_content.message_event
-            timestamp = message.created_at
+            if (ec := message.event_content) and (message_event := ec.message_event):
+                timestamp = message.created_at or datetime.now()
 
-            event_ids = []
+                event_ids = []
 
-            # Handle subject
-            if message_event.subject:
-                event_ids.append(
-                    await self._send_message(
-                        intent,
-                        linkedin_subject_to_matrix(message_event.subject),
-                        timestamp=timestamp,
-                    )
-                )
-
-            # Handle attachments
-            event_ids.extend(
-                await self._handle_linkedin_attachments(
-                    source, intent, timestamp, message_event.attachments
-                )
-            )
-
-            # Handle custom content
-            if message_event.custom_content:
-                if message_event.custom_content.third_party_media:
-                    event_ids.extend(
-                        await self._handle_linkedin_third_party_media(
-                            source,
-                            intent,
-                            timestamp,
-                            message_event.custom_content.third_party_media,
-                        )
-                    )
-
-                # Handle InMail message text
-                if message_event.custom_content.sp_inmail_content:
+                # Handle subject
+                if message_event.subject:
                     event_ids.append(
                         await self._send_message(
                             intent,
-                            await linkedin_spinmail_to_matrix(
-                                message_event.custom_content.sp_inmail_content
-                            ),
+                            linkedin_subject_to_matrix(message_event.subject),
                             timestamp=timestamp,
                         )
                     )
 
-            # Handle the normal message text itself
-            if message_event.attributed_body and message_event.attributed_body.text:
-                content = await linkedin_to_matrix(message_event.attributed_body)
-                event_ids.append(
-                    await self._send_message(intent, content, timestamp=timestamp)
+                # Handle attachments
+                event_ids.extend(
+                    await self._handle_linkedin_attachments(
+                        source, intent, timestamp, message_event.attachments
+                    )
                 )
-                # TODO (#55) error handling
 
-            event_ids = [event_id for event_id in event_ids if event_id]
-            if len(event_ids) == 0:
-                return
+                # Handle custom content
+                if message_event.custom_content:
+                    if message_event.custom_content.third_party_media:
+                        event_ids.extend(
+                            await self._handle_linkedin_third_party_media(
+                                source,
+                                intent,
+                                timestamp,
+                                message_event.custom_content.third_party_media,
+                            )
+                        )
 
-            # Save all of the messages in the database.
-            self.log.debug(f"Handled LinkedIn message {li_message_urn} -> {event_ids}")
-            await DBMessage.bulk_create(
-                li_message_urn=li_message_urn,
-                li_thread_urn=self.li_thread_urn,
-                li_sender_urn=sender.li_member_urn,
-                li_receiver_urn=self.li_receiver_urn,
-                mx_room=self.mxid,
-                timestamp=timestamp,
-                event_ids=event_ids,
-            )
-            await self._send_delivery_receipt(event_ids[-1])
+                    # Handle InMail message text
+                    if message_event.custom_content.sp_inmail_content:
+                        event_ids.append(
+                            await self._send_message(
+                                intent,
+                                await linkedin_spinmail_to_matrix(
+                                    message_event.custom_content.sp_inmail_content
+                                ),
+                                timestamp=timestamp,
+                            )
+                        )
+
+                # Handle the normal message text itself
+                if message_event.attributed_body and message_event.attributed_body.text:
+                    content = await linkedin_to_matrix(message_event.attributed_body)
+                    event_ids.append(
+                        await self._send_message(intent, content, timestamp=timestamp)
+                    )
+                    # TODO (#55) error handling
+
+                event_ids = [event_id for event_id in event_ids if event_id]
+                if len(event_ids) == 0:
+                    return
+
+                # Save all of the messages in the database.
+                self.log.debug(
+                    f"Handled LinkedIn message {li_message_urn} -> {event_ids}"
+                )
+                await DBMessage.bulk_create(
+                    li_message_urn=li_message_urn,
+                    li_thread_urn=self.li_thread_urn,
+                    li_sender_urn=sender.li_member_urn,
+                    li_receiver_urn=self.li_receiver_urn,
+                    mx_room=self.mxid,
+                    timestamp=timestamp,
+                    event_ids=event_ids,
+                )
+                await self._send_delivery_receipt(event_ids[-1])
         # end if message_exists
 
         # Handle reactions
@@ -1111,6 +1137,8 @@ class Portal(DBPortal, BasePortal):
     ) -> list[EventID]:
         event_ids = []
         for attachment in attachments:
+            if not attachment.reference:
+                continue
             url = attachment.reference.string
             if not url:
                 continue
@@ -1129,6 +1157,7 @@ class Portal(DBPortal, BasePortal):
                 file=decryption_info,
                 info=info,
                 msgtype=msgtype,
+                body=attachment.name,
             )
 
             event_id = await self._send_message(
@@ -1153,30 +1182,31 @@ class Portal(DBPortal, BasePortal):
             return []
 
         if third_party_media.media_type == "TENOR_GIF":
-            if third_party_media.media.gif.url:
-                msgtype = MessageType.IMAGE
-                mxc, info, decryption_info = await self._reupload_linkedin_file(
-                    third_party_media.media.gif.url,
-                    source,
-                    intent,
-                    encrypt=self.encrypted,
-                    width=third_party_media.media.gif.original_width,
-                    height=third_party_media.media.gif.original_height,
-                )
-                content = MediaMessageEventContent(
-                    url=mxc,
-                    file=decryption_info,
-                    info=info,
-                    msgtype=msgtype,
-                )
+            if not third_party_media.media or not third_party_media.media.gif:
+                return []
+            msgtype = MessageType.IMAGE
+            mxc, info, decryption_info = await self._reupload_linkedin_file(
+                third_party_media.media.gif.url,
+                source,
+                intent,
+                encrypt=self.encrypted,
+                width=third_party_media.media.gif.original_width,
+                height=third_party_media.media.gif.original_height,
+            )
+            content = MediaMessageEventContent(
+                url=mxc,
+                file=decryption_info,
+                info=info,
+                msgtype=msgtype,
+            )
 
-                event_id = await self._send_message(
-                    intent,
-                    content,
-                    timestamp=timestamp,
-                )
-                # TODO (#55) error handling
-                return [event_id]
+            event_id = await self._send_message(
+                intent,
+                content,
+                timestamp=timestamp,
+            )
+            # TODO (#55) error handling
+            return [event_id]
 
         self.log.warning(f"Unsupported third party media: {third_party_media}.")
         return []
@@ -1237,8 +1267,12 @@ class Portal(DBPortal, BasePortal):
         sender: "p.Puppet",
         event: RealTimeEventStreamEvent,
     ):
-        assert event.event_urn
-        assert self.li_receiver_urn
+        if (
+            not event.event_urn
+            or not self.li_receiver_urn
+            or not event.reaction_summary
+        ):
+            return
         reaction = event.reaction_summary.emoji
         # Make up a URN for the reacton for dedup purposes
         dedup_id = URN(

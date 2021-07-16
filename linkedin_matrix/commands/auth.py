@@ -32,9 +32,17 @@ async def whoami(evt: CommandEvent):
         await evt.reply("You are not logged in")
     else:
         user_profile = await evt.sender.client.get_user_profile()
-        first = user_profile.mini_profile.first_name
-        last = user_profile.mini_profile.last_name
-        await evt.reply(f"You are logged in as {first} {last}")
+        if mini_profile := user_profile.mini_profile:
+            first = mini_profile.first_name
+            last = mini_profile.last_name
+            name = f"{first} {last}"
+        elif plain_id := user_profile.plain_id:
+            name = plain_id
+        else:
+            await evt.reply("You are not logged in")
+            return
+
+        await evt.reply(f"You are logged in as {name}")
 
 
 # region Login
