@@ -1,5 +1,6 @@
 import asyncio
 import time
+from datetime import datetime
 from typing import (
     AsyncGenerator,
     AsyncIterable,
@@ -299,13 +300,37 @@ class User(DBUser, BaseUser):
             return
 
         self.log.debug("Fetching threads...")
-        # user_portals = await UserPortal.all(self.li_member_urn)
 
-        async for conversation in self.client.get_all_conversations():
-            try:
-                await self._sync_thread(conversation)
-            except Exception:
-                self.log.exception(f"Failed to sync thread {conversation.entity_urn}")
+        last_activity_before = datetime.now()
+        synced_threads = 0
+        while True:
+            if synced_threads >= sync_count:
+                break
+            conversations_response = await self.client.get_conversations(
+                last_activity_before=last_activity_before
+            )
+            for conversation in conversations_response.elements:
+                if synced_threads >= sync_count:
+                    break
+                try:
+                    await self._sync_thread(conversation)
+                except Exception:
+                    self.log.exception(
+                        f"Failed to sync thread {conversation.entity_urn}"
+                    )
+                synced_threads += 1
+
+            await self.update_direct_chats()
+
+            # The page size is 20, by default, so if we get less than 20, we are at the
+            # end of the list so we should stop.
+            if len(conversations_response.elements) < 20:
+                break
+
+            if last_activity_at := conversations_response.elements[-1].last_activity_at:
+                last_activity_before = last_activity_at
+            else:
+                break
 
         await self.update_direct_chats()
 
