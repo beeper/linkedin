@@ -908,122 +908,127 @@ class Portal(DBPortal, BasePortal):
         li_message_urn = message.entity_urn
 
         # Check in-memory queue for duplicates
+        message_exists = False
+        event_ids: List[EventID] = []
         async with self.require_send_lock(sender.li_member_urn):
             if li_message_urn in self._dedup:
                 self.log.trace(
                     f"Not handling message {li_message_urn}, found ID in dedup queue"
                 )
+                # Return here, because it is in the process of being handled.
                 return
             self._dedup.appendleft(li_message_urn)
 
             # Check database for duplicates
-            dbm = await DBMessage.get_by_li_message_urn(
+            dbm = await DBMessage.get_all_by_li_message_urn(
                 li_message_urn, self.li_receiver_urn
             )
-            if dbm:
+            if len(dbm) > 0:
                 self.log.debug(
                     f"Not handling message {li_message_urn}, found duplicate in "
                     "database."
                 )
-                return
-
-        self.log.trace("LinkedIn event content: %s", message)
-        if not self.mxid:
-            mxid = await self.create_matrix_room(source)
-            if not mxid:
-                # Failed to create
-                return
-        if not await self._bridge_own_message_pm(
-            source, sender, f"message {li_message_urn}"
-        ):
-            return
+                # Don't return here because we may need to update the reactions.
+                message_exists = True
+                event_ids = [dbm.mxid for dbm in sorted(dbm, key=lambda m: m.index)]
 
         intent = sender.intent_for(self)
+        if not message_exists:
+            self.log.trace("LinkedIn event content: %s", message)
+            if not self.mxid:
+                mxid = await self.create_matrix_room(source)
+                if not mxid:
+                    # Failed to create
+                    return
+            if not await self._bridge_own_message_pm(
+                source, sender, f"message {li_message_urn}"
+            ):
+                return
 
-        if (
-            self._backfill_leave is not None
-            and self.li_other_user_urn != sender.li_member_urn
-            and intent != sender.intent
-            and intent not in self._backfill_leave
-        ):
-            self.log.debug(
-                "Adding %s's default puppet to room for backfilling", sender.mxid
-            )
-            await self.main_intent.invite_user(self.mxid, intent.mxid)
-            await intent.ensure_joined(self.mxid)
-            self._backfill_leave.add(intent)
-
-        message_event = message.event_content.message_event
-        timestamp = message.created_at
-
-        event_ids = []
-
-        # Handle subject
-        if message_event.subject:
-            event_ids.append(
-                await self._send_message(
-                    intent,
-                    linkedin_subject_to_matrix(message_event.subject),
-                    timestamp=timestamp,
+            if (
+                self._backfill_leave is not None
+                and self.li_other_user_urn != sender.li_member_urn
+                and intent != sender.intent
+                and intent not in self._backfill_leave
+            ):
+                self.log.debug(
+                    "Adding %s's default puppet to room for backfilling", sender.mxid
                 )
-            )
+                await self.main_intent.invite_user(self.mxid, intent.mxid)
+                await intent.ensure_joined(self.mxid)
+                self._backfill_leave.add(intent)
 
-        # Handle attachments
-        event_ids.extend(
-            await self._handle_linkedin_attachments(
-                source, intent, timestamp, message_event.attachments
-            )
-        )
+            message_event = message.event_content.message_event
+            timestamp = message.created_at
 
-        # Handle custom content
-        if message_event.custom_content:
-            if message_event.custom_content.third_party_media:
-                event_ids.extend(
-                    await self._handle_linkedin_third_party_media(
-                        source,
-                        intent,
-                        timestamp,
-                        message_event.custom_content.third_party_media,
-                    )
-                )
+            event_ids = []
 
-            # Handle InMail message text
-            if message_event.custom_content.sp_inmail_content:
+            # Handle subject
+            if message_event.subject:
                 event_ids.append(
                     await self._send_message(
                         intent,
-                        await linkedin_spinmail_to_matrix(
-                            message_event.custom_content.sp_inmail_content
-                        ),
+                        linkedin_subject_to_matrix(message_event.subject),
                         timestamp=timestamp,
                     )
                 )
 
-        # Handle the normal message text itself
-        if message_event.attributed_body and message_event.attributed_body.text:
-            content = await linkedin_to_matrix(message_event.attributed_body)
-            event_ids.append(
-                await self._send_message(intent, content, timestamp=timestamp)
+            # Handle attachments
+            event_ids.extend(
+                await self._handle_linkedin_attachments(
+                    source, intent, timestamp, message_event.attachments
+                )
             )
-            # TODO (#55) error handling
 
-        event_ids = [event_id for event_id in event_ids if event_id]
-        if len(event_ids) == 0:
-            return
+            # Handle custom content
+            if message_event.custom_content:
+                if message_event.custom_content.third_party_media:
+                    event_ids.extend(
+                        await self._handle_linkedin_third_party_media(
+                            source,
+                            intent,
+                            timestamp,
+                            message_event.custom_content.third_party_media,
+                        )
+                    )
 
-        # Save all of the messages in the database.
-        self.log.debug(f"Handled LinkedIn message {li_message_urn} -> {event_ids}")
-        await DBMessage.bulk_create(
-            li_message_urn=li_message_urn,
-            li_thread_urn=self.li_thread_urn,
-            li_sender_urn=sender.li_member_urn,
-            li_receiver_urn=self.li_receiver_urn,
-            mx_room=self.mxid,
-            timestamp=timestamp,
-            event_ids=event_ids,
-        )
-        # TODO (#48)
-        # await self._send_delivery_receipt(event_ids[-1])
+                # Handle InMail message text
+                if message_event.custom_content.sp_inmail_content:
+                    event_ids.append(
+                        await self._send_message(
+                            intent,
+                            await linkedin_spinmail_to_matrix(
+                                message_event.custom_content.sp_inmail_content
+                            ),
+                            timestamp=timestamp,
+                        )
+                    )
+
+            # Handle the normal message text itself
+            if message_event.attributed_body and message_event.attributed_body.text:
+                content = await linkedin_to_matrix(message_event.attributed_body)
+                event_ids.append(
+                    await self._send_message(intent, content, timestamp=timestamp)
+                )
+                # TODO (#55) error handling
+
+            event_ids = [event_id for event_id in event_ids if event_id]
+            if len(event_ids) == 0:
+                return
+
+            # Save all of the messages in the database.
+            self.log.debug(f"Handled LinkedIn message {li_message_urn} -> {event_ids}")
+            await DBMessage.bulk_create(
+                li_message_urn=li_message_urn,
+                li_thread_urn=self.li_thread_urn,
+                li_sender_urn=sender.li_member_urn,
+                li_receiver_urn=self.li_receiver_urn,
+                mx_room=self.mxid,
+                timestamp=timestamp,
+                event_ids=event_ids,
+            )
+            await self._send_delivery_receipt(event_ids[-1])
+        # end if message_exists
 
         # Handle reactions
         reaction_summaries = sorted(
@@ -1034,9 +1039,8 @@ class Portal(DBPortal, BasePortal):
         reaction_event_id = event_ids[-1]  # react to the last event
         for reaction_summary in reaction_summaries:
             await self._handle_reaction_summary(
-                intent,
                 li_message_urn,
-                sender,
+                source,
                 reaction_event_id,
                 reaction_summary,
             )
@@ -1067,32 +1071,46 @@ class Portal(DBPortal, BasePortal):
 
     async def _handle_reaction_summary(
         self,
-        intent: IntentAPI,
         li_message_urn: URN,
-        sender: "p.Puppet",
+        source: "u.User",
         reaction_event_id: EventID,
         reaction_summary: ReactionSummary,
-    ) -> Optional[EventID]:
-        if not reaction_summary.emoji:
-            return None
+    ) -> List[EventID]:
+        if not reaction_summary.emoji or not source.client:
+            return []
 
         assert self.mxid
         assert self.li_receiver_urn
 
-        # TODO (#33) figure out how many reactions should be added
-        mxid = await intent.react(self.mxid, reaction_event_id, reaction_summary.emoji)
-        self.log.debug(
-            f"Reacted to {reaction_event_id} with {reaction_summary.emoji}, got {mxid}"
-        )
-        await DBReaction(
-            mxid=mxid,
-            mx_room=self.mxid,
-            li_message_urn=li_message_urn,
-            li_receiver_urn=self.li_receiver_urn,
-            li_sender_urn=sender.li_member_urn,
-            reaction=reaction_summary.emoji,
-        ).insert()
-        return mxid
+        emoji = reaction_summary.emoji
+        reactors = await source.client.get_reactors(li_message_urn, emoji)
+
+        mxids = []
+        for reactor in reactors.elements:
+            sender = await p.Puppet.get_by_li_member_urn(reactor.reactor_urn)
+            intent = sender.intent_for(self)
+
+            # TODO (#33) figure out how many reactions should be added
+            mxid = await intent.react(
+                self.mxid, reaction_event_id, reaction_summary.emoji
+            )
+            mxids.append(mxid)
+
+            self.log.debug(
+                f"{sender.mxid} reacted to {reaction_event_id} with "
+                "{reaction_summary.emoji}, got {mxid}."
+            )
+
+            await DBReaction(
+                mxid=mxid,
+                mx_room=self.mxid,
+                li_message_urn=li_message_urn,
+                li_receiver_urn=self.li_receiver_urn,
+                li_sender_urn=sender.li_member_urn,
+                reaction=reaction_summary.emoji,
+            ).insert()
+
+        return mxids
 
     async def _handle_linkedin_attachments(
         self,
@@ -1240,6 +1258,20 @@ class Portal(DBPortal, BasePortal):
             if dedup_id in self._dedup:
                 return
             self._dedup.appendleft(dedup_id)
+
+            # Check database for duplicates
+            dbr = await DBReaction.get_by_li_message_urn_and_emoji(
+                event.event_urn,
+                self.li_receiver_urn,
+                sender.li_member_urn,
+                reaction,
+            )
+            if dbr:
+                self.log.debug(
+                    f"Not handling reaction {reaction} to {event.event_urn}, found "
+                    "duplicate in database."
+                )
+                return
 
         if not await self._bridge_own_message_pm(
             source, sender, f"reaction to {event.event_urn}"
