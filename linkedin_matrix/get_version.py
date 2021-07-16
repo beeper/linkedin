@@ -1,7 +1,7 @@
 import os
 import shutil
 import subprocess
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from . import __version__
 
@@ -13,7 +13,7 @@ cmd_env = {
 }
 
 
-def run(cmd: List[str]) -> Any:
+def run(cmd: list[str]) -> Any:
     return subprocess.check_output(cmd, stderr=subprocess.DEVNULL, env=cmd_env)
 
 

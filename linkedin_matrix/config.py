@@ -1,5 +1,5 @@
 import os
-from typing import Any, List, Tuple
+from typing import Any
 
 from mautrix.bridge.config import BaseBridgeConfig
 from mautrix.types import UserID
@@ -14,7 +14,7 @@ class Config(BaseBridgeConfig):
             return super().__getitem__(key)
 
     @property
-    def forbidden_defaults(self) -> List[ForbiddenDefault]:
+    def forbidden_defaults(self) -> list[ForbiddenDefault]:
         return [
             *super().forbidden_defaults,
             ForbiddenDefault(
@@ -66,13 +66,13 @@ class Config(BaseBridgeConfig):
 
         copy_dict("bridge.permissions")
 
-    def _get_permissions(self, key: str) -> Tuple[bool, bool, str]:
+    def _get_permissions(self, key: str) -> tuple[bool, bool, str]:
         level = self["bridge.permissions"].get(key, "")
         admin = level == "admin"
         user = level == "user" or admin
         return user, admin, level
 
-    def get_permissions(self, mxid: UserID) -> Tuple[bool, bool, str]:
+    def get_permissions(self, mxid: UserID) -> tuple[bool, bool, str]:
         permissions = self["bridge.permissions"] or {}
         if mxid in permissions:
             return self._get_permissions(mxid)

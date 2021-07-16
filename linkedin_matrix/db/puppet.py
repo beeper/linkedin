@@ -1,4 +1,4 @@
-from typing import cast, List, Optional
+from typing import cast, Optional
 
 from asyncpg import Record
 from attr import dataclass
@@ -72,7 +72,7 @@ class Puppet(Model):
         return cls._from_row(row)
 
     @classmethod
-    async def get_all_with_custom_mxid(cls) -> List["Puppet"]:
+    async def get_all_with_custom_mxid(cls) -> list["Puppet"]:
         query = Puppet.select_constructor("custom_mxid <> ''")
         rows = await cls.db.fetch(query)
         return [cast(Puppet, cls._from_row(row)) for row in rows if row]

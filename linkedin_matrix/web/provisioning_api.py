@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Awaitable, Dict
+from typing import Any, Awaitable
 
 from aiohttp import web
 from linkedin_messaging import LinkedInMessaging
@@ -23,7 +23,7 @@ class ProvisioningAPI:
         self.app.router.add_post("/api/logout", self.logout)
 
     @property
-    def _acao_headers(self) -> Dict[str, str]:
+    def _acao_headers(self) -> dict[str, str]:
         return {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Headers": "Authorization, Content-Type",
@@ -31,7 +31,7 @@ class ProvisioningAPI:
         }
 
     @property
-    def _headers(self) -> Dict[str, str]:
+    def _headers(self) -> dict[str, str]:
         return {
             **self._acao_headers,
             "Content-Type": "application/json",
@@ -72,7 +72,7 @@ class ProvisioningAPI:
         except web.HTTPError as e:
             return e
 
-        data = {
+        data: dict[str, Any] = {
             "permissions": user.permission_level,
             "mxid": user.mxid,
             "linkedin": None,

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import cast, List, Optional
+from typing import cast, Optional
 
 from asyncpg import Record
 from attr import dataclass
@@ -56,7 +56,7 @@ class Message(Model):
         cls,
         li_message_urn: URN,
         li_receiver_urn: URN,
-    ) -> List["Message"]:
+    ) -> list["Message"]:
         query = Message.select_constructor("li_message_urn=$1 AND li_receiver_urn=$2")
         rows = await cls.db.fetch(
             query,
@@ -133,7 +133,7 @@ class Message(Model):
         li_sender_urn: URN,
         li_receiver_urn: URN,
         timestamp: datetime,
-        event_ids: List[EventID],
+        event_ids: list[EventID],
         mx_room: RoomID,
     ) -> None:
         if not event_ids:

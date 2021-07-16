@@ -22,20 +22,20 @@ name = "matrix-olm"
 url = "https://gitlab.matrix.org/api/v4/projects/27/packages/pypi/simple"
 
 [tool.poetry.dependencies]
-python = "^3.7"
-asyncpg = "^0.22.0"
+python = "^3.9"
+asyncpg = "^0.23.0"
 commonmark = "^0.9.1"
-linkedin-messaging = "^0.3.0"
-mautrix = "^0.9.8"
+linkedin-messaging = {git = "https://github.com/sumnerevans/linkedin-messaging-api.git", rev = "bd763ca"}
+mautrix = "^0.9.9"
 python-magic = "^0.4.24"
 "ruamel.yaml" = "^0.17.10"
-Pillow = {version = "^8.3.0", optional = true}
+Pillow = {version = "^8.3.1", optional = true}
 python-olm = {version = "==3.2.1", optional = true}
 unpaddedbase64 = {version = "^2.1.0", optional = true}
 prometheus-client = {version = "^0.11.0", optional = true}
 
 [tool.poetry.dev-dependencies]
-black = "^21.6b0"
+black = "^21.7b0"
 flake8 = "^3.9.2"
 flake8-annotations = "^2.6.2"
 flake8-import-order = "^0.18.1"

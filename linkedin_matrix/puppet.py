@@ -5,8 +5,6 @@ from typing import (
     AsyncIterable,
     Awaitable,
     cast,
-    Dict,
-    List,
     Optional,
     TYPE_CHECKING,
 )
@@ -35,8 +33,8 @@ class Puppet(DBPuppet, BasePuppet):
     hs_domain: str
     mxid_template: SimpleTemplate[str]
 
-    by_li_member_urn: Dict[URN, "Puppet"] = {}
-    by_custom_mxid: Dict[UserID, "Puppet"] = {}
+    by_li_member_urn: dict[URN, "Puppet"] = {}
+    by_custom_mxid: dict[UserID, "Puppet"] = {}
 
     session: aiohttp.ClientSession
 
@@ -288,7 +286,7 @@ class Puppet(DBPuppet, BasePuppet):
     @classmethod
     async def get_all_with_custom_mxid(cls) -> AsyncGenerator["Puppet", None]:
         puppets = await super().get_all_with_custom_mxid()
-        for puppet in cast(List[Puppet], puppets):
+        for puppet in cast(list[Puppet], puppets):
             try:
                 yield cls.by_li_member_urn[puppet.li_member_urn]
             except KeyError:

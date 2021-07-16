@@ -2,19 +2,7 @@ import asyncio
 from collections import deque
 from datetime import datetime
 from io import BytesIO
-from typing import (
-    Any,
-    AsyncGenerator,
-    cast,
-    Deque,
-    Dict,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    TYPE_CHECKING,
-    Union,
-)
+from typing import Any, AsyncGenerator, cast, Optional, TYPE_CHECKING, Union
 
 import magic
 from linkedin_messaging import URN
@@ -94,14 +82,14 @@ MediaInfo = Union[FileInfo, VideoInfo, AudioInfo, ImageInfo]
 
 class Portal(DBPortal, BasePortal):
     invite_own_puppet_to_pm: bool = False
-    by_mxid: Dict[RoomID, "Portal"] = {}
-    by_li_thread_urn: Dict[Tuple[URN, Optional[URN]], "Portal"] = {}
+    by_mxid: dict[RoomID, "Portal"] = {}
+    by_li_thread_urn: dict[tuple[URN, Optional[URN]], "Portal"] = {}
     matrix: "MatrixHandler"
     config: Config
 
     backfill_lock: SimpleLock
-    _dedup: Deque[URN]
-    _send_locks: Dict[URN, asyncio.Lock]
+    _dedup: deque[URN]
+    _send_locks: dict[URN, asyncio.Lock]
     _noop_lock: FakeLock = FakeLock()
 
     def __init__(
@@ -138,7 +126,7 @@ class Portal(DBPortal, BasePortal):
         self.backfill_lock = SimpleLock(
             "Waiting for backfilling to finish before handling %s", log=self.log
         )
-        self._backfill_leave: Optional[Set[IntentAPI]] = None
+        self._backfill_leave: Optional[set[IntentAPI]] = None
 
     @classmethod
     def init_cls(cls, bridge: "LinkedInBridge") -> None:
@@ -186,7 +174,7 @@ class Portal(DBPortal, BasePortal):
     # region Properties
 
     @property
-    def li_urn_full(self) -> Tuple[URN, Optional[URN]]:
+    def li_urn_full(self) -> tuple[URN, Optional[URN]]:
         return self.li_thread_urn, self.li_receiver_urn
 
     @property
@@ -296,7 +284,7 @@ class Portal(DBPortal, BasePortal):
     @classmethod
     async def all(cls) -> AsyncGenerator["Portal", None]:
         portals = await super().all()
-        for portal in cast(List[Portal], portals):
+        for portal in cast(list[Portal], portals):
             try:
                 yield cls.by_li_thread_urn[
                     (portal.li_thread_urn, portal.li_receiver_urn)
@@ -548,7 +536,7 @@ class Portal(DBPortal, BasePortal):
         return f"com.github.linkedin://linkedin/{self.li_thread_urn.id_str()}"
 
     @property
-    def bridge_info(self) -> Dict[str, Any]:
+    def bridge_info(self) -> dict[str, Any]:
         return {
             "bridgebot": self.az.bot_mxid,
             "creator": self.main_intent.mxid,
@@ -911,7 +899,7 @@ class Portal(DBPortal, BasePortal):
 
         # Check in-memory queue for duplicates
         message_exists = False
-        event_ids: List[EventID] = []
+        event_ids: list[EventID] = []
         async with self.require_send_lock(sender.li_member_urn):
             if li_message_urn in self._dedup:
                 self.log.trace(
@@ -1077,7 +1065,7 @@ class Portal(DBPortal, BasePortal):
         source: "u.User",
         reaction_event_id: EventID,
         reaction_summary: ReactionSummary,
-    ) -> List[EventID]:
+    ) -> list[EventID]:
         if not reaction_summary.emoji or not source.client:
             return []
 
@@ -1119,8 +1107,8 @@ class Portal(DBPortal, BasePortal):
         source: "u.User",
         intent: IntentAPI,
         timestamp: datetime,
-        attachments: List[MessageAttachment],
-    ) -> List[EventID]:
+        attachments: list[MessageAttachment],
+    ) -> list[EventID]:
         event_ids = []
         for attachment in attachments:
             url = attachment.reference.string
@@ -1160,7 +1148,7 @@ class Portal(DBPortal, BasePortal):
         intent: IntentAPI,
         timestamp: datetime,
         third_party_media: ThirdPartyMedia,
-    ) -> List[EventID]:
+    ) -> list[EventID]:
         if not third_party_media:
             return []
 
@@ -1205,7 +1193,7 @@ class Portal(DBPortal, BasePortal):
         find_size: bool = False,
         width: Optional[int] = None,
         height: Optional[int] = None,
-    ) -> Tuple[ContentURI, MediaInfo, Optional[EncryptedFile]]:
+    ) -> tuple[ContentURI, MediaInfo, Optional[EncryptedFile]]:
         if not url:
             raise ValueError("URL not provided")
 

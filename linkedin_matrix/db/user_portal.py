@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Optional
 
 from asyncpg import Record
 from attr import dataclass
@@ -22,7 +22,7 @@ class UserPortal(Model):
         return cls(**row)
 
     @classmethod
-    async def all(cls, user: str) -> Dict[str, "UserPortal"]:
+    async def all(cls, user: str) -> dict[str, "UserPortal"]:
         query = UserPortal.select_constructor('"user"=$1')
         rows = await cls.db.fetch(query, user)
         return {up.portal: up for up in (cls._from_row(row) for row in rows) if up}

@@ -1,5 +1,5 @@
 from html import escape
-from typing import List, Tuple, Union
+from typing import Union
 
 from bs4 import BeautifulSoup
 from linkedin_messaging import URN
@@ -22,7 +22,7 @@ def linkedin_subject_to_matrix(subject: str) -> TextMessageEventContent:
 async def linkedin_to_matrix(msg: AttributedBody) -> TextMessageEventContent:
     content = TextMessageEventContent(msgtype=MessageType.TEXT, body=msg.text)
 
-    segments: List[Union[str, Tuple[str, URN]]] = []
+    segments: list[Union[str, tuple[str, URN]]] = []
     profile_urns = []
 
     text = msg.text

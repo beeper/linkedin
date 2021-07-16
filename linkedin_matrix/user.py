@@ -5,8 +5,6 @@ from typing import (
     AsyncIterable,
     Awaitable,
     cast,
-    Dict,
-    List,
     Optional,
     TYPE_CHECKING,
 )
@@ -45,8 +43,8 @@ class User(DBUser, BaseUser):
     shutdown: bool = False
     config: Config
 
-    by_mxid: Dict[UserID, "User"] = {}
-    by_li_member_urn: Dict[URN, "User"] = {}
+    by_mxid: dict[UserID, "User"] = {}
+    by_li_member_urn: dict[URN, "User"] = {}
 
     listen_task: Optional[asyncio.Task]
 
@@ -123,7 +121,7 @@ class User(DBUser, BaseUser):
     @classmethod
     async def all_logged_in(cls) -> AsyncGenerator["User", None]:
         users = await super().all_logged_in()
-        for user in cast(List["User"], users):
+        for user in cast(list["User"], users):
             try:
                 yield cls.by_mxid[user.mxid]
             except KeyError:
@@ -266,7 +264,7 @@ class User(DBUser, BaseUser):
 
     # region Thread Syncing
 
-    async def get_direct_chats(self) -> Dict[UserID, List[RoomID]]:
+    async def get_direct_chats(self) -> dict[UserID, list[RoomID]]:
         assert self.li_member_urn
         return {
             pu.Puppet.get_mxid_from_id(portal.li_other_user_urn): [portal.mxid]

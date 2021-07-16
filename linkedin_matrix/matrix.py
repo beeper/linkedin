@@ -1,4 +1,4 @@
-from typing import cast, List, Optional, TYPE_CHECKING, Union
+from typing import cast, Optional, TYPE_CHECKING, Union
 
 from mautrix.bridge import BaseMatrixHandler
 from mautrix.types import (
@@ -125,7 +125,7 @@ class MatrixHandler(BaseMatrixHandler):
         if not self.config["bridge.presence"]:
             return
 
-    async def handle_typing(self, room_id: RoomID, typing: List[UserID]) -> None:
+    async def handle_typing(self, room_id: RoomID, typing: list[UserID]) -> None:
         self.log.info(f"room: {room_id}: typing {typing}")
         portal: Optional[po.Portal] = await po.Portal.get_by_mxid(room_id)
         if not portal:

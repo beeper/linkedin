@@ -14,13 +14,13 @@ let
 in
 mkShell rec {
   buildInputs = [
-    python3Packages.python
-    python3Packages.poetry
+    python39
+    python39Packages.poetry
 
     # Python Dependencies
-    python3Packages.psycopg2
-    python3Packages.python-olm
-    python3Packages.python_magic
+    python39Packages.psycopg2
+    python39Packages.python-olm
+    python39Packages.python_magic
 
     rnix-lsp
   ];

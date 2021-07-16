@@ -1,4 +1,4 @@
-from typing import ClassVar, List, TYPE_CHECKING
+from typing import ClassVar, TYPE_CHECKING
 
 from mautrix.util.async_db import Database
 
@@ -10,7 +10,7 @@ class Model:
     db: ClassVar[Database] = fake_db  # type: ignore
 
     _table_name: str
-    _field_list: List[str]
+    _field_list: list[str]
 
     @classmethod
     def select_constructor(cls, where_clause: str = None) -> str:
