@@ -245,23 +245,16 @@ python-versions = "*"
 
 [[package]]
 name = "linkedin-messaging"
-version = "0.3.0"
+version = "0.4.0"
 description = "An unofficial API for interacting with LinkedIn Messaging"
 category = "main"
 optional = false
-python-versions = "^3.9"
-develop = false
+python-versions = ">=3.9,<4.0"
 
 [package.dependencies]
-aiohttp = "^3.7.4"
-beautifulsoup4 = "^4.9.3"
-dataclasses-json = "^0.5.4"
-
-[package.source]
-type = "git"
-url = "https://github.com/sumnerevans/linkedin-messaging-api.git"
-reference = "bd763ca"
-resolved_reference = "bd763cac1e457999cf20a6e315ab7ee0401a9f38"
+aiohttp = ">=3.7.4,<4.0.0"
+beautifulsoup4 = ">=4.9.3,<5.0.0"
+dataclasses-json = ">=0.5.4,<0.6.0"
 
 [[package]]
 name = "marshmallow"
@@ -632,7 +625,7 @@ metrics = ["prometheus-client"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "92f56f496bcfc344f55673522e8177836b508dd75758c619e213e35e070f5c92"
+content-hash = "2266b9aa18426728a339b99263e86ee39da45ef861e37454b56cf75b76b360d3"
 
 [metadata.files]
 aiohttp = [
@@ -810,7 +803,10 @@ iniconfig = [
     {file = "iniconfig-1.1.1-py2.py3-none-any.whl", hash = "sha256:011e24c64b7f47f6ebd835bb12a743f2fbe9a26d4cecaa7f53bc4f35ee9da8b3"},
     {file = "iniconfig-1.1.1.tar.gz", hash = "sha256:bc3af051d7d14b2ee5ef9969666def0cd1a000e121eaea580d4a313df4b37f32"},
 ]
-linkedin-messaging = []
+linkedin-messaging = [
+    {file = "linkedin_messaging-0.4.0-py3-none-any.whl", hash = "sha256:eb986706cfd814b0843d31f771fa31d74dd7ee207a736d3dc46be8225d455d2b"},
+    {file = "linkedin_messaging-0.4.0.tar.gz", hash = "sha256:7863178fe92c179942d605fbd8ac17711261d2256f81ecbed62180349cf9e89a"},
+]
 marshmallow = [
     {file = "marshmallow-3.12.2-py2.py3-none-any.whl", hash = "sha256:d4090ca9a36cd129126ad8b10c3982c47d4644a6e3ccb20534b512badce95f35"},
     {file = "marshmallow-3.12.2.tar.gz", hash = "sha256:77368dfedad93c3a041cbbdbce0b33fac1d8608c9e2e2288408a43ce3493d2ff"},
