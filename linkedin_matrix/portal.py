@@ -614,10 +614,11 @@ class Portal(DBPortal, BasePortal):
         self,
         source: "u.User",
         limit: Optional[int],
-        after_timestamp: Optional[datetime],  # TODO (54)
+        after_timestamp: Optional[datetime],
         conversation: Conversation,
     ):
         assert self.mxid
+        assert conversation.entity_urn
         assert source.client, f"No client found for {source.mxid}!"
         self.log.debug(f"Backfilling history through {source.mxid}")
         messages = conversation.events
@@ -643,7 +644,33 @@ class Portal(DBPortal, BasePortal):
             if len(elements) < 20:
                 break
 
+            if (
+                len(elements)
+                and elements[0].created_at
+                and after_timestamp
+                and (created_at := elements[0].created_at) <= after_timestamp
+            ):
+                self.log.debug(
+                    f"Stopping fetching messages at {created_at} as message is older "
+                    f"than newest bridged message ({created_at} < {after_timestamp})",
+                )
+                break
+
             before_timestamp = messages[0].created_at
+
+        if after_timestamp:
+            try:
+                slice_index = next(
+                    index
+                    for index, message in enumerate(messages)
+                    if message.created_at and message.created_at > after_timestamp
+                )
+                messages = messages[slice_index:]
+            except StopIteration:
+                messages = []
+
+        if limit and len(messages) > limit:
+            messages = messages[-limit:]
 
         self._backfill_leave = set()
         async with NotificationDisabler(self.mxid, source):
