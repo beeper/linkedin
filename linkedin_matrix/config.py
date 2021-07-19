@@ -42,16 +42,22 @@ class Config(BaseBridgeConfig):
         copy("bridge.backfill.initial_limit")
         copy("bridge.backfill.invite_own_puppet")
         copy("bridge.backfill.missed_limit")
+        copy("bridge.command_prefix")
         copy("bridge.delivery_receipts")
         copy("bridge.displayname_preference")
         copy("bridge.displayname_template")
         copy("bridge.double_puppet_allow_discovery")
         copy("bridge.double_puppet_server_map")
+        copy("bridge.encryption.allow")
         copy("bridge.encryption.default")
+        copy("bridge.encryption.key_sharing.allow")
+        copy("bridge.encryption.key_sharing.require_cross_signing")
+        copy("bridge.encryption.key_sharing.require_verification")
         copy("bridge.initial_chat_sync")
         copy("bridge.invite_own_puppet_to_pm")
         copy("bridge.mute_bridging")
         copy("bridge.resend_bridge_info")
+        copy("bridge.sync_direct_chat_list")
         copy("bridge.sync_with_custom_puppets")
         copy("bridge.tag_only_on_create")
         copy("bridge.temporary_disconnect_notices")
@@ -65,6 +71,10 @@ class Config(BaseBridgeConfig):
             copy("bridge.login_shared_secret_map")
 
         copy_dict("bridge.permissions")
+
+        # Metrics
+        copy("metrics.enabled")
+        copy("metrics.listen_port")
 
     def _get_permissions(self, key: str) -> tuple[bool, bool, str]:
         level = self["bridge.permissions"].get(key, "")
