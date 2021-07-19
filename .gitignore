@@ -1,6 +1,7 @@
 .direnv
 .venv
 .vim
+docker-requirements.txt
 
 # Test caches so I don't get banned from LinkedIn
 convocache.json

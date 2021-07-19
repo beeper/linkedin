@@ -27,6 +27,18 @@ lint typing:
   script:
     - poetry run mypy linkedin_matrix
 
+generate docker requirements:
+  image: python:3.9.6-buster
+  stage: lint
+  before_script:
+    - pip3 install poetry
+  script:
+    - poetry export --without-hashes -E e2be -E images -E metrics | sed 's/==.*//g' > docker-requirements.txt
+  artifacts:
+    paths:
+      - docker-requirements.txt
+    expire_in: 14 days
+
 build sdist and wheel:
   image: python:3.9.6-buster
   stage: build
