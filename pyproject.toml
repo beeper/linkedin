@@ -30,9 +30,10 @@ mautrix = "^0.9.9"
 python-magic = "^0.4.24"
 "ruamel.yaml" = "^0.17.10"
 Pillow = {version = "^8.3.1", optional = true}
+prometheus-client = {version = "^0.11.0", optional = true}
+pycryptodome = {version = "^3.10.1", optional = true}
 python-olm = {version = "==3.2.1", optional = true}
 unpaddedbase64 = {version = "^2.1.0", optional = true}
-prometheus-client = {version = "^0.11.0", optional = true}
 
 [tool.poetry.dev-dependencies]
 black = "^21.7b0"
@@ -48,7 +49,7 @@ types-termcolor = "^0.1.1"
 
 [tool.poetry.extras]
 images = ["Pillow"]
-e2be = ["python-olm", "unpaddedbase64"]
+e2be = ["pycryptodome", "python-olm", "unpaddedbase64"]
 metrics = ["prometheus-client"]
 
 [build-system]

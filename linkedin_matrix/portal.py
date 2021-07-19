@@ -707,12 +707,7 @@ class Portal(DBPortal, BasePortal):
                 sender,
                 cast(TextMessageEventContent, message),
             )
-        elif message.msgtype in (
-            MessageType.AUDIO,
-            MessageType.FILE,
-            MessageType.IMAGE,
-            MessageType.VIDEO,
-        ):
+        elif message.msgtype.is_media:
             await self._handle_matrix_media(
                 event_id,
                 sender,
