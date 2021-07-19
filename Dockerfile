@@ -1,57 +1,38 @@
-FROM python:3.9.6-alpine3.14
+FROM docker.io/alpine:3.14
 
 ARG TARGETARCH=amd64
 
 RUN apk add --no-cache \
-      bash \
+      python3 py3-pip py3-setuptools py3-wheel \
+      py3-pillow \
+      py3-aiohttp \
+      py3-magic \
+      py3-ruamel.yaml \
+      py3-commonmark \
+      py3-paho-mqtt \
+      py3-prometheus-client \
+      py3-olm \
+      py3-cffi \
+      py3-pycryptodome \
+      py3-unpaddedbase64 \
+      py3-future \
+      py3-aiohttp-socks \
+      py3-pysocks \
       ca-certificates \
+      su-exec \
+      bash \
       curl \
       jq \
-      libmagic \
-      python3 \
-      su-exec \
       yq
 
-# Use the actual package once poetry gets into a release
-# https://pkgs.alpinelinux.org/package/edge/testing/x86_64/poetry
-ENV PYTHONFAULTHANDLER=1 \
-    PYTHONUNBUFFERED=1 \
-    PYTHONHASHSEED=random \
-    PIP_NO_CACHE_DIR=off \
-    PIP_DISABLE_PIP_VERSION_CHECK=on \
-    PIP_DEFAULT_TIMEOUT=100 \
-    POETRY_VERSION=1.1.6
-
+COPY docker-requirements.txt /opt/linkedin-matrix/requirements.txt
 WORKDIR /opt/linkedin-matrix
-COPY . /opt/linkedin-matrix/
 
-RUN apk add --virtual .build-deps \
-      py3-pip \
-      python3-dev \
-      libffi-dev \
-      cargo \
-      git \
-      build-base \
-      openssl-dev \
-      # Pillow \
-      tiff-dev \
-      jpeg-dev \
-      openjpeg-dev \
-      zlib-dev \
-      freetype-dev \
-      lcms2-dev \
-      libwebp-dev \
-      tcl-dev \
-      tk-dev \
-      harfbuzz-dev \
-      fribidi-dev \
-      libimagequant-dev \
-      libxcb-dev \
-      libpng-dev \
- && pip install "poetry==$POETRY_VERSION" \
- && poetry config virtualenvs.create false \
- && poetry install --no-dev --no-interaction --no-ansi -E images -E e2be -E metrics \
+RUN apk add --virtual .build-deps python3-dev libffi-dev build-base \
+ && pip3 install -r requirements.txt \
  && apk del .build-deps
+
+COPY . /opt/linkedin-matrix
 
 VOLUME /data
 ENV UID=1337 GID=1337
