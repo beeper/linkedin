@@ -10,6 +10,7 @@ from linkedin_messaging.api_objects import (
     AttributedBody,
     Conversation,
     ConversationEvent,
+    Error,
     MessageAttachment,
     MessageCreate,
     ReactionSummary,
@@ -669,12 +670,22 @@ class Portal(DBPortal, BasePortal):
 
     # region Matrix event handling
 
-    async def _send_delivery_receipt(self, event_id: EventID) -> None:
+    async def _send_delivery_receipt(self, event_id: EventID):
         if event_id and self.config["bridge.delivery_receipts"] and self.mxid:
             try:
                 await self.az.intent.mark_read(self.mxid, event_id)
             except Exception:
                 self.log.exception(f"Failed to send delivery receipt for {event_id}")
+
+    async def _send_bridge_error(self, msg: str, certain_failure: bool = False):
+        certainty = "was not" if certain_failure else "may not have been"
+        await self._send_message(
+            self.main_intent,
+            TextMessageEventContent(
+                msgtype=MessageType.NOTICE,
+                body=f"\u26a0 Your message {certainty} bridged: {msg}",
+            ),
+        )
 
     async def handle_matrix_message(
         self,
@@ -684,6 +695,8 @@ class Portal(DBPortal, BasePortal):
     ):
         try:
             await self._handle_matrix_message(sender, message, event_id)
+        except Error as e:
+            self.log.exception(f"Failed handling {event_id}: {e.to_json()}")
         except Exception:
             self.log.exception(f"Failed handling {event_id}")
 
@@ -790,11 +803,15 @@ class Portal(DBPortal, BasePortal):
         attachment = await sender.client.upload_media(
             data, message.body, message.info.mimetype
         )
-        await self._send_linkedin_message(
-            event_id,
-            sender,
-            MessageCreate(AttributedBody(), attachments=[attachment]),
-        )
+        attachment.media_type = attachment.media_type or ""
+        try:
+            await self._send_linkedin_message(
+                event_id,
+                sender,
+                MessageCreate(AttributedBody(), attachments=[attachment]),
+            )
+        except Error as e:
+            await self._send_bridge_error(e.to_json())
 
     async def handle_matrix_redaction(
         self,
