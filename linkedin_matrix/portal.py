@@ -738,8 +738,10 @@ class Portal(DBPortal, BasePortal):
             await self._handle_matrix_message(sender, message, event_id)
         except Error as e:
             self.log.exception(f"Failed handling {event_id}: {e.to_json()}")
-        except Exception:
+            await self._send_bridge_error(e.to_json())
+        except Exception as e:
             self.log.exception(f"Failed handling {event_id}")
+            await self._send_bridge_error(str(e))
 
     async def _handle_matrix_message(
         self,
@@ -769,6 +771,10 @@ class Portal(DBPortal, BasePortal):
             )
         else:
             self.log.warning(f"Unsupported msgtype {message.msgtype} in {event_id}")
+            await self._send_bridge_error(
+                f"messages of {message.msgtype} are not supported.",
+                certain_failure=True,
+            )
             return
 
     async def _send_linkedin_message(
@@ -785,7 +791,7 @@ class Portal(DBPortal, BasePortal):
         async with self.require_send_lock(sender.li_member_urn):
             resp = await sender.client.send_message(self.li_thread_urn, message_create)
             if not resp.value or not resp.value.event_urn:
-                raise Exception("Failed to send! Response value was None.")
+                raise Exception("Response value was None.")
 
             message = DBMessage(
                 mxid=event_id,
