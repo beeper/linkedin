@@ -851,14 +851,11 @@ class Portal(DBPortal, BasePortal):
             data, message.body, message.info.mimetype
         )
         attachment.media_type = attachment.media_type or ""
-        try:
-            await self._send_linkedin_message(
-                event_id,
-                sender,
-                MessageCreate(AttributedBody(), attachments=[attachment]),
-            )
-        except Error as e:
-            await self._send_bridge_error(e.to_json())
+        await self._send_linkedin_message(
+            event_id,
+            sender,
+            MessageCreate(AttributedBody(), attachments=[attachment]),
+        )
 
     async def handle_matrix_redaction(
         self,
@@ -978,6 +975,7 @@ class Portal(DBPortal, BasePortal):
     ):
         assert self.mxid
         assert self.li_receiver_urn
+        assert message.entity_urn
         li_message_urn = message.entity_urn
 
         # Check in-memory queue for duplicates
@@ -1054,25 +1052,23 @@ class Portal(DBPortal, BasePortal):
                 )
 
                 # Handle custom content
-                if message_event.custom_content:
-                    if message_event.custom_content.third_party_media:
+                if cc := message_event.custom_content:
+                    if cc.third_party_media:
                         event_ids.extend(
                             await self._handle_linkedin_third_party_media(
                                 source,
                                 intent,
                                 timestamp,
-                                message_event.custom_content.third_party_media,
+                                cc.third_party_media,
                             )
                         )
 
                     # Handle InMail message text
-                    if message_event.custom_content.sp_inmail_content:
+                    if cc.sp_inmail_content:
                         event_ids.append(
                             await self._send_message(
                                 intent,
-                                await linkedin_spinmail_to_matrix(
-                                    message_event.custom_content.sp_inmail_content
-                                ),
+                                await linkedin_spinmail_to_matrix(cc.sp_inmail_content),
                                 timestamp=timestamp,
                             )
                         )
@@ -1106,13 +1102,8 @@ class Portal(DBPortal, BasePortal):
         # end if message_exists
 
         # Handle reactions
-        reaction_summaries = sorted(
-            message.reaction_summaries,
-            key=lambda r: r.first_reacted_at,
-            reverse=True,
-        )
         reaction_event_id = event_ids[-1]  # react to the last event
-        for reaction_summary in reaction_summaries:
+        for reaction_summary in message.reaction_summaries:
             await self._handle_reaction_summary(
                 li_message_urn,
                 source,
@@ -1165,7 +1156,6 @@ class Portal(DBPortal, BasePortal):
             sender = await p.Puppet.get_by_li_member_urn(reactor.reactor_urn)
             intent = sender.intent_for(self)
 
-            # TODO (#33) figure out how many reactions should be added
             mxid = await intent.react(
                 self.mxid, reaction_event_id, reaction_summary.emoji
             )
