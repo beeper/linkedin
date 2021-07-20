@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 
 class MatrixHandler(BaseMatrixHandler):
-    def __init__(self, bridge: "LinkedInBridge") -> None:
+    def __init__(self, bridge: "LinkedInBridge"):
         prefix, suffix = (
             bridge.config["bridge.username_template"].format(userid=":").split(":")
         )
@@ -37,7 +37,7 @@ class MatrixHandler(BaseMatrixHandler):
         self.user_id_suffix = f"{suffix}:{homeserver}"
         super().__init__(bridge=bridge)
 
-    async def send_welcome_message(self, room_id: RoomID, inviter: "u.User") -> None:
+    async def send_welcome_message(self, room_id: RoomID, inviter: "u.User"):
         await super().send_welcome_message(room_id, inviter)
         if not inviter.notice_room:
             inviter.notice_room = room_id
@@ -47,6 +47,12 @@ class MatrixHandler(BaseMatrixHandler):
                 "This room has been marked as your LinkedIn Messages bridge notice "
                 "room.",
             )
+
+    async def handle_read_receipt(self, user: "u.User", portal: "po.Portal", *_):
+        if not user.client or not portal.mxid:
+            return
+        self.log.debug(f"{user.li_member_urn} read {portal.li_thread_urn}")
+        await user.client.mark_conversation_as_read(portal.li_thread_urn)
 
     def filter_matrix_event(self, evt: Event) -> bool:
         if isinstance(evt, (ReceiptEvent, TypingEvent, PresenceEvent)):
@@ -61,7 +67,7 @@ class MatrixHandler(BaseMatrixHandler):
             or pu.Puppet.get_id_from_mxid(evt.sender) is not None
         )
 
-    async def handle_leave(self, room_id: RoomID, user_id: UserID, _) -> None:
+    async def handle_leave(self, room_id: RoomID, user_id: UserID, _):
         portal = await po.Portal.get_by_mxid(room_id)
         if not portal:
             return
@@ -96,7 +102,7 @@ class MatrixHandler(BaseMatrixHandler):
         user_id: UserID,
         event_id: EventID,
         content: ReactionEventContent,
-    ) -> None:
+    ):
         if content.relates_to.rel_type != RelationType.ANNOTATION:
             cls.log.debug(
                 f"Ignoring m.reaction event in {room_id} from {user_id} with "
@@ -115,17 +121,13 @@ class MatrixHandler(BaseMatrixHandler):
             user, event_id, content.relates_to.event_id, content.relates_to.key
         )
 
-    async def handle_presence(
-        self,
-        user_id: UserID,
-        info: PresenceEventContent,
-    ) -> None:
+    async def handle_presence(self, user_id: UserID, info: PresenceEventContent):
         # TODO (#50)
         self.log.info(f"user ({user_id}) is present {info}")
         if not self.config["bridge.presence"]:
             return
 
-    async def handle_typing(self, room_id: RoomID, typing: list[UserID]) -> None:
+    async def handle_typing(self, room_id: RoomID, typing: list[UserID]):
         self.log.info(f"room: {room_id}: typing {typing}")
         portal: Optional[po.Portal] = await po.Portal.get_by_mxid(room_id)
         if not portal:
@@ -146,7 +148,7 @@ class MatrixHandler(BaseMatrixHandler):
         elif evt.type == EventType.RECEIPT:
             await self.handle_receipt(cast(ReceiptEvent, evt))
 
-    async def handle_event(self, evt: Event) -> None:
+    async def handle_event(self, evt: Event):
         if evt.type == EventType.ROOM_REDACTION:
             await self.handle_redaction(
                 evt.room_id, evt.sender, evt.redacts, evt.event_id
