@@ -419,7 +419,6 @@ class User(DBUser, BaseUser):
     async def _try_listen(self):
         assert self.client
         self.client.add_event_listener("ALL_EVENTS", self.handle_linkedin_stream_event)
-        self.client.add_event_listener("TIMEOUT", self.handle_linkedin_listener_timeout)
         self.client.add_event_listener(
             "STREAM_ERROR", self.handle_linkedin_listener_error
         )
@@ -432,16 +431,6 @@ class User(DBUser, BaseUser):
     async def handle_linkedin_stream_event(self, _):
         self._track_metric(METRIC_CONNECTED, True)
         await self.push_bridge_state(ok=True)
-
-    async def handle_linkedin_listener_timeout(
-        self, error: asyncio.exceptions.TimeoutError
-    ):
-        self._track_metric(METRIC_CONNECTED, False)
-        await self.push_bridge_state(
-            ok=False,
-            error="li-connection-timeout",
-            message=str(error),
-        )
 
     async def handle_linkedin_listener_error(self, error: Exception):
         self._track_metric(METRIC_CONNECTED, False)
