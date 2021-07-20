@@ -245,7 +245,7 @@ python-versions = "*"
 
 [[package]]
 name = "linkedin-messaging"
-version = "0.4.0"
+version = "0.4.1"
 description = "An unofficial API for interacting with LinkedIn Messaging"
 category = "main"
 optional = false
@@ -625,7 +625,7 @@ metrics = ["prometheus-client"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "515f71477713c742ddaecd41b58882f1b3782a39c0b3db9a199192d31411b2db"
+content-hash = "6871511a7cefc6a31b21a97a258ef21d3daedc0e61c7679d2a55768090fd901f"
 
 [metadata.files]
 aiohttp = [
@@ -804,8 +804,8 @@ iniconfig = [
     {file = "iniconfig-1.1.1.tar.gz", hash = "sha256:bc3af051d7d14b2ee5ef9969666def0cd1a000e121eaea580d4a313df4b37f32"},
 ]
 linkedin-messaging = [
-    {file = "linkedin_messaging-0.4.0-py3-none-any.whl", hash = "sha256:eb986706cfd814b0843d31f771fa31d74dd7ee207a736d3dc46be8225d455d2b"},
-    {file = "linkedin_messaging-0.4.0.tar.gz", hash = "sha256:7863178fe92c179942d605fbd8ac17711261d2256f81ecbed62180349cf9e89a"},
+    {file = "linkedin_messaging-0.4.1-py3-none-any.whl", hash = "sha256:d346106af81f19e49f4acb040affe70df22ec1eb22ac60d8f58a210493dbad24"},
+    {file = "linkedin_messaging-0.4.1.tar.gz", hash = "sha256:36fc97bbac26debbfe6526e07e427298facff5dc6a38dfbe4c51cddf35cbddd3"},
 ]
 marshmallow = [
     {file = "marshmallow-3.12.2-py2.py3-none-any.whl", hash = "sha256:d4090ca9a36cd129126ad8b10c3982c47d4644a6e3ccb20534b512badce95f35"},

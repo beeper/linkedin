@@ -17,7 +17,7 @@ from linkedin_messaging.api_objects import (
     ReactionSummary,
     RealTimeEventStreamEvent,
 )
-from mautrix.bridge import async_getter_lock, BaseUser
+from mautrix.bridge import async_getter_lock, BaseUser, BridgeState
 from mautrix.errors import MNotFound
 from mautrix.types import (
     PushActionType,
@@ -36,6 +36,7 @@ from .db import User as DBUser
 if TYPE_CHECKING:
     from .__main__ import LinkedInBridge
 
+METRIC_CONNECTED = Gauge("bridge_connected", "Bridge users connected to LinkedIn")
 METRIC_LOGGED_IN = Gauge("bridge_logged_in", "Users logged into the bridge")
 METRIC_SYNC_THREADS = Summary("bridge_sync_threads", "calls to sync_threads")
 
@@ -253,6 +254,7 @@ class User(DBUser, BaseUser):
             self.listen_task.cancel()
         if self.client:
             await self.client.logout()
+        await self.push_bridge_state(ok=False, error="logged-out")
         puppet = await pu.Puppet.get_by_li_member_urn(self.li_member_urn, create=False)
         if puppet and puppet.is_real_user:
             await puppet.switch_mxid(None, None)
@@ -391,7 +393,20 @@ class User(DBUser, BaseUser):
 
     # endregion
 
-    # region Listener Management
+    # region Listener and State Management
+
+    async def fill_bridge_state(self, state: BridgeState) -> None:
+        await super().fill_bridge_state(state)
+        state.remote_id = str(self.li_member_urn)
+        puppet = await pu.Puppet.get_by_li_member_urn(self.li_member_urn)
+        state.remote_name = puppet.name
+
+    async def get_bridge_state(self) -> BridgeState:
+        if not self.client or not await self.client.logged_in():
+            return BridgeState(ok=False, error="logged-out")
+        elif not self.listen_task or self.listen_task.done() or not self.is_connected:
+            return BridgeState(ok=False, error="li-no-listener")
+        return BridgeState(ok=True)
 
     def stop_listen(self):
         if self.listen_task:
@@ -403,11 +418,38 @@ class User(DBUser, BaseUser):
 
     async def _try_listen(self):
         assert self.client
+        self.client.add_event_listener("ALL_EVENTS", self.handle_linkedin_stream_event)
+        self.client.add_event_listener("TIMEOUT", self.handle_linkedin_listener_timeout)
+        self.client.add_event_listener(
+            "STREAM_ERROR", self.handle_linkedin_listener_error
+        )
         self.client.add_event_listener("event", self.handle_linkedin_event)
         self.client.add_event_listener(
             "reactionAdded", self.handle_linkedin_reaction_added
         )
         await self.client.start_listener()
+
+    async def handle_linkedin_stream_event(self, _):
+        self._track_metric(METRIC_CONNECTED, True)
+        await self.push_bridge_state(ok=True)
+
+    async def handle_linkedin_listener_timeout(
+        self, error: asyncio.exceptions.TimeoutError
+    ):
+        self._track_metric(METRIC_CONNECTED, False)
+        await self.push_bridge_state(
+            ok=False,
+            error="li-connection-timeout",
+            message=str(error),
+        )
+
+    async def handle_linkedin_listener_error(self, error: Exception):
+        self._track_metric(METRIC_CONNECTED, False)
+        await self.push_bridge_state(
+            ok=False,
+            error="li-connection-error",
+            message=str(error),
+        )
 
     async def handle_linkedin_event(self, event: RealTimeEventStreamEvent):
         assert self.client
