@@ -114,5 +114,18 @@ async def matrix_to_linkedin(
             )
     else:
         text = content.body
+        if content.msgtype == MessageType.EMOTE:
+            display_name = await intent.get_displayname(sender.mxid)
+            if display_name:
+                text = f"* {display_name} {text}"
+                attributes.append(
+                    Attribute(
+                        2,
+                        len(display_name),
+                        AttributeType(TextEntity(sender.li_member_urn)),
+                    )
+                )
+            else:
+                log.warning(f"Couldn't find displayname for {sender.mxid}")
 
     return MessageCreate(AttributedBody(text, attributes), body=text)
