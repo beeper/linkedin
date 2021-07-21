@@ -343,6 +343,9 @@ class Portal(DBPortal, BasePortal):
             await self.save()
 
     async def _update_topic(self, mini_profile: MiniProfile) -> bool:
+        if not self.config["bridge.set_topic_on_dms"]:
+            return False
+
         topic_parts = [
             part
             for part in [

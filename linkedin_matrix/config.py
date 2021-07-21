@@ -57,6 +57,7 @@ class Config(BaseBridgeConfig):
         copy("bridge.invite_own_puppet_to_pm")
         copy("bridge.mute_bridging")
         copy("bridge.resend_bridge_info")
+        copy("bridge.set_topic_on_dms")
         copy("bridge.sync_direct_chat_list")
         copy("bridge.sync_with_custom_puppets")
         copy("bridge.tag_only_on_create")
