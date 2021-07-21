@@ -372,6 +372,8 @@ class Portal(DBPortal, BasePortal):
                 self.log.error(f"No entity_urn on participant! {participant}")
                 continue
             participant_urn = entity_urn
+            if participant_urn == URN("UNKNOWN"):
+                participant_urn = conversation.entity_urn
             puppet = await p.Puppet.get_by_li_member_urn(participant_urn)
             await puppet.update_info(source, participant.messaging_member)
             if (
@@ -462,7 +464,8 @@ class Portal(DBPortal, BasePortal):
             if self.is_direct:
                 invites.append(self.az.bot_mxid)
 
-        info = await self.update_info(source, conversation)
+        await self.update_info(source, conversation)
+
         # if not info:
         #     self.log.debug(
         #         "update_info() didn't return info, cancelling room creation")
@@ -503,8 +506,18 @@ class Portal(DBPortal, BasePortal):
             self.by_mxid[self.mxid] = self
 
             if not self.is_direct:
-                await self._update_participants(source, info)
+                await self._update_participants(source, conversation)
             else:
+                if (
+                    (mm := conversation.participants[0].messaging_member)
+                    and (mp := mm.mini_profile)
+                    and (mp.entity_urn == URN("UNKNOWN"))
+                ):
+                    levels = await self.main_intent.get_power_levels(self.mxid)
+                    if levels.get_user_level(self.main_intent.mxid) == 100:
+                        levels.events_default = 50
+                        await self.main_intent.set_power_levels(self.mxid, levels)
+
                 puppet = await p.Puppet.get_by_custom_mxid(source.mxid)
                 if puppet:
                     try:
@@ -686,6 +699,8 @@ class Portal(DBPortal, BasePortal):
                     )
                     continue
                 member_urn = entity_urn
+                if member_urn == URN("UNKNOWN"):
+                    member_urn = conversation.entity_urn
                 puppet = await p.Puppet.get_by_li_member_urn(member_urn)
                 await self.handle_linkedin_message(source, puppet, message)
         for intent in self._backfill_leave:

@@ -348,6 +348,8 @@ class User(DBUser, BaseUser):
                 and mp.entity_urn
             ):
                 li_other_user_urn = mp.entity_urn
+                if li_other_user_urn == URN("UNKNOWN"):
+                    li_other_user_urn = conversation.entity_urn
             else:
                 raise Exception("Other chat participant didn't have an entity_urn!")
 
@@ -401,10 +403,13 @@ class User(DBUser, BaseUser):
         state.remote_name = ""
         user = await User.get_by_li_member_urn(self.li_member_urn)
         if user and user.client:
-            if mini_profile := (await user.client.get_user_profile()).mini_profile:
-                state.remote_name = " ".join(
-                    n for n in [mini_profile.first_name, mini_profile.last_name] if n
-                )
+            try:
+                if mp := (await user.client.get_user_profile()).mini_profile:
+                    state.remote_name = " ".join(
+                        n for n in [mp.first_name, mp.last_name] if n
+                    )
+            except Exception:
+                pass
 
     async def get_bridge_state(self) -> BridgeState:
         if not self.client or not await self.client.logged_in():
