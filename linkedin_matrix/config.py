@@ -23,7 +23,7 @@ class Config(BaseBridgeConfig):
             ForbiddenDefault("bridge.permissions", ForbiddenKey("example.com")),
         ]
 
-    def do_update(self, helper: ConfigUpdateHelper) -> None:
+    def do_update(self, helper: ConfigUpdateHelper):
         super().do_update(helper)
         copy, copy_dict, base = helper.copy, helper.copy_dict, helper.base
 

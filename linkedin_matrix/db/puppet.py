@@ -77,7 +77,7 @@ class Puppet(Model):
         rows = await cls.db.fetch(query)
         return [cast(Puppet, cls._from_row(row)) for row in rows if row]
 
-    async def insert(self) -> None:
+    async def insert(self):
         query = Puppet.insert_constructor()
         await self.db.execute(
             query,
@@ -94,13 +94,13 @@ class Puppet(Model):
             str(self.base_url) if self.base_url else None,
         )
 
-    async def delete(self) -> None:
+    async def delete(self):
         await self.db.execute(
             "DELETE FROM puppet WHERE li_member_urn=$1",
             self.li_member_urn.id_str(),
         )
 
-    async def save(self) -> None:
+    async def save(self):
         query = """
             UPDATE puppet
                SET name=$2,

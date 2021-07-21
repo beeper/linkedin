@@ -44,7 +44,7 @@ class UserPortal(Model):
         query = UserPortal.insert_constructor()
         await self.db.execute(query, self.user, self.portal, self.portal_receiver)
 
-    async def delete(self) -> None:
+    async def delete(self):
         query = """
             DELETE FROM user_portal
              WHERE "user"=$1
@@ -54,5 +54,5 @@ class UserPortal(Model):
         await self.db.execute(query, self.user, self.portal, self.portal_receiver)
 
     @classmethod
-    async def delete_all(cls, user: int) -> None:
+    async def delete_all(cls, user: int):
         await cls.db.execute('DELETE FROM user_portal WHERE "user"=$1', user)

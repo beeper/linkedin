@@ -104,7 +104,7 @@ class Portal(DBPortal, BasePortal):
         photo_id: Optional[str] = None,
         avatar_url: Optional[ContentURI] = None,
         encrypted: bool = False,
-    ) -> None:
+    ):
         super().__init__(
             li_thread_urn,
             li_receiver_urn,
@@ -130,7 +130,7 @@ class Portal(DBPortal, BasePortal):
         self._backfill_leave: Optional[set[IntentAPI]] = None
 
     @classmethod
-    def init_cls(cls, bridge: "LinkedInBridge") -> None:
+    def init_cls(cls, bridge: "LinkedInBridge"):
         BasePortal.bridge = bridge
         cls.az = bridge.az
         cls.config = bridge.config
@@ -144,7 +144,7 @@ class Portal(DBPortal, BasePortal):
 
     # region DB conversion
 
-    async def delete(self) -> None:
+    async def delete(self):
         if self.mxid:
             await DBMessage.delete_all_by_room(self.mxid)
             self.by_mxid.pop(self.mxid, None)
@@ -200,7 +200,7 @@ class Portal(DBPortal, BasePortal):
 
     # region Database getters
 
-    async def postinit(self) -> None:
+    async def postinit(self):
         self.by_li_thread_urn[self.li_urn_full] = self
         if self.mxid:
             self.by_mxid[self.mxid] = self

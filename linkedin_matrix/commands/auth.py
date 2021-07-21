@@ -74,7 +74,7 @@ async def login(evt: CommandEvent):
         await evt.reply(missing_email)
 
 
-async def enter_password(evt: CommandEvent) -> None:
+async def enter_password(evt: CommandEvent):
     try:
         await evt.az.intent.redact(evt.room_id, evt.event_id)
     except MForbidden:
@@ -116,7 +116,7 @@ async def enter_password(evt: CommandEvent) -> None:
     evt.sender.command_status = None
 
 
-async def enter_2fa_code(evt: CommandEvent) -> None:
+async def enter_2fa_code(evt: CommandEvent):
     assert evt.sender.command_status, "command_status not present in event"
 
     client = cast(LinkedInMessaging, evt.sender.command_status["client"])
@@ -163,7 +163,7 @@ async def logout(evt: CommandEvent):
     help_section=SECTION_AUTH,
     help_text="Replace your LinkedIn account's Matrix puppet with your Matrix account",
 )
-async def login_matrix(evt: CommandEvent) -> None:
+async def login_matrix(evt: CommandEvent):
     puppet = await pu.Puppet.get_by_li_member_urn(evt.sender.li_member_urn)
     _, homeserver = Client.parse_mxid(evt.sender.mxid)
     if homeserver != pu.Puppet.hs_domain:
@@ -187,7 +187,7 @@ async def login_matrix(evt: CommandEvent) -> None:
     help_section=SECTION_AUTH,
     help_text="Revert your LinkedIn account's Matrix puppet to the original",
 )
-async def logout_matrix(evt: CommandEvent) -> None:
+async def logout_matrix(evt: CommandEvent):
     puppet = await pu.Puppet.get_by_li_member_urn(evt.sender.li_member_urn)
     if not puppet.is_real_user:
         await evt.reply("You're not logged in with your Matrix account")

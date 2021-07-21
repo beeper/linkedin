@@ -9,7 +9,7 @@ from .user import User
 from .user_portal import UserPortal
 
 
-def init(db: Database) -> None:
+def init(db: Database):
     for table in (Message, Portal, Puppet, Reaction, User, UserPortal):
         table.db = db  # type: ignore
 

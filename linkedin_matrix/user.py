@@ -115,7 +115,7 @@ class User(DBUser, BaseUser):
 
     # region Database getters
 
-    def _add_to_cache(self) -> None:
+    def _add_to_cache(self):
         self.by_mxid[self.mxid] = self
         if self.li_member_urn:
             self.by_li_member_urn[self.li_member_urn] = self
@@ -203,7 +203,7 @@ class User(DBUser, BaseUser):
         asyncio.create_task(self.post_login())
         return True
 
-    async def reconnect(self) -> None:
+    async def reconnect(self):
         assert self.listen_task
         self._is_refreshing = True
         await self.listen_task
@@ -295,7 +295,7 @@ class User(DBUser, BaseUser):
         except Exception:
             self.log.exception("Failed to sync threads")
 
-    async def _sync_threads(self) -> None:
+    async def _sync_threads(self):
         assert self.client
         sync_count = self.config["bridge.initial_chat_sync"]
         if sync_count <= 0:
@@ -395,7 +395,7 @@ class User(DBUser, BaseUser):
 
     # region Listener and State Management
 
-    async def fill_bridge_state(self, state: BridgeState) -> None:
+    async def fill_bridge_state(self, state: BridgeState):
         await super().fill_bridge_state(state)
         state.remote_id = str(self.li_member_urn.get_id())
         puppet = await pu.Puppet.get_by_li_member_urn(self.li_member_urn)

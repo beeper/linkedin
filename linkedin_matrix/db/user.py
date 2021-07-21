@@ -69,7 +69,7 @@ class User(Model):
     async def delete(self):
         await self.db.execute('DELETE FROM "user" WHERE mxid=$1', self.mxid)
 
-    async def save(self) -> None:
+    async def save(self):
         query = """
             UPDATE "user"
                SET li_member_urn=$2,

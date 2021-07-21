@@ -84,7 +84,7 @@ class Message(Model):
         return cls._from_row(row)
 
     @classmethod
-    async def delete_all_by_room(cls, room_id: RoomID) -> None:
+    async def delete_all_by_room(cls, room_id: RoomID):
         await cls.db.execute("DELETE FROM message WHERE mx_room=$1", room_id)
 
     @classmethod
@@ -111,7 +111,7 @@ class Message(Model):
         )
         return cls._from_row(row)
 
-    async def insert(self) -> None:
+    async def insert(self):
         query = Message.insert_constructor()
         await self.db.execute(
             query,
@@ -135,7 +135,7 @@ class Message(Model):
         timestamp: datetime,
         event_ids: list[EventID],
         mx_room: RoomID,
-    ) -> None:
+    ):
         if not event_ids:
             return
 
@@ -159,7 +159,7 @@ class Message(Model):
                 columns=cls._field_list,
             )
 
-    async def delete(self) -> None:
+    async def delete(self):
         q = """
             DELETE FROM message
              WHERE li_message_urn=$1

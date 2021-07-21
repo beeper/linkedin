@@ -63,7 +63,7 @@ class LinkedInBridge(Bridge):
         for user in User.by_li_member_urn.values():
             user.stop_listen()
 
-    def prepare_bridge(self) -> None:
+    def prepare_bridge(self):
         super().prepare_bridge()
         cfg = self.config["appservice.provisioning"]
         self.provisioning_api = ProvisioningAPI(cfg["shared_secret"])

@@ -225,7 +225,7 @@ class Puppet(DBPuppet, BasePuppet):
 
     # region Database getters
 
-    def _add_to_cache(self) -> None:
+    def _add_to_cache(self):
         self.by_li_member_urn[self.li_member_urn] = self
         if self.custom_mxid:
             self.by_custom_mxid[self.custom_mxid] = self

@@ -14,7 +14,7 @@ class ProvisioningAPI:
     log: TraceLogger = logging.getLogger("mau.web.provisioning")
     app: web.Application
 
-    def __init__(self, shared_secret: str) -> None:
+    def __init__(self, shared_secret: str):
         self.app = web.Application()
         self.shared_secret = shared_secret
         self.app.router.add_get("/api/whoami", self.status)
