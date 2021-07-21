@@ -397,7 +397,7 @@ class User(DBUser, BaseUser):
 
     async def fill_bridge_state(self, state: BridgeState) -> None:
         await super().fill_bridge_state(state)
-        state.remote_id = str(self.li_member_urn)
+        state.remote_id = str(self.li_member_urn.get_id())
         puppet = await pu.Puppet.get_by_li_member_urn(self.li_member_urn)
         state.remote_name = puppet.name
 
