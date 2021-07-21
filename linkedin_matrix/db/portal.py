@@ -21,6 +21,7 @@ class Portal(Model):
     name: Optional[str]
     photo_id: Optional[str]
     avatar_url: Optional[ContentURI]
+    topic: Optional[str]
 
     _table_name = "portal"
     _field_list = [

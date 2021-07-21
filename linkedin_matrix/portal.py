@@ -13,6 +13,7 @@ from linkedin_messaging.api_objects import (
     Error,
     MessageAttachment,
     MessageCreate,
+    MiniProfile,
     ReactionSummary,
     RealTimeEventStreamEvent,
     ThirdPartyMedia,
@@ -103,6 +104,7 @@ class Portal(DBPortal, BasePortal):
         name: Optional[str] = None,
         photo_id: Optional[str] = None,
         avatar_url: Optional[ContentURI] = None,
+        topic: Optional[str] = None,
         encrypted: bool = False,
     ):
         super().__init__(
@@ -115,6 +117,7 @@ class Portal(DBPortal, BasePortal):
             name,
             photo_id,
             avatar_url,
+            topic,
         )
         self.log = self.log.getChild(self.li_urn_log)
 
@@ -302,7 +305,7 @@ class Portal(DBPortal, BasePortal):
         self,
         source: Optional["u.User"] = None,
         conversation: Optional[Conversation] = None,
-    ) -> Conversation:
+    ):
         if not conversation:
             # shouldn't happen currently
             assert False, "update_info called without conversation"
@@ -314,6 +317,14 @@ class Portal(DBPortal, BasePortal):
             )
 
         changed = False
+
+        if self.is_direct:
+            if (
+                len(conversation.participants)
+                and (mm := conversation.participants[0].messaging_member)
+                and (mp := mm.mini_profile)
+            ):
+                changed |= await self._update_topic(mp)
 
         if not self.is_direct:
             # TODO (#53)
@@ -331,7 +342,31 @@ class Portal(DBPortal, BasePortal):
             await self.update_bridge_info()
             await self.save()
 
-        return conversation
+    async def _update_topic(self, mini_profile: MiniProfile) -> bool:
+        topic_parts = [
+            part
+            for part in [
+                mini_profile.occupation,
+                (
+                    f"https://www.linkedin.com/in/{mini_profile.public_identifier}"
+                    if (
+                        mini_profile.public_identifier
+                        and mini_profile.public_identifier != "UNKNOWN"
+                    )
+                    else None
+                ),
+            ]
+            if part
+        ]
+        topic = " | ".join(topic_parts) if len(topic_parts) else None
+        if topic == self.topic:
+            return False
+        self.topic = topic
+
+        if self.mxid:
+            await self.main_intent.set_room_topic(self.mxid, self.topic or "")
+
+        return True
 
     async def update_bridge_info(self):
         if not self.mxid:
@@ -465,6 +500,14 @@ class Portal(DBPortal, BasePortal):
                 invites.append(self.az.bot_mxid)
 
         await self.update_info(source, conversation)
+
+        if self.topic:
+            initial_state.append(
+                {
+                    "type": str(EventType.ROOM_TOPIC),
+                    "content": {"topic": self.topic},
+                }
+            )
 
         # if not info:
         #     self.log.debug(
