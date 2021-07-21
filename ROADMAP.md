@@ -13,10 +13,11 @@
     * [ ] ~~Replies~~ (LinkedIn does not support replies)
     * [x] Mentions
     * [x] Emotes
-  * [ ] Message redactions
-  * [ ] Message reactions
+  * [x] Message redactions
+  * [x] Message reactions
   * [ ] Presence
   * [ ] Typing notifications
+  * [x] Mark conversations as read
   * [ ] Read receipts
   * [ ] Power level
   * [ ] Membership actions
@@ -35,8 +36,8 @@
       * [x] Images
       * [x] GIFs
     * [x] Mentions
-  * [ ] Message delete
-  * [ ] Message reactions
+  * [x] Message delete
+  * [x] Message reactions
   * [x] Message history
   * [x] Real-time messages
   * [ ] Presence
