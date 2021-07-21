@@ -94,6 +94,10 @@ bridge:
     - name
     - first_name
 
+    # Whether or not to set the topic on DMs to the user's occupation and a
+    # link to their profile.
+    set_topic_on_dms: true
+
     # The prefix for commands. Only required in non-management rooms.
     command_prefix: "!li"
 
