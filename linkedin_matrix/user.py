@@ -397,9 +397,14 @@ class User(DBUser, BaseUser):
 
     async def fill_bridge_state(self, state: BridgeState):
         await super().fill_bridge_state(state)
-        state.remote_id = str(self.li_member_urn.get_id())
-        puppet = await pu.Puppet.get_by_li_member_urn(self.li_member_urn)
-        state.remote_name = puppet.name
+        state.remote_id = self.li_member_urn.get_id()
+        state.remote_name = ""
+        user = await User.get_by_li_member_urn(self.li_member_urn)
+        if user and user.client:
+            if mini_profile := (await user.client.get_user_profile()).mini_profile:
+                state.remote_name = " ".join(
+                    n for n in [mini_profile.first_name, mini_profile.last_name] if n
+                )
 
     async def get_bridge_state(self) -> BridgeState:
         if not self.client or not await self.client.logged_in():
