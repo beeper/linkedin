@@ -494,11 +494,11 @@ class User(DBUser, BaseUser):
             create=False,
         )
         if not portal:
-            # Force a thread sync for all of the recent conversations. This should be a
-            # noop for most of them except the newly created conversation.
             conversations = await self.client.get_conversations()
             for conversation in conversations.elements:
-                await self._sync_thread(conversation)
+                if conversation.entity_urn == thread_urn:
+                    await self._sync_thread(conversation)
+                    break
 
             # Nothing more to do, since the backfill should handle the message coming
             # in.
