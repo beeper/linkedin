@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import time
 from asyncio.futures import Future
 from datetime import datetime
@@ -251,9 +252,12 @@ class User(DBUser, BaseUser):
         self.start_listen()
 
     async def logout(self):
+        self.log.info("Logging out")
         if self.listen_task:
+            self.log.info("Cancelling the listen task.")
             self.listen_task.cancel()
         if self.client:
+            self.log.info("Logging out the client.")
             await self.client.logout()
         await self.push_bridge_state(ok=False, error="logged-out")
         puppet = await pu.Puppet.get_by_li_member_urn(self.li_member_urn, create=False)
@@ -420,17 +424,20 @@ class User(DBUser, BaseUser):
         return BridgeState(ok=True)
 
     def stop_listen(self):
+        self.log.info("Stopping the listener.")
+        curframe = inspect.currentframe()
+        callstack = "\n".join([str(f) for f in inspect.getouterframes(curframe, 10)])
+        self.log.info(f"Call stack:\n{callstack}")
         if self.listen_task:
+            self.log.info("Cancelling the listen task.")
             self.listen_task.cancel()
         self.listen_task = None
 
     def on_listen_task_end(self, future: Future):
         if future.cancelled():
-            self.log.info(
-                "Listener task cancelled. Will not try to start the listener again."
-            )
-            return
-        self.start_listen()
+            self.log.info("Listener task cancelled")
+        if not self.shutdown:
+            self.start_listen()
 
     listener_event_handlers_created: bool = False
     listener_task_i: int = 0
