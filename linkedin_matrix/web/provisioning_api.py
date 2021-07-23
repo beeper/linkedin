@@ -104,10 +104,6 @@ class ProvisioningAPI:
             data["JSESSIONID"] = data["JSESSIONID"].strip('"')
             client.session.cookie_jar.update_cookies(data)
             client.session.headers["csrf-token"] = data["JSESSIONID"]
-            self.log.debug(data)
-            for c in client.session.cookie_jar:
-                self.log.debug(c)
-            self.log.debug(client.session.headers)
             await user.on_logged_in(client)
         except Exception:
             self.log.exception("Failed to log in", exc_info=True)

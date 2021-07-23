@@ -58,7 +58,7 @@ class LinkedInBridge(Bridge):
         self.log.debug("Stopping puppet syncers")
         for puppet in Puppet.by_custom_mxid.values():
             puppet.stop()
-        self.log.debug("Stopping facebook listeners")
+        self.log.debug("Stopping LinkedIn listeners")
         User.shutdown = True
         for user in User.by_li_member_urn.values():
             user.stop_listen()
