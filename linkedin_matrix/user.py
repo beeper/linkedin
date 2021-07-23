@@ -1,5 +1,6 @@
 import asyncio
 import time
+from asyncio.futures import Future
 from datetime import datetime
 from typing import (
     AsyncGenerator,
@@ -423,19 +424,39 @@ class User(DBUser, BaseUser):
             self.listen_task.cancel()
         self.listen_task = None
 
+    def on_listen_task_end(self, future: Future):
+        if future.cancelled():
+            self.log.info(
+                "Listener task cancelled. Will not try to start the listener again."
+            )
+            return
+        self.start_listen()
+
+    listener_event_handlers_created: bool = False
+    listener_task_i: int = 0
+
     def start_listen(self):
-        self.listen_task = asyncio.create_task(self._try_listen())
+        self.log.info("Starting listener task.")
+        self.listen_task = asyncio.create_task(
+            self._try_listen(),
+            name=f"listener task #{self.listener_task_i}",
+        )
+        self.listen_task.add_done_callback(self.on_listen_task_end)
 
     async def _try_listen(self):
         assert self.client
-        self.client.add_event_listener("ALL_EVENTS", self.handle_linkedin_stream_event)
-        self.client.add_event_listener(
-            "STREAM_ERROR", self.handle_linkedin_listener_error
-        )
-        self.client.add_event_listener("event", self.handle_linkedin_event)
-        self.client.add_event_listener(
-            "reactionAdded", self.handle_linkedin_reaction_added
-        )
+        if not self.listener_event_handlers_created:
+            self.client.add_event_listener(
+                "ALL_EVENTS", self.handle_linkedin_stream_event
+            )
+            self.client.add_event_listener(
+                "STREAM_ERROR", self.handle_linkedin_listener_error
+            )
+            self.client.add_event_listener("event", self.handle_linkedin_event)
+            self.client.add_event_listener(
+                "reactionAdded", self.handle_linkedin_reaction_added
+            )
+            self.listener_event_handlers_created = True
         await self.client.start_listener()
 
     async def handle_linkedin_stream_event(self, _):

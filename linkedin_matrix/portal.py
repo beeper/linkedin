@@ -1224,7 +1224,7 @@ class Portal(DBPortal, BasePortal):
 
             self.log.debug(
                 f"{sender.mxid} reacted to {reaction_event_id} with "
-                "{reaction_summary.emoji}, got {mxid}."
+                f"{reaction_summary.emoji}, got {mxid}."
             )
 
             await DBReaction(
