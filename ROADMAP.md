@@ -49,7 +49,7 @@
     * [ ] Remove member
     * [ ] Leave
   * [ ] Chat metadata changes
-    * [ ] Title
+    * [x] Title
     * [ ] Avatar
   * [ ] Initial chat metadata
   * [x] User metadata

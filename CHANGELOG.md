@@ -1,3 +1,19 @@
+# v0.4.0
+
+* Upgraded to support only Python 3.9+.
+* Added Prometheus metrics support.
+* Infrastructure: improved Docker container dependency management by moving more
+  of the packages to use the Alpine-provided versions.
+* On DM rooms, set the topic to the other users' occupation and include a link
+  to to their LinkedIn profile. This option can be turned off by setting
+  `bridge.set_topic_on_dms` to `false`.
+* Added support for custom names on group chats and handling name change events.
+* Added handling for emote formatting on plain-text messages.
+* When a chat is read in Matrix, it is now marked as read in LinkedIn.
+* Improved handling of promotional InMail messages.
+* Bug fix: respect `bridge.initial_chat_sync` and `backfill` parameters.
+* Send more bridging errors to the room.
+
 # v0.3.0
 
 * Updated `linkedin-messaging` to
