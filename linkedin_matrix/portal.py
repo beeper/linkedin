@@ -317,30 +317,48 @@ class Portal(DBPortal, BasePortal):
             )
 
         changed = False
-
         if self.is_direct:
             if (
                 len(conversation.participants)
                 and (mm := conversation.participants[0].messaging_member)
                 and (mp := mm.mini_profile)
             ):
-                changed |= await self._update_topic(mp)
-
-        if not self.is_direct:
-            # TODO (#53)
-            # changed = any(
-            #     await asyncio.gather(
-            #         self._update_name(info.name),
-            #         self._update_photo(source, info.image),
-            #         loop=self.loop,
-            #     )
-            # )
-            pass
+                changed = await self._update_topic(mp) or changed
+        else:
+            changed = await self._update_name(conversation.name) or changed
 
         changed = await self._update_participants(source, conversation) or changed
         if changed:
             await self.update_bridge_info()
             await self.save()
+
+    async def _update_name(self, name: str) -> bool:
+        if not name:
+            self.log.warning("Got empty name in _update_name call")
+            return False
+        if self.name != name:
+            self.log.trace("Updating name %s -> %s", self.name, name)
+            self.name = name
+            if self.mxid and (self.encrypted or not self.is_direct):
+                await self.main_intent.set_room_name(self.mxid, self.name)
+            return True
+        return False
+
+    async def _update_photo_from_puppet(self, puppet: "p.Puppet") -> bool:
+        if self.photo_id == puppet.photo_id:
+            return False
+        self.photo_id = puppet.photo_id
+        if puppet.photo_mxc:
+            self.avatar_url = puppet.photo_mxc
+        elif self.photo_id:
+            profile = await self.main_intent.get_profile(puppet.default_mxid)
+            self.avatar_url = profile.avatar_url
+            puppet.photo_mxc = profile.avatar_url
+        else:
+            self.avatar_url = ContentURI("")
+        if self.mxid:
+            await self.main_intent.set_room_avatar(self.mxid, self.avatar_url)
+        return True
 
     async def _update_topic(self, mini_profile: MiniProfile) -> bool:
         if not self.config["bridge.set_topic_on_dms"]:
@@ -419,10 +437,8 @@ class Portal(DBPortal, BasePortal):
                 and self.li_other_user_urn == puppet.li_member_urn
                 and self.encrypted
             ):
-                pass
-                # TODO (#53)
-                # changed = await self._update_name(puppet.name) or changed
-                # changed = await self._update_photo_from_puppet(puppet) or changed
+                changed = await self._update_name(puppet.name) or changed
+                changed = await self._update_photo_from_puppet(puppet) or changed
 
             if self.mxid:
                 if puppet.li_member_urn != self.li_receiver_urn or puppet.is_real_user:
@@ -517,14 +533,14 @@ class Portal(DBPortal, BasePortal):
         #         "update_info() didn't return info, cancelling room creation")
         #     return None
 
-        # if self.encrypted or not self.is_direct:
-        #     name = self.name
-        #     initial_state.append(
-        #         {
-        #             "type": str(EventType.ROOM_AVATAR),
-        #             "content": {"avatar_url": self.avatar_url},
-        #         }
-        #     )
+        if self.encrypted or not self.is_direct:
+            name = self.name
+            initial_state.append(
+                {
+                    "type": str(EventType.ROOM_AVATAR),
+                    "content": {"avatar_url": self.avatar_url},
+                }
+            )
 
         # We lock backfill lock here so any messages that come between the room being
         # created and the initial backfill finishing wouldn't be bridged before the
@@ -1015,7 +1031,15 @@ class Portal(DBPortal, BasePortal):
         message: ConversationEvent,
     ):
         try:
-            if (
+            if message.subtype == "CONVERSATION_UPDATE":
+                if (
+                    (ec := message.event_content)
+                    and (me := ec.message_event)
+                    and (cc := me.custom_content)
+                    and (nu := cc.conversation_name_update_content)
+                ):
+                    await self._update_name(nu.new_name)
+            elif (
                 (ec := message.event_content)
                 and (me := ec.message_event)
                 and me.recalled_at

@@ -245,7 +245,7 @@ python-versions = "*"
 
 [[package]]
 name = "linkedin-messaging"
-version = "0.4.2"
+version = "0.4.3"
 description = "An unofficial API for interacting with LinkedIn Messaging"
 category = "main"
 optional = false
@@ -283,7 +283,7 @@ marshmallow = ">=2.0.0"
 
 [[package]]
 name = "mautrix"
-version = "0.9.9"
+version = "0.9.10"
 description = "A Python 3 asyncio Matrix framework."
 category = "main"
 optional = false
@@ -625,7 +625,7 @@ metrics = ["prometheus-client"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "0a1bbddc1ebd3545b71ef4c790c2cdcabd0c4ebc1f94da117f4ce2f4efb822c5"
+content-hash = "20c16f2821c74acbbbd6128da0ebfd1f1326fe38a1b47cb5c4f85282807d461f"
 
 [metadata.files]
 aiohttp = [
@@ -804,8 +804,8 @@ iniconfig = [
     {file = "iniconfig-1.1.1.tar.gz", hash = "sha256:bc3af051d7d14b2ee5ef9969666def0cd1a000e121eaea580d4a313df4b37f32"},
 ]
 linkedin-messaging = [
-    {file = "linkedin_messaging-0.4.2-py3-none-any.whl", hash = "sha256:b97a2a9bafc6c5d4a5e491d214a0c7043c43bff2fedab612ecda22000e24b39a"},
-    {file = "linkedin_messaging-0.4.2.tar.gz", hash = "sha256:66076a69079a878505a9b28d4bd3ef61d86c11101b120a64fb3adfe5442577c4"},
+    {file = "linkedin_messaging-0.4.3-py3-none-any.whl", hash = "sha256:326158c648fc5edbc741383d849f1b3c673250a3106185cc06db2b6b87d1bd3e"},
+    {file = "linkedin_messaging-0.4.3.tar.gz", hash = "sha256:dd6138a7c2c1c3db6bf98b295a6d3fdcac6fd794a8553a3a6982cad49bcebb15"},
 ]
 marshmallow = [
     {file = "marshmallow-3.13.0-py2.py3-none-any.whl", hash = "sha256:dd4724335d3c2b870b641ffe4a2f8728a1380cd2e7e2312756715ffeaa82b842"},
@@ -816,8 +816,8 @@ marshmallow-enum = [
     {file = "marshmallow_enum-1.5.1-py2.py3-none-any.whl", hash = "sha256:57161ab3dbfde4f57adeb12090f39592e992b9c86d206d02f6bd03ebec60f072"},
 ]
 mautrix = [
-    {file = "mautrix-0.9.9-py3-none-any.whl", hash = "sha256:5bf96bc4a1dfc1c759c983b4612c1e633998ec0e1e049c7f62971d5dadb557e8"},
-    {file = "mautrix-0.9.9.tar.gz", hash = "sha256:57f2996ab232f11724b150d8aff06ae0e7f7e2f79ebf91113da8bfd259515a2b"},
+    {file = "mautrix-0.9.10-py3-none-any.whl", hash = "sha256:bacf1f7ae125855ac403dbec38d4bb01e46732e88782f2e39b84d5b8af69d5c5"},
+    {file = "mautrix-0.9.10.tar.gz", hash = "sha256:0583fc2ee9723c5a032d4375d54bf4f21fd11fa33be2f6ad5cdd4017fbbe4f08"},
 ]
 mccabe = [
     {file = "mccabe-0.6.1-py2.py3-none-any.whl", hash = "sha256:ab8a6258860da4b6677da4bd2fe5dc2c659cff31b3ee4f7f5d64e79735b80d42"},
