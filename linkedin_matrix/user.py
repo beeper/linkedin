@@ -28,6 +28,7 @@ from mautrix.types import (
     RoomID,
     UserID,
 )
+from mautrix.util.bridge_state import BridgeStateEvent
 from mautrix.util.opt_prometheus import async_time, Gauge, Summary
 from mautrix.util.simple_lock import SimpleLock
 
@@ -189,6 +190,7 @@ class User(DBUser, BaseUser):
             return True
         if not self.client or not await self.client.logged_in():
             return False
+        await self.push_bridge_state(BridgeStateEvent.CONNECTING)
 
         if (
             mp := (await self.client.get_user_profile()).mini_profile
@@ -225,12 +227,14 @@ class User(DBUser, BaseUser):
         return self._is_logged_in or False
 
     async def on_logged_in(self, client: LinkedInMessaging):
+        await self.push_bridge_state(BridgeStateEvent.CONNECTING)
         self.client = client
         if (
             mp := (await self.client.get_user_profile()).mini_profile
         ) and mp.entity_urn:
             self.li_member_urn = mp.entity_urn
         else:
+            await self.push_bridge_state(BridgeStateEvent.BAD_CREDENTIALS)
             raise Exception("No mini_profile.entity_urn on the user profile!")
         await self.save()
         self.stop_listen()
@@ -259,7 +263,7 @@ class User(DBUser, BaseUser):
         if self.client:
             self.log.info("Logging out the client.")
             await self.client.logout()
-        await self.push_bridge_state(ok=False, error="logged-out")
+        await self.push_bridge_state(BridgeStateEvent.LOGGED_OUT)
         puppet = await pu.Puppet.get_by_li_member_urn(self.li_member_urn, create=False)
         if puppet and puppet.is_real_user:
             await puppet.switch_mxid(None, None)
@@ -307,6 +311,7 @@ class User(DBUser, BaseUser):
             return
 
         self.log.debug("Fetching threads...")
+        await self.push_bridge_state(BridgeStateEvent.BACKFILLING)
 
         last_activity_before = datetime.now()
         synced_threads = 0
@@ -416,13 +421,6 @@ class User(DBUser, BaseUser):
             except Exception:
                 pass
 
-    async def get_bridge_state(self) -> BridgeState:
-        if not self.client or not await self.client.logged_in():
-            return BridgeState(ok=False, error="logged-out")
-        elif not self.listen_task or self.listen_task.done() or not self.is_connected:
-            return BridgeState(ok=False, error="li-no-listener")
-        return BridgeState(ok=True)
-
     def stop_listen(self):
         self.log.info("Stopping the listener.")
         curframe = inspect.currentframe()
@@ -468,13 +466,12 @@ class User(DBUser, BaseUser):
 
     async def handle_linkedin_stream_event(self, _):
         self._track_metric(METRIC_CONNECTED, True)
-        await self.push_bridge_state(ok=True)
+        await self.push_bridge_state(BridgeStateEvent.CONNECTED)
 
     async def handle_linkedin_listener_error(self, error: Exception):
         self._track_metric(METRIC_CONNECTED, False)
         await self.push_bridge_state(
-            ok=False,
-            error="li-connection-error",
+            BridgeStateEvent.TRANSIENT_DISCONNECT,
             message=str(error),
         )
 
