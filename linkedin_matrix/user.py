@@ -264,6 +264,7 @@ class User(DBUser, BaseUser):
             self.log.info("Logging out the client.")
             await self.client.logout()
         await self.push_bridge_state(BridgeStateEvent.LOGGED_OUT)
+        self._prev_connected_bridge_state = -600
         puppet = await pu.Puppet.get_by_li_member_urn(self.li_member_urn, create=False)
         if puppet and puppet.is_real_user:
             await puppet.switch_mxid(None, None)
@@ -464,9 +465,19 @@ class User(DBUser, BaseUser):
             self.listener_event_handlers_created = True
         await self.client.start_listener()
 
+    _prev_connected_bridge_state = -600
+
+    async def _push_connected_state(self):
+        # Only send once every 10 minutes.
+        if self._prev_connected_bridge_state + 600 < time.monotonic():
+            await self.push_bridge_state(BridgeStateEvent.CONNECTED)
+            self._prev_connected_bridge_state = time.monotonic()
+        else:
+            self.log.debug("Event received on event stream, but not sending CONNECTED")
+
     async def handle_linkedin_stream_event(self, _):
         self._track_metric(METRIC_CONNECTED, True)
-        await self.push_bridge_state(BridgeStateEvent.CONNECTED)
+        await self._push_connected_state()
 
     async def handle_linkedin_listener_error(self, error: Exception):
         self._track_metric(METRIC_CONNECTED, False)
@@ -474,6 +485,7 @@ class User(DBUser, BaseUser):
             BridgeStateEvent.TRANSIENT_DISCONNECT,
             message=str(error),
         )
+        self._prev_connected_bridge_state = -600
 
     async def handle_linkedin_event(self, event: RealTimeEventStreamEvent):
         assert self.client
