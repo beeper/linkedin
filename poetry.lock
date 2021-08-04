@@ -283,7 +283,7 @@ marshmallow = ">=2.0.0"
 
 [[package]]
 name = "mautrix"
-version = "0.10.1"
+version = "0.10.2"
 description = "A Python 3 asyncio Matrix framework."
 category = "main"
 optional = false
@@ -625,7 +625,7 @@ metrics = ["prometheus-client"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "07433798aee98878fdd5edfe2a03361746bdd802550b9fc31a17ca7f21e05b16"
+content-hash = "103a735baa4f441f18e505a6c0665aecf67697d5db42ffceae0b12d759508b07"
 
 [metadata.files]
 aiohttp = [
@@ -816,8 +816,8 @@ marshmallow-enum = [
     {file = "marshmallow_enum-1.5.1-py2.py3-none-any.whl", hash = "sha256:57161ab3dbfde4f57adeb12090f39592e992b9c86d206d02f6bd03ebec60f072"},
 ]
 mautrix = [
-    {file = "mautrix-0.10.1-py3-none-any.whl", hash = "sha256:efcdcbe25cb899fb053e1c72c9511bfa86fbb5a805c245cf8a5ee3c116289263"},
-    {file = "mautrix-0.10.1.tar.gz", hash = "sha256:a726ef53c657b4a1e3169463a527a660431fc23495ff6d7a827d90fb12e68c1e"},
+    {file = "mautrix-0.10.2-py3-none-any.whl", hash = "sha256:d877174ecbe2617c1b6b180bfeacece83a83a36dfbb980b72d5d11b32104f222"},
+    {file = "mautrix-0.10.2.tar.gz", hash = "sha256:0f89554ce88776c333ab0ff592935dbe4dc65f5cbfb2d51a082a655cfbb6ffcf"},
 ]
 mccabe = [
     {file = "mccabe-0.6.1-py2.py3-none-any.whl", hash = "sha256:ab8a6258860da4b6677da4bd2fe5dc2c659cff31b3ee4f7f5d64e79735b80d42"},
