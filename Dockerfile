@@ -22,6 +22,7 @@ RUN apk add --no-cache \
       su-exec \
       bash \
       curl \
+      git \
       jq \
       yq
 
