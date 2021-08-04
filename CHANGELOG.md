@@ -1,3 +1,10 @@
+# v0.4.1
+
+* Upgraded mautrix to 0.10.1+
+* Implemented new bridge state pushing
+* Infra: added `latest` tag to the Docker image when running for a tag.
+  Hopefully this helps speed up incremental builds in the future.
+
 # v0.4.0
 
 * Upgraded to support only Python 3.9+.
