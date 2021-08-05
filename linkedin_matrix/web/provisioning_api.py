@@ -78,7 +78,9 @@ class ProvisioningAPI:
             "linkedin": None,
         }
         if await user.is_logged_in() and user.client:
-            data["linkedin"] = (await user.client.get_user_profile()).to_dict()
+            data["linkedin"] = (
+                user.user_profile_cache or await user.client.get_user_profile()
+            ).to_dict()
         return web.json_response(data, headers=self._acao_headers)
 
     async def login(self, request: web.Request) -> web.Response:

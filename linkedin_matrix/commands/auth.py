@@ -31,7 +31,9 @@ async def whoami(evt: CommandEvent):
     if not evt.sender.client or not await evt.sender.client.logged_in():
         await evt.reply("You are not logged in")
     else:
-        user_profile = await evt.sender.client.get_user_profile()
+        user_profile = (
+            evt.sender.user_profile_cache or await evt.sender.client.get_user_profile()
+        )
         if mini_profile := user_profile.mini_profile:
             first = mini_profile.first_name
             last = mini_profile.last_name

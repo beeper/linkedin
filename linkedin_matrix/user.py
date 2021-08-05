@@ -19,6 +19,7 @@ from linkedin_messaging.api_objects import (
     ConversationEvent,
     ReactionSummary,
     RealTimeEventStreamEvent,
+    UserProfileResponse,
 )
 from mautrix.bridge import async_getter_lock, BaseUser, BridgeState
 from mautrix.errors import MNotFound
@@ -48,6 +49,8 @@ METRIC_SYNC_THREADS = Summary("bridge_sync_threads", "calls to sync_threads")
 class User(DBUser, BaseUser):
     shutdown: bool = False
     config: Config
+
+    user_profile_cache: Optional[UserProfileResponse] = None
 
     by_mxid: dict[UserID, "User"] = {}
     by_li_member_urn: dict[URN, "User"] = {}
@@ -192,9 +195,8 @@ class User(DBUser, BaseUser):
         if not self.client or not await self.client.logged_in():
             return False
 
-        if (
-            mp := (await self.client.get_user_profile()).mini_profile
-        ) and mp.entity_urn:
+        self.user_profile_cache = await self.client.get_user_profile()
+        if (mp := self.user_profile_cache.mini_profile) and mp.entity_urn:
             self.li_member_urn = mp.entity_urn
         else:
             return False
@@ -225,13 +227,13 @@ class User(DBUser, BaseUser):
             except Exception:
                 self.log.exception("Exception checking login status")
                 self._is_logged_in = False
+                self.user_profile_cache = None
         return self._is_logged_in or False
 
     async def on_logged_in(self, client: LinkedInMessaging):
         self.client = client
-        if (
-            mp := (await self.client.get_user_profile()).mini_profile
-        ) and mp.entity_urn:
+        self.user_profile_cache = await self.client.get_user_profile()
+        if (mp := self.user_profile_cache.mini_profile) and mp.entity_urn:
             self.li_member_urn = mp.entity_urn
         else:
             raise Exception("No mini_profile.entity_urn on the user profile!")
@@ -251,15 +253,15 @@ class User(DBUser, BaseUser):
                 self.log.info("Automatically enabling custom puppet")
                 await puppet.switch_mxid(access_token="auto", mxid=self.mxid)
         except Exception:
+            self.user_profile_cache = None
             self.log.exception("Failed to automatically enable custom puppet")
         await self.sync_threads()
         self.start_listen()
 
     async def logout(self):
         self.log.info("Logging out")
-        if self.listen_task:
-            self.log.info("Cancelling the listen task.")
-            self.listen_task.cancel()
+        self._is_logged_in = False
+        self.stop_listen()
         if self.client:
             self.log.info("Logging out the client.")
             await self.client.logout()
@@ -274,8 +276,8 @@ class User(DBUser, BaseUser):
             except KeyError:
                 pass
         self._track_metric(METRIC_LOGGED_IN, True)
-        self._is_logged_in = False
         self.client = None
+        self.user_profile_cache = None
         self.li_member_urn = None
         self.notice_room = None
         await self.save()
@@ -328,6 +330,7 @@ class User(DBUser, BaseUser):
                 try:
                     await self._sync_thread(conversation)
                 except Exception:
+                    self.user_profile_cache = None
                     self.log.exception(
                         f"Failed to sync thread {conversation.entity_urn}"
                     )
@@ -415,11 +418,15 @@ class User(DBUser, BaseUser):
         user = await User.get_by_li_member_urn(self.li_member_urn)
         if user and user.client:
             try:
-                if mp := (await user.client.get_user_profile()).mini_profile:
+                user_profile = (
+                    user.user_profile_cache or await user.client.get_user_profile()
+                )
+                if mp := user_profile.mini_profile:
                     state.remote_name = " ".join(
                         n for n in [mp.first_name, mp.last_name] if n
                     )
             except Exception:
+                self.user_profile_cache = None
                 pass
 
     def stop_listen(self):
@@ -435,7 +442,7 @@ class User(DBUser, BaseUser):
     def on_listen_task_end(self, future: Future):
         if future.cancelled():
             self.log.info("Listener task cancelled")
-        if not self.shutdown:
+        if self.is_logged_in and not self.shutdown:
             self.start_listen()
 
     listener_event_handlers_created: bool = False
@@ -482,6 +489,7 @@ class User(DBUser, BaseUser):
     async def handle_linkedin_listener_error(self, error: Exception):
         self._track_metric(METRIC_CONNECTED, False)
         self._prev_connected_bridge_state = -600
+        self.user_profile_cache = None
 
         if isinstance(error, aiohttp.client.TooManyRedirects):
             # This means that the user's session is borked (the redirects mean it's
@@ -491,7 +499,7 @@ class User(DBUser, BaseUser):
                 message=f"TooManyRedirects: {error}",
             )
             if self.listen_task:
-                self.listen_task.cancel()
+                self.stop_listen()
         else:
             await self.push_bridge_state(
                 BridgeStateEvent.TRANSIENT_DISCONNECT,
