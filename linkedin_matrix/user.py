@@ -191,7 +191,6 @@ class User(DBUser, BaseUser):
             return True
         if not self.client or not await self.client.logged_in():
             return False
-        await self.push_bridge_state(BridgeStateEvent.CONNECTING)
 
         if (
             mp := (await self.client.get_user_profile()).mini_profile
@@ -199,6 +198,7 @@ class User(DBUser, BaseUser):
             self.li_member_urn = mp.entity_urn
         else:
             return False
+        await self.push_bridge_state(BridgeStateEvent.CONNECTING)
 
         self.log.info("Loaded session successfully")
         self._track_metric(METRIC_LOGGED_IN, True)
@@ -228,15 +228,14 @@ class User(DBUser, BaseUser):
         return self._is_logged_in or False
 
     async def on_logged_in(self, client: LinkedInMessaging):
-        await self.push_bridge_state(BridgeStateEvent.CONNECTING)
         self.client = client
         if (
             mp := (await self.client.get_user_profile()).mini_profile
         ) and mp.entity_urn:
             self.li_member_urn = mp.entity_urn
         else:
-            await self.push_bridge_state(BridgeStateEvent.BAD_CREDENTIALS)
             raise Exception("No mini_profile.entity_urn on the user profile!")
+        await self.push_bridge_state(BridgeStateEvent.CONNECTING)
         await self.save()
         self.stop_listen()
         asyncio.create_task(self.post_login())
