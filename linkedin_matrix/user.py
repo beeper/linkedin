@@ -12,6 +12,7 @@ from typing import (
     TYPE_CHECKING,
 )
 
+import aiohttp
 from linkedin_messaging import LinkedInMessaging, URN
 from linkedin_messaging.api_objects import (
     Conversation,
@@ -481,11 +482,22 @@ class User(DBUser, BaseUser):
 
     async def handle_linkedin_listener_error(self, error: Exception):
         self._track_metric(METRIC_CONNECTED, False)
-        await self.push_bridge_state(
-            BridgeStateEvent.TRANSIENT_DISCONNECT,
-            message=str(error),
-        )
         self._prev_connected_bridge_state = -600
+
+        if isinstance(error, aiohttp.client.TooManyRedirects):
+            # This means that the user's session is borked (the redirects mean it's
+            # trying to redirect to the login page).
+            await self.push_bridge_state(
+                BridgeStateEvent.BAD_CREDENTIALS,
+                message=f"TooManyRedirects: {error}",
+            )
+            if self.listen_task:
+                self.listen_task.cancel()
+        else:
+            await self.push_bridge_state(
+                BridgeStateEvent.TRANSIENT_DISCONNECT,
+                message=str(error),
+            )
 
     async def handle_linkedin_event(self, event: RealTimeEventStreamEvent):
         assert self.client
