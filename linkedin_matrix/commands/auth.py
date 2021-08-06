@@ -1,3 +1,4 @@
+import logging
 from typing import cast
 
 from linkedin_messaging import ChallengeException, LinkedInMessaging
@@ -31,9 +32,11 @@ async def whoami(evt: CommandEvent):
     if not evt.sender.client or not await evt.sender.client.logged_in():
         await evt.reply("You are not logged in")
     else:
-        user_profile = (
-            evt.sender.user_profile_cache or await evt.sender.client.get_user_profile()
-        )
+        user_profile = evt.sender.user_profile_cache
+        if user_profile is not None:
+            logging.debug("Cache hit on user_profile_cache")
+        user_profile = user_profile or await evt.sender.client.get_user_profile()
+        evt.sender.user_profile_cache = user_profile
         if mini_profile := user_profile.mini_profile:
             first = mini_profile.first_name
             last = mini_profile.last_name

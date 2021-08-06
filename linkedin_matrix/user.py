@@ -418,9 +418,10 @@ class User(DBUser, BaseUser):
         user = await User.get_by_li_member_urn(self.li_member_urn)
         if user and user.client:
             try:
-                user_profile = (
-                    user.user_profile_cache or await user.client.get_user_profile()
-                )
+                user_profile = user.user_profile_cache
+                if user_profile is not None:
+                    self.log.debug("Cache hit on user_profile_cache")
+                user_profile = user_profile or await user.client.get_user_profile()
                 if mp := user_profile.mini_profile:
                     state.remote_name = " ".join(
                         n for n in [mp.first_name, mp.last_name] if n
