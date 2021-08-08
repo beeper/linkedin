@@ -1,5 +1,4 @@
 import asyncio
-import inspect
 import time
 from asyncio.futures import Future
 from datetime import datetime
@@ -280,6 +279,8 @@ class User(DBUser, BaseUser):
         self.user_profile_cache = None
         self.li_member_urn = None
         self.notice_room = None
+        self._is_logged_in = False
+        self.stop_listen()
         await self.save()
 
     # endregion
@@ -432,9 +433,6 @@ class User(DBUser, BaseUser):
 
     def stop_listen(self):
         self.log.info("Stopping the listener.")
-        curframe = inspect.currentframe()
-        callstack = "\n".join([str(f) for f in inspect.getouterframes(curframe, 10)])
-        self.log.info(f"Call stack:\n{callstack}")
         if self.listen_task:
             self.log.info("Cancelling the listen task.")
             self.listen_task.cancel()
@@ -443,7 +441,7 @@ class User(DBUser, BaseUser):
     def on_listen_task_end(self, future: Future):
         if future.cancelled():
             self.log.info("Listener task cancelled")
-        if self.is_logged_in and not self.shutdown:
+        if self.client and self._is_logged_in and not self.shutdown:
             self.start_listen()
 
     listener_event_handlers_created: bool = False
@@ -500,6 +498,11 @@ class User(DBUser, BaseUser):
                 message=f"TooManyRedirects: {error}",
             )
             if self.listen_task:
+                self.client = None
+                self.user_profile_cache = None
+                self.li_member_urn = None
+                self._is_logged_in = False
+                self._prev_connected_bridge_state = -600
                 self.stop_listen()
         else:
             await self.push_bridge_state(
