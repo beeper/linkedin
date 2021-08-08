@@ -538,7 +538,7 @@ class Portal(DBPortal, BasePortal):
             initial_state.append(
                 {
                     "type": str(EventType.ROOM_AVATAR),
-                    "content": {"avatar_url": self.avatar_url},
+                    "content": {"url": self.avatar_url},
                 }
             )
 
