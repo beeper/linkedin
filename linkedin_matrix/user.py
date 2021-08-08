@@ -270,7 +270,7 @@ class User(DBUser, BaseUser):
             self.user_profile_cache = None
             self.log.exception("Failed to automatically enable custom puppet")
 
-        await self._create_space()
+        await self._create_or_update_space()
         await self.sync_threads()
         self.start_listen()
 
@@ -304,28 +304,46 @@ class User(DBUser, BaseUser):
 
     # Spaces support
 
-    async def _create_space(self):
+    async def _create_or_update_space(self):
         if not self.config["bridge.enable_space_per_user"]:
             return
-        self.log.debug(f"Creating space for {self.li_member_urn}, inviting {self.mxid}")
-        room = await self.az.intent.create_room(
-            is_direct=False,
-            invitees=[self.mxid],
-            creation_content={"type": "m.space"},
-            initial_state=[
-                {
-                    "type": str(EventType.ROOM_AVATAR),
-                    "content": {"avatar_url": self.config["appservice.bot_avatar"]},
-                },
-            ],
-        )
-        self.space_mxid = room
-        await self.save()
-        self.log.debug(f"Created space {room}")
-        try:
-            await self.az.intent.ensure_joined(room)
-        except Exception:
-            self.log.warning(f"Failed to add bridge bot to new space {room}")
+
+        avatar_state_event_content = {"url": self.config["appservice.bot_avatar"]}
+        name_state_event_content = {"name": "LinkedIn"}  # TODO template
+
+        if self.space_mxid:
+            await self.az.intent.send_state_event(
+                self.space_mxid, EventType.ROOM_AVATAR, avatar_state_event_content
+            )
+            await self.az.intent.send_state_event(
+                self.space_mxid, EventType.ROOM_NAME, name_state_event_content
+            )
+        else:
+            self.log.debug(
+                f"Creating space for {self.li_member_urn}, inviting {self.mxid}"
+            )
+            room = await self.az.intent.create_room(
+                is_direct=False,
+                invitees=[self.mxid],
+                creation_content={"type": "m.space"},
+                initial_state=[
+                    {
+                        "type": str(EventType.ROOM_NAME),
+                        "content": name_state_event_content,
+                    },
+                    {
+                        "type": str(EventType.ROOM_AVATAR),
+                        "content": avatar_state_event_content,
+                    },
+                ],
+            )
+            self.space_mxid = room
+            await self.save()
+            self.log.debug(f"Created space {room}")
+            try:
+                await self.az.intent.ensure_joined(room)
+            except Exception:
+                self.log.warning(f"Failed to add bridge bot to new space {room}")
 
     # endregion
 
