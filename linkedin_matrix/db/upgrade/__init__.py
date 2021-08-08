@@ -8,6 +8,7 @@ from . import (  # noqa: E402
     v03_add_topic_to_portal,
     v04_add_portal_meta_set,
     v05_add_index_to_reaction,
+    v06_add_space_mxid_to_user,
 )
 
 __all__ = (
@@ -16,4 +17,5 @@ __all__ = (
     "v03_add_topic_to_portal",
     "v04_add_portal_meta_set",
     "v05_add_index_to_reaction",
+    "v06_add_space_mxid_to_user",
 )

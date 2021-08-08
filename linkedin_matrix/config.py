@@ -47,6 +47,7 @@ class Config(BaseBridgeConfig):
         copy("bridge.displayname_template")
         copy("bridge.double_puppet_allow_discovery")
         copy("bridge.double_puppet_server_map")
+        copy("bridge.enable_space_per_user")
         copy("bridge.federate_rooms")
         copy("bridge.initial_chat_sync")
         copy("bridge.invite_own_puppet_to_pm")

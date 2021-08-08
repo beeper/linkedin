@@ -17,9 +17,9 @@ import aiohttp
 
 from mautrix.bridge import BaseUser, async_getter_lock
 from mautrix.errors import MNotFound
-from mautrix.types import PushActionType, PushRuleKind, PushRuleScope, RoomID, UserID
+from mautrix.types import EventType, PushActionType, PushRuleKind, PushRuleScope, RoomID, UserID
 from mautrix.util.bridge_state import BridgeState, BridgeStateEvent
-from mautrix.util.opt_prometheus import Gauge, Summary, async_time
+from mautrix.util.opt_prometheus import async_time, Gauge, Summary
 from mautrix.util.simple_lock import SimpleLock
 
 from . import portal as po, puppet as pu
@@ -60,10 +60,12 @@ class User(DBUser, BaseUser):
         li_member_urn: Optional[URN] = None,
         client: Optional[LinkedInMessaging] = None,
         notice_room: Optional[RoomID] = None,
+        space_mxid: Optional[RoomID] = None,
     ):
-        super().__init__(mxid, li_member_urn, notice_room, client)
+        super().__init__(mxid, li_member_urn, notice_room, space_mxid, client)
         BaseUser.__init__(self)
         self.notice_room = notice_room
+        self.space_mxid = space_mxid
         self._notice_room_lock = asyncio.Lock()
         self._notice_send_lock = asyncio.Lock()
 
@@ -267,6 +269,8 @@ class User(DBUser, BaseUser):
         except Exception:
             self.user_profile_cache = None
             self.log.exception("Failed to automatically enable custom puppet")
+
+        await self._create_space()
         await self.sync_threads()
         self.start_listen()
 
@@ -295,6 +299,33 @@ class User(DBUser, BaseUser):
         self.notice_room = None
         await self.save()
         self._is_logging_out = False
+
+    # endregion
+
+    # Spaces support
+
+    async def _create_space(self):
+        if not self.config["bridge.enable_space_per_user"]:
+            return
+        self.log.debug(f"Creating space for {self.li_member_urn}, inviting {self.mxid}")
+        room = await self.az.intent.create_room(
+            is_direct=False,
+            invitees=[self.mxid],
+            creation_content={"type": "m.space"},
+            initial_state=[
+                {
+                    "type": str(EventType.ROOM_AVATAR),
+                    "content": {"avatar_url": self.config["appservice.bot_avatar"]},
+                },
+            ],
+        )
+        self.space_mxid = room
+        await self.save()
+        self.log.debug(f"Created space {room}")
+        try:
+            await self.az.intent.ensure_joined(room)
+        except Exception:
+            self.log.warning(f"Failed to add bridge bot to new space {room}")
 
     # endregion
 

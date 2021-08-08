@@ -14,11 +14,18 @@ class User(Model):
     mxid: UserID
     li_member_urn: Optional[URN]
     notice_room: Optional[RoomID]
+    space_mxid: Optional[RoomID]
 
     client: Optional[LinkedInMessaging]
 
     _table_name = "user"
-    _field_list = ["mxid", "li_member_urn", "client_pickle", "notice_room"]
+    _field_list = [
+        "mxid",
+        "li_member_urn",
+        "client_pickle",
+        "notice_room",
+        "space_mxid",
+    ]
 
     @property
     def _client_pickle(self) -> Optional[bytes]:
@@ -63,6 +70,7 @@ class User(Model):
             self.li_member_urn.id_str() if self.li_member_urn else None,
             self._client_pickle,
             self.notice_room,
+            self.space_mxid,
         )
 
     async def delete(self):
@@ -73,7 +81,8 @@ class User(Model):
             UPDATE "user"
                SET li_member_urn=$2,
                    client_pickle=$3,
-                   notice_room=$4
+                   notice_room=$4,
+                   space_mxid=$5
              WHERE mxid=$1
         """
         await self.db.execute(
@@ -82,4 +91,5 @@ class User(Model):
             self.li_member_urn.id_str() if self.li_member_urn else None,
             self._client_pickle,
             self.notice_room,
+            self.space_mxid,
         )
