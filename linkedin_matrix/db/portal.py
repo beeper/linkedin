@@ -22,6 +22,9 @@ class Portal(Model):
     photo_id: Optional[str]
     avatar_url: Optional[ContentURI]
     topic: Optional[str]
+    name_set: bool
+    avatar_set: bool
+    topic_set: bool
 
     _table_name = "portal"
     _field_list = [
@@ -38,6 +41,9 @@ class Portal(Model):
         "photo_id",
         "avatar_url",
         "topic",
+        "name_set",
+        "avatar_set",
+        "topic_set",
     ]
 
     @classmethod
@@ -101,6 +107,9 @@ class Portal(Model):
             self.photo_id,
             self.avatar_url,
             self.topic,
+            self.name_set,
+            self.avatar_set,
+            self.topic_set,
         )
 
     async def delete(self):
@@ -121,7 +130,10 @@ class Portal(Model):
                    name=$7,
                    photo_id=$8,
                    avatar_url=$9,
-                   topic=$10
+                   topic=$10,
+                   name_set=$11,
+                   avatar_set=$12,
+                   topic_set=$13
              WHERE li_thread_urn=$1
                AND li_receiver_urn=$2
         """
@@ -137,4 +149,7 @@ class Portal(Model):
             self.photo_id,
             self.avatar_url,
             self.topic,
+            self.name_set,
+            self.avatar_set,
+            self.topic_set,
         )

@@ -105,6 +105,9 @@ class Portal(DBPortal, BasePortal):
         photo_id: Optional[str] = None,
         avatar_url: Optional[ContentURI] = None,
         topic: Optional[str] = None,
+        name_set: bool = False,
+        avatar_set: bool = False,
+        topic_set: bool = False,
         encrypted: bool = False,
     ):
         super().__init__(
@@ -118,6 +121,9 @@ class Portal(DBPortal, BasePortal):
             photo_id,
             avatar_url,
             topic,
+            name_set,
+            avatar_set,
+            topic_set,
         )
         self.log = self.log.getChild(self.li_urn_log)
 
@@ -336,16 +342,21 @@ class Portal(DBPortal, BasePortal):
         if not name:
             self.log.warning("Got empty name in _update_name call")
             return False
-        if self.name != name:
+        if self.name != name or not self.name_set:
             self.log.trace("Updating name %s -> %s", self.name, name)
             self.name = name
             if self.mxid and (self.encrypted or not self.is_direct):
-                await self.main_intent.set_room_name(self.mxid, self.name)
+                try:
+                    await self.main_intent.set_room_name(self.mxid, self.name)
+                    self.name_set = True
+                except Exception:
+                    self.log.exception("Failed to set room name")
+                    self.name_set = False
             return True
         return False
 
     async def _update_photo_from_puppet(self, puppet: "p.Puppet") -> bool:
-        if self.photo_id == puppet.photo_id:
+        if self.photo_id == puppet.photo_id and self.avatar_set:
             return False
         self.photo_id = puppet.photo_id
         if puppet.photo_mxc:
@@ -357,7 +368,12 @@ class Portal(DBPortal, BasePortal):
         else:
             self.avatar_url = ContentURI("")
         if self.mxid:
-            await self.main_intent.set_room_avatar(self.mxid, self.avatar_url)
+            try:
+                await self.main_intent.set_room_avatar(self.mxid, self.avatar_url)
+                self.avatar_set = True
+            except Exception:
+                self.log.exception("Failed to set room avatar")
+                self.avatar_set = False
         return True
 
     async def _update_topic(self, mini_profile: MiniProfile) -> bool:
@@ -380,12 +396,17 @@ class Portal(DBPortal, BasePortal):
             if part
         ]
         topic = " | ".join(topic_parts) if len(topic_parts) else None
-        if topic == self.topic:
+        if topic == self.topic and self.topic_set:
             return False
         self.topic = topic
 
         if self.mxid:
-            await self.main_intent.set_room_topic(self.mxid, self.topic or "")
+            try:
+                await self.main_intent.set_room_topic(self.mxid, self.topic or "")
+                self.topic_set = True
+            except Exception:
+                self.log.exception("Failed to set room topic")
+                self.topic_set = False
 
         return True
 

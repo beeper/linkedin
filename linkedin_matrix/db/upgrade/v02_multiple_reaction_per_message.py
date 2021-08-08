@@ -7,7 +7,7 @@ from . import upgrade_table
     description="Multiple reactions per message",
     transaction=False,
 )
-async def upgrade_v1(conn: Connection):
+async def upgrade_v2(conn: Connection):
     create_table_queries = [
         """
         ALTER TABLE reaction DROP CONSTRAINT reaction_pkey
