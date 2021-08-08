@@ -37,6 +37,7 @@ class Portal(Model):
         "name",
         "photo_id",
         "avatar_url",
+        "topic",
     ]
 
     @classmethod
@@ -99,6 +100,7 @@ class Portal(Model):
             self.name,
             self.photo_id,
             self.avatar_url,
+            self.topic,
         )
 
     async def delete(self):
@@ -118,7 +120,8 @@ class Portal(Model):
                    encrypted=$6,
                    name=$7,
                    photo_id=$8,
-                   avatar_url=$9
+                   avatar_url=$9,
+                   topic=$10
              WHERE li_thread_urn=$1
                AND li_receiver_urn=$2
         """
@@ -133,4 +136,5 @@ class Portal(Model):
             self.name,
             self.photo_id,
             self.avatar_url,
+            self.topic,
         )
