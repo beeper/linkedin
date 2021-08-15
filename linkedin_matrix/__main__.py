@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 from mautrix.bridge import Bridge
 from mautrix.bridge.state_store.asyncpg import PgBridgeStateStore
@@ -117,6 +117,14 @@ class LinkedInBridge(Bridge):
         return len(
             [user for user in User.by_li_member_urn.values() if user.li_member_urn]
         )
+
+    async def manhole_global_namespace(self, user_id: UserID) -> dict[str, Any]:
+        return {
+            **await super().manhole_global_namespace(user_id),
+            "User": User,
+            "Portal": Portal,
+            "Puppet": Puppet,
+        }
 
 
 def main():
