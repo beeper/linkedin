@@ -1,3 +1,14 @@
+# v0.5.0
+
+* Upgraded mautrix to `^0.10.3`
+* Upgraded asyncpg to `>=0.23.0`
+* Made the ruamel.yaml requirement less strict (`^0.17.0`)
+* Fixed a few errors with bridge state sending
+* Implemented support for the manhole
+* Add caching for user profile to improve speed of whoami calls
+* Add flags to track whether name, avatar, and topic are set on the portal
+* Fixed bug with initial setting of room avatars on DMs
+
 # v0.4.1
 
 * Upgraded mautrix to 0.10.1+
