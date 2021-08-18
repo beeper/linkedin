@@ -23,7 +23,7 @@ url = "https://gitlab.matrix.org/api/v4/projects/27/packages/pypi/simple"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-asyncpg = "^0.23.0"
+asyncpg = ">=0.23.0"
 commonmark = "^0.9.1"
 linkedin-messaging = "^0.4.3"
 mautrix = "^0.10.3"
