@@ -1,8 +1,8 @@
 # linkedin-matrix
 
-[![pipeline status](https://gitlab.com/beeper/linkedin-matrix/badges/master/pipeline.svg)](https://gitlab.com/beeper/linkedin-matrix/-/commits/master) 
+[![pipeline status](https://gitlab.com/beeper/linkedin/badges/master/pipeline.svg)](https://gitlab.com/beeper/linkedin/-/commits/master) 
 [![Matrix Chat](https://img.shields.io/matrix/linkedin-matrix:nevarro.space?server_fqdn=matrix.nevarro.space)](https://matrix.to/#/#linkedin-matrix:nevarro.space?via=nevarro.space&via=sumnerevans.com)
-[![Apache 2.0](https://img.shields.io/github/license/sumnerevans/linkedin-matrix)](https://github.com/sumnerevans/linkedin-matrix/blob/master/LICENSE)
+[![Apache 2.0](https://img.shields.io/pypi/l/linkedin-matrix)](https://gitlab.com/beeper/linkedin/-/blob/master/LICENSE)
 
 LinkedIn Messaging <-> Matrix bridge built using
 [mautrix-python](https://github.com/tulir/mautrix-python) and
@@ -41,7 +41,7 @@ you need to do is:
    ```
 
 ### Features & Roadmap
-[ROADMAP.md](https://github.com/sumnerevans/linkedin-matrix/blob/master/ROADMAP.md)
+[ROADMAP.md](https://gitlab.com/beeper/linkedin/-/blob/master/ROADMAP.md)
 contains a general overview of what is supported by the bridge.
 
 ## Discussion

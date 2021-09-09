@@ -5,8 +5,8 @@ description = "A Matrix-LinkedIn Messages puppeting bridge."
 authors = ["Sumner Evans <inquiries@sumnerevans.com>"]
 readme = "README.md"
 license = "Apache-2.0"
-homepage = "https://github.com/sumnerevans/linkedin-matrix"
-repository = "https://github.com/sumnerevans/linkedin-matrix"
+homepage = "https://gitlab.com/beeper/linkedin"
+repository = "https://gitlab.com/beeper/linkedin"
 keywords = ["matrix", "LinkedIn"]
 classifiers = [
     #   3 - Alpha
