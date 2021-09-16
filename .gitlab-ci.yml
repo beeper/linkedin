@@ -69,9 +69,21 @@ build docker:
   after_script:
   - |
     if [[ "$CI_COMMIT_BRANCH" == "master" ]]; then
-      apk add --update curl
+      apk add --update curl jq
       rm -rf /var/cache/apk/*
-      curl "$NOVA_ADMIN_API_URL" -H "Content-Type: application/json" -d '{"password":"'"$NOVA_ADMIN_NIGHTLY_PASS"'","bridge":"'$NOVA_BRIDGE_TYPE'","image":"'$CI_REGISTRY_IMAGE':'$CI_COMMIT_SHA'-amd64"}'
+      jq -n \
+         --arg password $BEEPER_DEV_ADMIN_NIGHTLY_PASS \
+         --arg bridge $BEEPER_BRIDGE_TYPE \
+         --arg image "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}-amd64" \
+         --arg channel STABLE \
+         '
+         {
+           "password": $password,
+           "bridge": $bridge,
+           "image": $image,
+           "channel": $channel
+         }
+         ' | curl "$BEEPER_DEV_ADMIN_API_URL" -H "Content-Type: application/json" -d @-
     fi
 
 publish test:
