@@ -72,32 +72,22 @@ build docker:
       apk add --update curl jq
       rm -rf /var/cache/apk/*
 
-      jq -n \
-         --arg password $BEEPER_DEV_ADMIN_NIGHTLY_PASS \
-         --arg bridge $BEEPER_BRIDGE_TYPE \
-         --arg image "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}-amd64" \
-         --arg channel STABLE \
-         '
+      jq -n '
          {
-           "password": $password,
-           "bridge": $bridge,
-           "image": $image,
-           "channel": $channel
+           password:  env.BEEPER_DEV_ADMIN_NIGHTLY_PASS,
+           bridge:    env.BEEPER_BRIDGE_TYPE,
+           image:     "\(env.CI_REGISTRY_IMAGE):\(env.CI_COMMIT_SHA)-amd64",
+           channel:   "STABLE"
          }
-         ' | curl "$BEEPER_DEV_ADMIN_API_URL" -H "Content-Type: application/json" -d @-
+        ' | curl "$BEEPER_DEV_ADMIN_API_URL" -H "Content-Type: application/json" -d @-
 
-      jq -n \
-         --arg password $BEEPER_PROD_ADMIN_NIGHTLY_PASS \
-         --arg bridge $BEEPER_BRIDGE_TYPE \
-         --arg image "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}-amd64" \
-         --arg channel INTERNAL \
-         '
+      jq -n '
          {
-           "password": $password,
-           "bridge": $bridge,
-           "image": $image,
-           "channel": $channel,
-           "deployNext": true
+           password:    env.BEEPER_PROD_ADMIN_NIGHTLY_PASS,
+           bridge:      env.BEEPER_BRIDGE_TYPE,
+           image:       "\(env.CI_REGISTRY_IMAGE):\(env.CI_COMMIT_SHA)-amd64",
+           channel:     "INTERNAL",
+           deployNext:  true
          }
          ' | curl "$BEEPER_PROD_ADMIN_API_URL" -H "Content-Type: application/json" -d @-
     fi
