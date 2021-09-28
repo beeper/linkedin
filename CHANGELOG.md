@@ -1,3 +1,7 @@
+# v0.5.1
+
+* Add support for shared feed posts.
+
 # v0.5.0
 
 * Upgraded mautrix to `^0.10.3`
