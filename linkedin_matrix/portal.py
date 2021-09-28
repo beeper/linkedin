@@ -37,6 +37,7 @@ from mautrix.types import (
     TextMessageEventContent,
     VideoInfo,
 )
+from mautrix.types.event.message import Format
 from mautrix.types.primitive import UserID
 from mautrix.util.simple_lock import SimpleLock
 
@@ -1189,8 +1190,8 @@ class Portal(DBPortal, BasePortal):
 
                 # Handle shared posts
                 if f := message_event.feed_update:
-                    plaintext_content = ""
-                    html_content = ""
+                    plaintext_content = "Feed update shared:\n"
+                    html_content = "<i>Feed update shared:</i><br>"
                     if (c := f.commentary) and (ct := c.text) and (text := ct.text):
                         plaintext_content += text + "\n"
                         html_content += text + "<br>"
@@ -1207,6 +1208,8 @@ class Portal(DBPortal, BasePortal):
                     content = TextMessageEventContent(
                         msgtype=MessageType.TEXT,
                         body=plaintext_content,
+                        format=Format.HTML,
+                        formatted_body=html_content,
                     )
                     event_ids.append(
                         await self._send_message(intent, content, timestamp=timestamp)
