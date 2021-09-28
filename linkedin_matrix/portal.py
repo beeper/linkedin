@@ -1187,6 +1187,32 @@ class Portal(DBPortal, BasePortal):
                     )
                     # TODO (#55) error handling
 
+                # Handle shared posts
+                if f := message_event.feed_update:
+                    plaintext_content = ""
+                    html_content = ""
+                    if (c := f.commentary) and (ct := c.text) and (text := ct.text):
+                        plaintext_content += text + "\n"
+                        html_content += text + "<br>"
+
+                    if (
+                        (c := f.content)
+                        and (ac := c.article_component)
+                        and (nc := ac.navigation_context)
+                        and (target := nc.action_target)
+                    ):
+                        plaintext_content += target
+                        html_content += f'<a href="{target}">{target}</a>'
+
+                    content = TextMessageEventContent(
+                        msgtype=MessageType.TEXT,
+                        body=plaintext_content,
+                    )
+                    event_ids.append(
+                        await self._send_message(intent, content, timestamp=timestamp)
+                    )
+                    # TODO (#55) error handling
+
                 event_ids = [event_id for event_id in event_ids if event_id]
                 if len(event_ids) == 0:
                     return
