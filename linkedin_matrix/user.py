@@ -58,6 +58,7 @@ class User(DBUser, BaseUser):
 
     _is_connected: Optional[bool]
     _is_logged_in: Optional[bool]
+    _is_logging_out: Optional[bool]
     _is_refreshing: bool
     _notice_room_lock: asyncio.Lock
     _notice_send_lock: asyncio.Lock
@@ -84,6 +85,7 @@ class User(DBUser, BaseUser):
             self.permission_level,
         ) = self.config.get_permissions(mxid)
         self._is_logged_in = None
+        self._is_logging_out = None
         self._is_connected = None
         self._connection_time = time.monotonic()
         self._prev_thread_sync = -10
@@ -260,6 +262,7 @@ class User(DBUser, BaseUser):
     async def logout(self):
         self.log.info("Logging out")
         self._is_logged_in = False
+        self._is_logging_out = True
         self.stop_listen()
         if self.client:
             self.log.info("Logging out the client.")
@@ -279,9 +282,8 @@ class User(DBUser, BaseUser):
         self.user_profile_cache = None
         self.li_member_urn = None
         self.notice_room = None
-        self._is_logged_in = False
-        self.stop_listen()
         await self.save()
+        self._is_logging_out = False
 
     # endregion
 
@@ -443,6 +445,24 @@ class User(DBUser, BaseUser):
             self.log.info("Listener task cancelled")
         if self.client and self._is_logged_in and not self.shutdown:
             self.start_listen()
+        else:
+            # This most likely means that the bridge is being stopped/restarted. But,
+            # occasionally, the user gets logged out. In these cases, we want to reset
+            # _is_logged_in so the next whoami call does a full call out to LinkedIn to
+            # detect whether the user is logged in.
+            self.log.warn("No client, not logged in, or shutdown. Not reconnecting.")
+            if (
+                not self._is_logged_in
+                and not self._is_logging_out
+                and self.client
+                and not self.shutdown
+            ):
+                self.log.warn(
+                    "Logged out, but not by a logout call, sending bad credentials."
+                )
+                asyncio.create_task(
+                    self.push_bridge_state(BridgeStateEvent.BAD_CREDENTIALS)
+                )
 
     listener_event_handlers_created: bool = False
     listener_task_i: int = 0

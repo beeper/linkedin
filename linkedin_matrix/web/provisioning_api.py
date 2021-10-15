@@ -83,6 +83,7 @@ class ProvisioningAPI:
                 self.log.debug("Cache hit on user_profile_cache")
             user_profile = user_profile or await user.client.get_user_profile()
             data["linkedin"] = user_profile.to_dict()
+
         return web.json_response(data, headers=self._acao_headers)
 
     async def login(self, request: web.Request) -> web.Response:
