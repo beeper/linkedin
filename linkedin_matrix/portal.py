@@ -538,7 +538,7 @@ class Portal(DBPortal, BasePortal):
                 "content": self.bridge_info,
             },
         ]
-        invites = [source.mxid]
+        invites = []
         if self.config["bridge.encryption.default"] and self.matrix.e2ee:
             self.encrypted = True
             initial_state.append(
