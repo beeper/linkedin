@@ -503,6 +503,16 @@ class Portal(DBPortal, BasePortal):
         except Exception:
             self.log.exception("Failed to update portal")
 
+    def _get_invite_content(
+        self, double_puppet: Optional["p.Puppet"]
+    ) -> dict[str, Any]:
+        invite_content = {}
+        if double_puppet:
+            invite_content["fi.mau.will_auto_accept"] = True
+        if self.is_direct:
+            invite_content["is_direct"] = True
+        return invite_content
+
     async def _create_matrix_room(
         self,
         source: "u.User",
@@ -528,7 +538,7 @@ class Portal(DBPortal, BasePortal):
                 "content": self.bridge_info,
             },
         ]
-        invites = [source.mxid]
+        invites = []
         if self.config["bridge.encryption.default"] and self.matrix.e2ee:
             self.encrypted = True
             initial_state.append(
@@ -589,9 +599,29 @@ class Portal(DBPortal, BasePortal):
             self.log.debug(f"Matrix room created: {self.mxid}")
             self.by_mxid[self.mxid] = self
 
-            if not self.is_direct:
-                await self._update_participants(source, conversation)
-            else:
+            puppet = await p.Puppet.get_by_custom_mxid(source.mxid)
+            await self.main_intent.invite_user(
+                self.mxid, source.mxid, extra_content=self._get_invite_content(puppet)
+            )
+
+            if puppet:
+                try:
+                    if self.is_direct:
+                        await source.update_direct_chats(
+                            {self.main_intent.mxid: [self.mxid]}
+                        )
+                    await puppet.intent.join_room_by_id(self.mxid)
+                except MatrixError:
+                    self.log.debug(
+                        "Failed to join custom puppet into newly created portal",
+                        exc_info=True,
+                    )
+
+            if self.is_direct:
+                # Check if this is an ad. If it is, then set the room permissions such
+                # that the user is not allowed to send messages. (If they do send a
+                # message, the bridge would give an error since responding to such
+                # messages is not allowed.)
                 if (
                     (mm := conversation.participants[0].messaging_member)
                     and (mp := mm.mini_profile)
@@ -601,20 +631,8 @@ class Portal(DBPortal, BasePortal):
                     if levels.get_user_level(self.main_intent.mxid) == 100:
                         levels.events_default = 50
                         await self.main_intent.set_power_levels(self.mxid, levels)
-
-                puppet = await p.Puppet.get_by_custom_mxid(source.mxid)
-                if puppet:
-                    try:
-                        did_join = await puppet.intent.join_room_by_id(self.mxid)
-                        if did_join:
-                            await source.update_direct_chats(
-                                {self.main_intent.mxid: [self.mxid]}
-                            )
-                    except MatrixError:
-                        self.log.debug(
-                            "Failed to join custom puppet into newly created portal",
-                            exc_info=True,
-                        )
+            else:
+                await self._update_participants(source, conversation)
 
             try:
                 await self.backfill(source, conversation, is_initial=True)
@@ -630,8 +648,13 @@ class Portal(DBPortal, BasePortal):
         source: "u.User",
         conversation: Optional[Conversation] = None,
     ):
-        await self.main_intent.invite_user(self.mxid, source.mxid, check_cache=False)
         puppet = await p.Puppet.get_by_custom_mxid(source.mxid)
+        await self.main_intent.invite_user(
+            self.mxid,
+            source.mxid,
+            check_cache=False,
+            extra_content=self._get_invite_content(puppet),
+        )
         if puppet and puppet.is_real_user:
             await puppet.intent.ensure_joined(self.mxid)
         await self.update_info(source, conversation)
