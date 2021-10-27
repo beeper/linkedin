@@ -12,6 +12,7 @@ from typing import (
 )
 
 import aiohttp
+from aiohttp.client_exceptions import TooManyRedirects
 from linkedin_messaging import LinkedInMessaging, URN
 from linkedin_messaging.api_objects import (
     Conversation,
@@ -193,14 +194,26 @@ class User(DBUser, BaseUser):
     ) -> bool:
         if self._is_logged_in and not _override:
             return True
-        if not self.client or not await self.client.logged_in():
+        if not self.client:
             return False
 
-        self.user_profile_cache = await self.client.get_user_profile()
-        if (mp := self.user_profile_cache.mini_profile) and mp.entity_urn:
-            self.li_member_urn = mp.entity_urn
-        else:
+        try:
+            self.user_profile_cache = await self.client.get_user_profile()
+        except TooManyRedirects as e:
+            await self.push_bridge_state(
+                BridgeStateEvent.BAD_CREDENTIALS,
+                message=str(e),
+            )
             return False
+        except Exception as e:
+            await self.push_bridge_state(BridgeStateEvent.UNKNOWN_ERROR, message=str(e))
+            return False
+        else:
+            if (mp := self.user_profile_cache.mini_profile) and mp.entity_urn:
+                self.li_member_urn = mp.entity_urn
+            else:
+                return False
+
         await self.push_bridge_state(BridgeStateEvent.CONNECTING)
 
         self.log.info("Loaded session successfully")
