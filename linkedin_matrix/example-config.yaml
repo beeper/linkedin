@@ -144,6 +144,9 @@ bridge:
     presence: true
     # Whether or not to update avatars when syncing all contacts at startup.
     update_avatar_initial_sync: true
+    # Whether or not created rooms should have federation enabled.
+    # If false, created portal rooms will never be federated.
+    federate_rooms: true
     # End-to-bridge encryption support options. These require matrix-nio to be installed with pip
     # and login_shared_secret to be configured in order to get a device for the bridge bot.
     #

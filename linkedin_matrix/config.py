@@ -53,6 +53,7 @@ class Config(BaseBridgeConfig):
         copy("bridge.encryption.key_sharing.allow")
         copy("bridge.encryption.key_sharing.require_cross_signing")
         copy("bridge.encryption.key_sharing.require_verification")
+        copy("bridge.federate_rooms")
         copy("bridge.initial_chat_sync")
         copy("bridge.invite_own_puppet_to_pm")
         copy("bridge.mute_bridging")
