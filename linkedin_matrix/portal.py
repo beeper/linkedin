@@ -578,11 +578,16 @@ class Portal(DBPortal, BasePortal):
         # created and the initial backfill finishing wouldn't be bridged before the
         # backfill messages.
         with self.backfill_lock:
+            creation_content = {}
+            if not self.config["bridge.federate_rooms"]:
+                creation_content["m.federate"] = False
+
             self.mxid = await self.main_intent.create_room(
                 name=name,
                 is_direct=self.is_direct,
                 initial_state=initial_state,
                 invitees=invites,
+                creation_content=creation_content,
             )
             if not self.mxid:
                 raise Exception("Failed to create room: no mxid returned")
