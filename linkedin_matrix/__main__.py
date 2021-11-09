@@ -45,10 +45,9 @@ class LinkedInBridge(Bridge):
         )
 
     def prepare_db(self):
-        self.db = Database(
+        self.db = Database.create(
             self.config["appservice.database"],
             upgrade_table=upgrade_table,
-            loop=self.loop,
             db_args=self.config["appservice.database_opts"],
         )
         init_db(self.db)
@@ -75,12 +74,13 @@ class LinkedInBridge(Bridge):
         self.log.debug("Saving user sessions")
         for user in User.by_mxid.values():
             await user.save()
+        await self.db.stop()
 
     async def start(self):
         await self.db.start()
-        await self.state_store.upgrade_table.upgrade(self.db.pool)
+        await self.state_store.upgrade_table.upgrade(self.db)
         if self.matrix.e2ee and self.matrix.e2ee.crypto_db:
-            self.matrix.e2ee.crypto_db.override_pool(self.db.pool)
+            self.matrix.e2ee.crypto_db.override_pool(self.db)
         self.add_startup_actions(User.init_cls(self))
         self.add_startup_actions(Puppet.init_cls(self))
         Portal.init_cls(self)
