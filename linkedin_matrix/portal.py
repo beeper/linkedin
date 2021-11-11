@@ -39,6 +39,7 @@ from mautrix.types import (
 )
 from mautrix.types.event.message import Format
 from mautrix.types.primitive import UserID
+from mautrix.util.message_send_checkpoint import MessageSendCheckpointStatus
 from mautrix.util.simple_lock import SimpleLock
 
 from . import puppet as p, user as u
@@ -861,14 +862,32 @@ class Portal(DBPortal, BasePortal):
         message: MessageEventContent,
         event_id: EventID,
     ):
+        assert self.mxid
+
+        exception: Optional[Exception] = None
         try:
             await self._handle_matrix_message(sender, message, event_id)
+        except ValueError as e:
+            await self._send_bridge_error(str(e), certain_failure=True)
+            exception = e
         except Error as e:
             self.log.exception(f"Failed handling {event_id}: {e.to_json()}")
             await self._send_bridge_error(e.to_json())
+            exception = e
         except Exception as e:
             self.log.exception(f"Failed handling {event_id}")
             await self._send_bridge_error(str(e))
+            exception = e
+
+        if exception:
+            sender.send_remote_checkpoint(
+                MessageSendCheckpointStatus.PERM_FAILURE,
+                event_id,
+                self.mxid,
+                EventType.ROOM_MESSAGE,
+                message.msgtype,
+                error=exception,
+            )
 
     async def _handle_matrix_message(
         self,
@@ -884,7 +903,7 @@ class Portal(DBPortal, BasePortal):
             )
             return
 
-        if message.msgtype in (MessageType.TEXT, MessageType.NOTICE, MessageType.EMOTE):
+        if message.msgtype.is_text:
             await self._handle_matrix_text(
                 event_id,
                 sender,
@@ -897,18 +916,14 @@ class Portal(DBPortal, BasePortal):
                 cast(MediaMessageEventContent, message),
             )
         else:
-            self.log.warning(f"Unsupported msgtype {message.msgtype} in {event_id}")
-            await self._send_bridge_error(
-                f"messages of {message.msgtype} are not supported.",
-                certain_failure=True,
-            )
-            return
+            raise ValueError(f"Messages of {message.msgtype} are not supported.")
 
     async def _send_linkedin_message(
         self,
         event_id: EventID,
         sender: "u.User",
         message_create: MessageCreate,
+        message_type: MessageType,
     ) -> DBMessage:
         assert self.mxid
         assert self.li_receiver_urn
@@ -920,6 +935,13 @@ class Portal(DBPortal, BasePortal):
             if not resp.value or not resp.value.event_urn:
                 raise Exception("Response value was None.")
 
+            sender.send_remote_checkpoint(
+                MessageSendCheckpointStatus.SUCCESS,
+                event_id,
+                self.mxid,
+                EventType.ROOM_MESSAGE,
+                message_type,
+            )
             message = DBMessage(
                 mxid=event_id,
                 mx_room=self.mxid,
@@ -945,7 +967,12 @@ class Portal(DBPortal, BasePortal):
         message_create = await matrix_to_linkedin(
             message, sender, self.main_intent, self.log
         )
-        await self._send_linkedin_message(event_id, sender, message_create)
+        await self._send_linkedin_message(
+            event_id,
+            sender,
+            message_create,
+            message.msgtype,
+        )
 
     async def _handle_matrix_media(
         self,
@@ -982,6 +1009,7 @@ class Portal(DBPortal, BasePortal):
             event_id,
             sender,
             MessageCreate(AttributedBody(), attachments=[attachment]),
+            message.msgtype,
         )
 
     async def handle_matrix_redaction(
@@ -1002,6 +1030,14 @@ class Portal(DBPortal, BasePortal):
                 )
             except Exception:
                 self.log.exception("Delete message failed")
+                raise
+            else:
+                sender.send_remote_checkpoint(
+                    MessageSendCheckpointStatus.SUCCESS,
+                    event_id,
+                    self.mxid,
+                    EventType.ROOM_REDACTION,
+                )
 
         reaction = await DBReaction.get_by_mxid(event_id, self.mxid)
         if reaction:
@@ -1012,6 +1048,14 @@ class Portal(DBPortal, BasePortal):
                 )
             except Exception:
                 self.log.exception("Removing reaction failed")
+                raise
+            else:
+                sender.send_remote_checkpoint(
+                    MessageSendCheckpointStatus.SUCCESS,
+                    event_id,
+                    self.mxid,
+                    EventType.ROOM_REDACTION,
+                )
 
         await self._send_delivery_receipt(redaction_event_id)
 
@@ -1030,19 +1074,29 @@ class Portal(DBPortal, BasePortal):
                 self.log.debug(f"Ignoring reaction to unknown event {reacting_to}")
                 return
 
-            await sender.client.add_emoji_reaction(
-                self.li_thread_urn, message.li_message_urn, reaction
-            )
-            await DBReaction(
-                mxid=event_id,
-                mx_room=message.mx_room,
-                li_message_urn=message.li_message_urn,
-                li_receiver_urn=self.li_receiver_urn,
-                li_sender_urn=sender.li_member_urn,
-                reaction=reaction,
-            ).insert()
-
-        await self._send_delivery_receipt(event_id)
+            try:
+                await sender.client.add_emoji_reaction(
+                    self.li_thread_urn, message.li_message_urn, reaction
+                )
+            except Exception:
+                self.log.exception("Failed to send emoji reaction")
+                raise
+            else:
+                sender.send_remote_checkpoint(
+                    MessageSendCheckpointStatus.SUCCESS,
+                    event_id,
+                    self.mxid,
+                    EventType.REACTION,
+                )
+                await DBReaction(
+                    mxid=event_id,
+                    mx_room=message.mx_room,
+                    li_message_urn=message.li_message_urn,
+                    li_receiver_urn=self.li_receiver_urn,
+                    li_sender_urn=sender.li_member_urn,
+                    reaction=reaction,
+                ).insert()
+                await self._send_delivery_receipt(event_id)
 
     # endregion
 
