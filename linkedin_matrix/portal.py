@@ -459,11 +459,7 @@ class Portal(DBPortal, BasePortal):
                 participant_urn = conversation.entity_urn
             puppet = await p.Puppet.get_by_li_member_urn(participant_urn)
             await puppet.update_info(source, participant.messaging_member)
-            if (
-                self.is_direct
-                and self.li_other_user_urn == puppet.li_member_urn
-                and self.encrypted
-            ):
+            if self.is_direct and self.li_other_user_urn == puppet.li_member_urn:
                 changed = await self._update_name(puppet.name) or changed
                 changed = await self._update_photo_from_puppet(puppet) or changed
 
@@ -527,6 +523,10 @@ class Portal(DBPortal, BasePortal):
             await self._update_matrix_room(source, conversation)
             return self.mxid
 
+        # Update info before computing initial state because self.bridge_info depends on
+        # things that are set by this function.
+        await self.update_info(source, conversation)
+
         self.log.debug("Creating Matrix room")
         name: Optional[str] = None
         initial_state = [
@@ -554,8 +554,6 @@ class Portal(DBPortal, BasePortal):
             )
             if self.is_direct:
                 invites.append(self.az.bot_mxid)
-
-        await self.update_info(source, conversation)
 
         if self.topic:
             initial_state.append(
