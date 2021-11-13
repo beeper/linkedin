@@ -402,6 +402,10 @@ class Portal(DBPortal, BasePortal):
             return False
         self.topic = topic
 
+        if not self.topic and not self.topic_set:
+            self.topic_set = True
+            return False
+
         if self.mxid:
             try:
                 await self.main_intent.set_room_topic(self.mxid, self.topic or "")
@@ -637,8 +641,8 @@ class Portal(DBPortal, BasePortal):
                     if levels.get_user_level(self.main_intent.mxid) == 100:
                         levels.events_default = 50
                         await self.main_intent.set_power_levels(self.mxid, levels)
-            else:
-                await self._update_participants(source, conversation)
+
+            await self._update_participants(source, conversation)
 
             try:
                 await self.backfill(source, conversation, is_initial=True)
