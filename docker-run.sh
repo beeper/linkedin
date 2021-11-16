@@ -1,28 +1,31 @@
 #!/bin/sh
 
+[ -z $CONFIG_PATH ] && CONFIG_PATH="/data/config.yaml"
+[ -z $REGISTRATION_PATH ] && REGISTRATION_PATH="/data/registration.yaml"
+
 # Define functions.
 function fixperms {
-	chown -R $UID:$GID /data /opt/linkedin-matrix
+	chown -R $UID:$GID $CONFIG_PATH /opt/linkedin-matrix
 }
 
 cd /opt/linkedin-matrix
 
-if [ ! -f /data/config.yaml ]; then
-	cp linkedin_matrix/example-config.yaml /data/config.yaml
-	sed -i "s#hostname: localhost#hostname: 0.0.0.0#" /data/config.yaml
+if [ ! -f $CONFIG_PATH ]; then
+	cp linkedin_matrix/example-config.yaml $CONFIG_PATH
+	sed -i "s#hostname: localhost#hostname: 0.0.0.0#" $CONFIG_PATH
 	echo "Didn't find a config file."
-	echo "Copied default config file to /data/config.yaml"
+	echo "Copied default config file to $CONFIG_PATH"
 	echo "Modify that config file to your liking."
 	echo "Start the container again after that to generate the registration file."
 	fixperms
 	exit
 fi
 
-if [ ! -f /data/registration.yaml ]; then
-	python3 -m linkedin_matrix -g -c /data/config.yaml -r /data/registration.yaml
+if [ ! -f $REGISTRATION_PATH ]; then
+	python3 -m linkedin_matrix -g -c $CONFIG_PATH -r $REGISTRATION_PATH
 	fixperms
 	exit
 fi
 
 fixperms
-exec su-exec $UID:$GID python3 -m linkedin_matrix -c /data/config.yaml
+exec su-exec $UID:$GID python3 -m linkedin_matrix -c $CONFIG_PATH
