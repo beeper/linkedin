@@ -897,14 +897,6 @@ class Portal(DBPortal, BasePortal):
         message: MessageEventContent,
         event_id: EventID,
     ):
-        if message.get(
-            self.az.real_user_content_key, False
-        ) and await p.Puppet.get_by_custom_mxid(sender.mxid):
-            self.log.debug(
-                f"Ignoring puppet-sent message by confirmed puppet user {sender.mxid}"
-            )
-            return
-
         if message.msgtype.is_text:
             await self._handle_matrix_text(
                 event_id,

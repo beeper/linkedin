@@ -2,18 +2,13 @@ from typing import cast, Optional, TYPE_CHECKING, Union
 
 from mautrix.bridge import BaseMatrixHandler
 from mautrix.types import (
-    EncryptedEvent,
     Event,
     EventID,
     EventType,
-    MessageEvent,
     PresenceEvent,
     PresenceEventContent,
-    ReactionEvent,
     ReceiptEvent,
-    RedactionEvent,
     RoomID,
-    StateEvent,
     TypingEvent,
     UserID,
 )
@@ -21,7 +16,7 @@ from mautrix.types.event.message import RelationType
 from mautrix.types.event.reaction import ReactionEventContent
 
 # these have to be in this particular order to avoid circular imports
-from . import user as u, portal as po, puppet as pu  # noqa: I101
+from . import user as u, portal as po  # noqa: I101
 
 if TYPE_CHECKING:
     from .__main__ import LinkedInBridge
@@ -53,19 +48,6 @@ class MatrixHandler(BaseMatrixHandler):
             return
         self.log.debug(f"{user.li_member_urn} read {portal.li_thread_urn}")
         await user.client.mark_conversation_as_read(portal.li_thread_urn)
-
-    def filter_matrix_event(self, evt: Event) -> bool:
-        if isinstance(evt, (ReceiptEvent, TypingEvent, PresenceEvent)):
-            return False
-        elif not isinstance(
-            evt,
-            (ReactionEvent, RedactionEvent, MessageEvent, StateEvent, EncryptedEvent),
-        ):
-            return True
-        return (
-            evt.sender == self.az.bot_mxid
-            or pu.Puppet.get_id_from_mxid(evt.sender) is not None
-        )
 
     async def handle_leave(self, room_id: RoomID, user_id: UserID, _):
         portal = await po.Portal.get_by_mxid(room_id)
