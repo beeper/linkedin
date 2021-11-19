@@ -5,7 +5,7 @@
 
 # Define functions.
 function fixperms {
-	chown -R $UID:$GID $CONFIG_PATH /opt/linkedin-matrix
+	chown -R $UID:$GID $CONFIG_PATH $REGISTRATION_PATH /opt/linkedin-matrix
 }
 
 cd /opt/linkedin-matrix
