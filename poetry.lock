@@ -127,7 +127,7 @@ reference = "matrix-olm"
 
 [[package]]
 name = "black"
-version = "21.10b0"
+version = "21.11b1"
 description = "The uncompromising code formatter."
 category = "dev"
 optional = false
@@ -138,7 +138,7 @@ click = ">=7.1.2"
 mypy-extensions = ">=0.4.3"
 pathspec = ">=0.9.0,<1"
 platformdirs = ">=2"
-regex = ">=2020.1.8"
+regex = ">=2021.4.4"
 tomli = ">=0.2.6,<2.0.0"
 typing-extensions = [
     {version = ">=3.10.0.0", markers = "python_version < \"3.10\""},
@@ -430,7 +430,7 @@ reference = "matrix-olm"
 
 [[package]]
 name = "mautrix"
-version = "0.11.4"
+version = "0.12.0"
 description = "A Python 3 asyncio Matrix framework."
 category = "main"
 optional = false
@@ -513,14 +513,14 @@ reference = "matrix-olm"
 
 [[package]]
 name = "packaging"
-version = "21.2"
+version = "21.3"
 description = "Core utilities for Python packages"
 category = "dev"
 optional = false
 python-versions = ">=3.6"
 
 [package.dependencies]
-pyparsing = ">=2.0.2,<3"
+pyparsing = ">=2.0.2,<3.0.5 || >3.0.5"
 
 [package.source]
 type = "legacy"
@@ -670,11 +670,14 @@ reference = "matrix-olm"
 
 [[package]]
 name = "pyparsing"
-version = "2.4.7"
+version = "3.0.6"
 description = "Python parsing module"
 category = "dev"
 optional = false
-python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
+python-versions = ">=3.6"
+
+[package.extras]
+diagrams = ["jinja2", "railroad-diagrams"]
 
 [package.source]
 type = "legacy"
@@ -722,7 +725,7 @@ reference = "matrix-olm"
 
 [[package]]
 name = "python-olm"
-version = "3.1.3"
+version = "3.2.6"
 description = "python CFFI bindings for the olm cryptographic ratchet library"
 category = "main"
 optional = true
@@ -731,6 +734,11 @@ python-versions = "*"
 [package.dependencies]
 cffi = ">=1.0.0"
 future = "*"
+
+[package.source]
+type = "legacy"
+url = "https://gitlab.matrix.org/api/v4/projects/27/packages/pypi/simple"
+reference = "matrix-olm"
 
 [[package]]
 name = "regex"
@@ -937,7 +945,7 @@ metrics = ["prometheus-client"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "daf2cbf79e6da3b706bd61205f4c07d574564bd84e0bf9d7ada1441a254117fa"
+content-hash = "76b7f349064b89b04335ed8e4b639702104dda5a2a81cf47f1b126a302f84162"
 
 [metadata.files]
 aiohttp = [
@@ -1063,8 +1071,8 @@ beautifulsoup4 = [
     {file = "beautifulsoup4-4.10.0.tar.gz", hash = "sha256:c23ad23c521d818955a4151a67d81580319d4bf548d3d49f4223ae041ff98891"},
 ]
 black = [
-    {file = "black-21.10b0-py3-none-any.whl", hash = "sha256:6eb7448da9143ee65b856a5f3676b7dda98ad9abe0f87fce8c59291f15e82a5b"},
-    {file = "black-21.10b0.tar.gz", hash = "sha256:a9952229092e325fe5f3dae56d81f639b23f7131eb840781947e4b2886030f33"},
+    {file = "black-21.11b1-py3-none-any.whl", hash = "sha256:802c6c30b637b28645b7fde282ed2569c0cd777dbe493a41b6a03c1d903f99ac"},
+    {file = "black-21.11b1.tar.gz", hash = "sha256:a042adbb18b3262faad5aff4e834ff186bb893f95ba3a8013f09de1e5569def2"},
 ]
 cffi = [
     {file = "cffi-1.15.0-cp27-cp27m-macosx_10_9_x86_64.whl", hash = "sha256:c2502a1a03b6312837279c8c1bd3ebedf6c12c4228ddbad40912d671ccc8a962"},
@@ -1252,8 +1260,8 @@ marshmallow-enum = [
     {file = "marshmallow_enum-1.5.1-py2.py3-none-any.whl", hash = "sha256:57161ab3dbfde4f57adeb12090f39592e992b9c86d206d02f6bd03ebec60f072"},
 ]
 mautrix = [
-    {file = "mautrix-0.11.4-py3-none-any.whl", hash = "sha256:4affdfcb1b25f2c728673353e2eb460ac8728b17fe5f7f4b27bebb99985f70a0"},
-    {file = "mautrix-0.11.4.tar.gz", hash = "sha256:c58b57e27c804d39dc9e12b6d74b45dcd650f6ef576da4be5d0d4232660ff310"},
+    {file = "mautrix-0.12.0-py3-none-any.whl", hash = "sha256:7ecea899db7f60947921fe44cfe8acfabfbe6a276828e474868c4f70cc9f08e7"},
+    {file = "mautrix-0.12.0.tar.gz", hash = "sha256:59f93da6f5a7caaa7bf74dd3676da6c9c6365b3a9d8c8a940be4d5bd9da48817"},
 ]
 mccabe = [
     {file = "mccabe-0.6.1-py2.py3-none-any.whl", hash = "sha256:ab8a6258860da4b6677da4bd2fe5dc2c659cff31b3ee4f7f5d64e79735b80d42"},
@@ -1363,8 +1371,8 @@ mypy-extensions = [
     {file = "mypy_extensions-0.4.3.tar.gz", hash = "sha256:2d82818f5bb3e369420cb3c4060a7970edba416647068eb4c5343488a6c604a8"},
 ]
 packaging = [
-    {file = "packaging-21.2-py3-none-any.whl", hash = "sha256:14317396d1e8cdb122989b916fa2c7e9ca8e2be9e8060a6eff75b6b7b4d8a7e0"},
-    {file = "packaging-21.2.tar.gz", hash = "sha256:096d689d78ca690e4cd8a89568ba06d07ca097e3306a4381635073ca91479966"},
+    {file = "packaging-21.3-py3-none-any.whl", hash = "sha256:ef103e05f519cdc783ae24ea4e2e0f508a9c99b2d4969652eed6a2e1ea5bd522"},
+    {file = "packaging-21.3.tar.gz", hash = "sha256:dd47c42927d89ab911e606518907cc2d3a1f38bbd026385970643f9c5b8ecfeb"},
 ]
 pathspec = [
     {file = "pathspec-0.9.0-py2.py3-none-any.whl", hash = "sha256:7d15c4ddb0b5c802d161efc417ec1a2558ea2653c2e8ad9c19098201dc1c993a"},
@@ -1474,8 +1482,8 @@ pyflakes = [
     {file = "pyflakes-2.4.0.tar.gz", hash = "sha256:05a85c2872edf37a4ed30b0cce2f6093e1d0581f8c19d7393122da7e25b2b24c"},
 ]
 pyparsing = [
-    {file = "pyparsing-2.4.7-py2.py3-none-any.whl", hash = "sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b"},
-    {file = "pyparsing-2.4.7.tar.gz", hash = "sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1"},
+    {file = "pyparsing-3.0.6-py3-none-any.whl", hash = "sha256:04ff808a5b90911829c55c4e26f75fa5ca8a2f5f36aa3a51f68e27033341d3e4"},
+    {file = "pyparsing-3.0.6.tar.gz", hash = "sha256:d9bdec0013ef1eb5a84ab39a3b3868911598afa494f5faa038647101504e2b81"},
 ]
 pytest = [
     {file = "pytest-6.2.5-py3-none-any.whl", hash = "sha256:7310f8d27bc79ced999e760ca304d69f6ba6c6649c0b60fb0e04a4a77cacc134"},
@@ -1486,7 +1494,29 @@ python-magic = [
     {file = "python_magic-0.4.24-py2.py3-none-any.whl", hash = "sha256:4fec8ee805fea30c07afccd1592c0f17977089895bdfaae5fec870a84e997626"},
 ]
 python-olm = [
-    {file = "python-olm-3.1.3.tar.gz", hash = "sha256:9a6c6133ce3777788c88e3f18b13c5b36a2f76ed1a0e774d1a48adf542fee871"},
+    {file = "python_olm-3.2.6-cp27-cp27m-manylinux1_i686.whl", hash = "sha256:da646567c4530c939379eb17205e61f46377dc2aa3b9eb1c70f2eacebaf3d9fb"},
+    {file = "python_olm-3.2.6-cp27-cp27m-manylinux1_x86_64.whl", hash = "sha256:ddafaab15d98dbcfca68fe715530693277f3570a86c7209f6777dfa96b6de71b"},
+    {file = "python_olm-3.2.6-cp27-cp27m-manylinux2010_x86_64.whl", hash = "sha256:d1e9879cbd45d59d2947bd5dc57c1f2002a15721ff568b3b8fe58d1af257447e"},
+    {file = "python_olm-3.2.6-cp35-cp35m-manylinux1_i686.whl", hash = "sha256:30ef993d8b08d7d1a9f753291dc8c3662986b2d8b9b7f0652c9731704dd1fdb4"},
+    {file = "python_olm-3.2.6-cp35-cp35m-manylinux1_x86_64.whl", hash = "sha256:8f5ad5d51440e1bbe6d2e996fc584546da276c60ccca4d9e5d000426603211e2"},
+    {file = "python_olm-3.2.6-cp35-cp35m-manylinux2010_x86_64.whl", hash = "sha256:7c010aa3dce13f85d81235a1dce2b227ffba2e8788a6b768eb5f3436b695be45"},
+    {file = "python_olm-3.2.6-cp35-cp35m-manylinux2014_aarch64.whl", hash = "sha256:4207484e1ed91d146dbabb9798364a6d342a9a17088000db418071c9e191fba7"},
+    {file = "python_olm-3.2.6-cp36-cp36m-manylinux1_i686.whl", hash = "sha256:55a4872223b6e0927a0016cad5d8ccccdaf147caaeb41ae1886dc27816ce5ff9"},
+    {file = "python_olm-3.2.6-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:52a1c8b34f52eab3df4e241010c3ada8149872bf56ed1d06e00548821d7cdd31"},
+    {file = "python_olm-3.2.6-cp36-cp36m-manylinux2010_x86_64.whl", hash = "sha256:46c312d8c6414a02ac372964699ae89569007a04c38c92c5711f3f7f202725df"},
+    {file = "python_olm-3.2.6-cp36-cp36m-manylinux2014_aarch64.whl", hash = "sha256:28980f9f46ca3d4abf2b3380096a4b0f29617b8622eb5c65330326bebd8254af"},
+    {file = "python_olm-3.2.6-cp37-cp37m-manylinux1_i686.whl", hash = "sha256:08819ba5b4ef9fa908acac747635909dece8112f4f6a17da4b4f0db172c2d76b"},
+    {file = "python_olm-3.2.6-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:c641b473b03587266f0849f71beb6d8dbab0a8404ae7e35aa3ee027edb9bc8d4"},
+    {file = "python_olm-3.2.6-cp37-cp37m-manylinux2010_x86_64.whl", hash = "sha256:8cde8e73061ec80ea8ecd5766ca08ffd4fa308565089584b29409b30257161cd"},
+    {file = "python_olm-3.2.6-cp37-cp37m-manylinux2014_aarch64.whl", hash = "sha256:f62313803494b43f0049770b866bc5f0c5836416b07969b6361253f2ff969979"},
+    {file = "python_olm-3.2.6-cp38-cp38-manylinux1_i686.whl", hash = "sha256:edb5978907792c19242e7f10ca9653e1bd7c2a5700c259ff6a9d1f7d3d879fe3"},
+    {file = "python_olm-3.2.6-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:6e59e1b1bcc90c6f6eed3112578587545b9b2d340925c0d95c8efa2c0ac82d60"},
+    {file = "python_olm-3.2.6-cp38-cp38-manylinux2010_x86_64.whl", hash = "sha256:5ddc06746d19382105610ec92008cbb055ef9f5b6847c84d0f88d721977514f4"},
+    {file = "python_olm-3.2.6-cp38-cp38-manylinux2014_aarch64.whl", hash = "sha256:7890ddcd1c29cdc71cd25e0984bd99e7beccc6041903bd09879903b9a2398ad1"},
+    {file = "python_olm-3.2.6-cp39-cp39-manylinux1_i686.whl", hash = "sha256:a5e4ac5b67e5c6c5cf9dc6ecf17223c6594c296ecf31730ac42843a79a233dc3"},
+    {file = "python_olm-3.2.6-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:51309ff29d3f99cc0a0881186dd6dbc1dea0b18853ad7b706cd52be4f3782a51"},
+    {file = "python_olm-3.2.6-cp39-cp39-manylinux2010_x86_64.whl", hash = "sha256:456f89c12fc1e37450945fee268d2cc0c7b235296e7dd9b06dd2645b9a0ff37d"},
+    {file = "python_olm-3.2.6-cp39-cp39-manylinux2014_aarch64.whl", hash = "sha256:cefa8bc8ffa6e9c3a51cb9a4cff941b6bd76a4484a2ecc42e1cea25eeb6b84c1"},
 ]
 regex = [
     {file = "regex-2021.11.10-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:9345b6f7ee578bad8e475129ed40123d265464c4cfead6c261fd60fc9de00bcf"},
