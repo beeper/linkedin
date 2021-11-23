@@ -430,7 +430,7 @@ reference = "matrix-olm"
 
 [[package]]
 name = "mautrix"
-version = "0.12.0"
+version = "0.12.3"
 description = "A Python 3 asyncio Matrix framework."
 category = "main"
 optional = false
@@ -443,7 +443,7 @@ yarl = ">=1,<2"
 
 [package.extras]
 detect_mimetype = ["python-magic (>=0.4.15,<0.5)"]
-test = ["pytest"]
+test = ["pytest", "pytest-asyncio", "aiosqlite", "sqlalchemy", "asyncpg"]
 
 [package.source]
 type = "legacy"
@@ -1260,8 +1260,8 @@ marshmallow-enum = [
     {file = "marshmallow_enum-1.5.1-py2.py3-none-any.whl", hash = "sha256:57161ab3dbfde4f57adeb12090f39592e992b9c86d206d02f6bd03ebec60f072"},
 ]
 mautrix = [
-    {file = "mautrix-0.12.0-py3-none-any.whl", hash = "sha256:7ecea899db7f60947921fe44cfe8acfabfbe6a276828e474868c4f70cc9f08e7"},
-    {file = "mautrix-0.12.0.tar.gz", hash = "sha256:59f93da6f5a7caaa7bf74dd3676da6c9c6365b3a9d8c8a940be4d5bd9da48817"},
+    {file = "mautrix-0.12.3-py3-none-any.whl", hash = "sha256:705b5d2b0c262f2bc11ea5c6a2f01ee5e5b361a1863e8c8fccd796861b54b967"},
+    {file = "mautrix-0.12.3.tar.gz", hash = "sha256:ec1c37ac630a33ebd2133710c6c4c9734353e99041049a06be90ae407e471398"},
 ]
 mccabe = [
     {file = "mccabe-0.6.1-py2.py3-none-any.whl", hash = "sha256:ab8a6258860da4b6677da4bd2fe5dc2c659cff31b3ee4f7f5d64e79735b80d42"},
