@@ -8,6 +8,7 @@
       * [x] Images
       * [x] Videos
       * [x] GIFs
+      * [ ] Voice Messages
       * [ ] Stickers
     * [ ] ~~Formatting~~ (LinkedIn does not support rich formatting)
     * [ ] ~~Replies~~ (LinkedIn does not support replies)
