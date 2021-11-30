@@ -1012,46 +1012,51 @@ class Portal(DBPortal, BasePortal):
         event_id: EventID,
         redaction_event_id: EventID,
     ):
+        try:
+            await self._handle_matrix_redaction(sender, event_id)
+        except Exception as e:
+            sender.send_remote_checkpoint(
+                MessageSendCheckpointStatus.PERM_FAILURE,
+                redaction_event_id,
+                self.mxid,
+                EventType.ROOM_REDACTION,
+                error=e,
+            )
+        else:
+            sender.send_remote_checkpoint(
+                MessageSendCheckpointStatus.SUCCESS,
+                redaction_event_id,
+                self.mxid,
+                EventType.ROOM_REDACTION,
+            )
+            await self._send_delivery_receipt(redaction_event_id)
+
+    async def _handle_matrix_redaction(self, sender: "u.User", event_id: EventID):
         if not self.mxid or not sender.client:
             return
 
         message = await DBMessage.get_by_mxid(event_id, self.mxid)
         if message:
-            try:
-                await message.delete()
-                await sender.client.delete_message(
-                    self.li_thread_urn, message.li_message_urn
-                )
-            except Exception:
-                self.log.exception("Delete message failed")
-                raise
-            else:
-                sender.send_remote_checkpoint(
-                    MessageSendCheckpointStatus.SUCCESS,
-                    event_id,
-                    self.mxid,
-                    EventType.ROOM_REDACTION,
-                )
+            self.log.info(f"Deleting {message.li_message_urn} in {self.li_thread_urn}")
+            await message.delete()
+            await sender.client.delete_message(
+                self.li_thread_urn, message.li_message_urn
+            )
+            return
 
         reaction = await DBReaction.get_by_mxid(event_id, self.mxid)
         if reaction:
-            try:
-                await reaction.delete()
-                await sender.client.remove_emoji_reaction(
-                    self.li_thread_urn, reaction.li_message_urn, emoji=reaction.reaction
-                )
-            except Exception:
-                self.log.exception("Removing reaction failed")
-                raise
-            else:
-                sender.send_remote_checkpoint(
-                    MessageSendCheckpointStatus.SUCCESS,
-                    event_id,
-                    self.mxid,
-                    EventType.ROOM_REDACTION,
-                )
+            self.log.info(
+                f"Deleting reaction {reaction.reaction} from {reaction.li_message_urn}"
+                f" in {self.li_thread_urn}"
+            )
+            await reaction.delete()
+            await sender.client.remove_emoji_reaction(
+                self.li_thread_urn, reaction.li_message_urn, emoji=reaction.reaction
+            )
+            return
 
-        await self._send_delivery_receipt(redaction_event_id)
+        raise Exception("No message or reaction found for redaction")
 
     async def handle_matrix_reaction(
         self,
