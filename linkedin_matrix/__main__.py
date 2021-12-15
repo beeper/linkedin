@@ -25,7 +25,6 @@ class LinkedInBridge(Bridge):
     command = "linkedin-matrix"
     description = "A Matrix-LinkedIn Messages puppeting bridge."
     repo_url = "https://gitlab.com/beeper/linkedin"
-    real_user_content_key = "com.beeper.linkedin.puppet"
     version = version
     markdown_version = linkified_version
     config_class = Config
@@ -69,11 +68,11 @@ class LinkedInBridge(Bridge):
         self.az.app.add_subapp(cfg["prefix"], self.provisioning_api.app)
 
     async def stop(self):
-        await super().stop()
         await Puppet.close()
         self.log.debug("Saving user sessions")
         for user in User.by_mxid.values():
             await user.save()
+        await super().stop()
         await self.db.stop()
 
     async def start(self):

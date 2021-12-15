@@ -21,7 +21,7 @@ from linkedin_messaging.api_objects import (
     RealTimeEventStreamEvent,
     UserProfileResponse,
 )
-from mautrix.bridge import async_getter_lock, BaseUser, BridgeState
+from mautrix.bridge import async_getter_lock, BaseUser
 from mautrix.errors import MNotFound
 from mautrix.types import (
     PushActionType,
@@ -30,7 +30,7 @@ from mautrix.types import (
     RoomID,
     UserID,
 )
-from mautrix.util.bridge_state import BridgeStateEvent
+from mautrix.util.bridge_state import BridgeState, BridgeStateEvent
 from mautrix.util.opt_prometheus import async_time, Gauge, Summary
 from mautrix.util.simple_lock import SimpleLock
 
