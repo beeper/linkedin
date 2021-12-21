@@ -867,11 +867,13 @@ class Portal(DBPortal, BasePortal):
         assert self.mxid
 
         exception: Optional[Exception] = None
+        status = MessageSendCheckpointStatus.PERM_FAILURE
         try:
             await self._handle_matrix_message(sender, message, event_id)
-        except ValueError as e:
+        except NotImplementedError as e:
             await self._send_bridge_error(str(e), certain_failure=True)
             exception = e
+            status = MessageSendCheckpointStatus.UNSUPPORTED
         except Error as e:
             self.log.exception(f"Failed handling {event_id}: {e.to_json()}")
             await self._send_bridge_error(e.to_json())
@@ -883,7 +885,7 @@ class Portal(DBPortal, BasePortal):
 
         if exception:
             sender.send_remote_checkpoint(
-                MessageSendCheckpointStatus.PERM_FAILURE,
+                status,
                 event_id,
                 self.mxid,
                 EventType.ROOM_MESSAGE,
@@ -910,7 +912,9 @@ class Portal(DBPortal, BasePortal):
                 cast(MediaMessageEventContent, message),
             )
         else:
-            raise ValueError(f"Messages of {message.msgtype} are not supported.")
+            raise NotImplementedError(
+                f"Messages of type {message.msgtype} are not supported."
+            )
 
     async def _send_linkedin_message(
         self,
