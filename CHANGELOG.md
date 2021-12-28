@@ -1,3 +1,9 @@
+# v0.5.2
+
+* Upgraded mautrix to `^0.14.0`
+* Major improvements across the board for message send status reporting via
+  native Matrix notices and via message send checkpoints.
+
 # v0.5.1
 
 * Add support for shared feed posts.
