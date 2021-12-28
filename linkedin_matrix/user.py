@@ -107,9 +107,7 @@ class User(DBUser, BaseUser):
         cls.config = bridge.config
         cls.az = bridge.az
         cls.loop = bridge.loop
-        cls.temp_disconnect_notices = bridge.config[
-            "bridge.temporary_disconnect_notices"
-        ]
+        cls.temp_disconnect_notices = bridge.config["bridge.temporary_disconnect_notices"]
         return (user.load_session() async for user in cls.all_logged_in())
 
     @property
@@ -313,9 +311,7 @@ class User(DBUser, BaseUser):
     @async_time(METRIC_SYNC_THREADS)
     async def sync_threads(self):
         if self._prev_thread_sync + 10 > time.monotonic():
-            self.log.debug(
-                "Previous thread sync was less than 10 seconds ago, not re-syncing"
-            )
+            self.log.debug("Previous thread sync was less than 10 seconds ago, not re-syncing")
             return
         self._prev_thread_sync = time.monotonic()
         try:
@@ -347,9 +343,7 @@ class User(DBUser, BaseUser):
                     await self._sync_thread(conversation)
                 except Exception:
                     self.user_profile_cache = None
-                    self.log.exception(
-                        f"Failed to sync thread {conversation.entity_urn}"
-                    )
+                    self.log.exception(f"Failed to sync thread {conversation.entity_urn}")
                 synced_threads += 1
 
             await self.update_direct_chats()
@@ -372,11 +366,7 @@ class User(DBUser, BaseUser):
         li_other_user_urn = None
         if not conversation.group_chat:
             other_user = conversation.participants[0]
-            if (
-                (mm := other_user.messaging_member)
-                and (mp := mm.mini_profile)
-                and mp.entity_urn
-            ):
+            if (mm := other_user.messaging_member) and (mp := mm.mini_profile) and mp.entity_urn:
                 li_other_user_urn = mp.entity_urn
                 if li_other_user_urn == URN("UNKNOWN"):
                     li_other_user_urn = conversation.entity_urn
@@ -439,9 +429,7 @@ class User(DBUser, BaseUser):
                     self.log.debug("Cache hit on user_profile_cache")
                 user_profile = user_profile or await user.client.get_user_profile()
                 if mp := user_profile.mini_profile:
-                    state.remote_name = " ".join(
-                        n for n in [mp.first_name, mp.last_name] if n
-                    )
+                    state.remote_name = " ".join(n for n in [mp.first_name, mp.last_name] if n)
             except Exception:
                 self.user_profile_cache = None
                 pass
@@ -470,12 +458,8 @@ class User(DBUser, BaseUser):
                 and self.client
                 and not self.shutdown
             ):
-                self.log.warn(
-                    "Logged out, but not by a logout call, sending bad credentials."
-                )
-                asyncio.create_task(
-                    self.push_bridge_state(BridgeStateEvent.BAD_CREDENTIALS)
-                )
+                self.log.warn("Logged out, but not by a logout call, sending bad credentials.")
+                asyncio.create_task(self.push_bridge_state(BridgeStateEvent.BAD_CREDENTIALS))
 
     listener_event_handlers_created: bool = False
     listener_task_i: int = 0
@@ -491,16 +475,10 @@ class User(DBUser, BaseUser):
     async def _try_listen(self):
         assert self.client
         if not self.listener_event_handlers_created:
-            self.client.add_event_listener(
-                "ALL_EVENTS", self.handle_linkedin_stream_event
-            )
-            self.client.add_event_listener(
-                "STREAM_ERROR", self.handle_linkedin_listener_error
-            )
+            self.client.add_event_listener("ALL_EVENTS", self.handle_linkedin_stream_event)
+            self.client.add_event_listener("STREAM_ERROR", self.handle_linkedin_listener_error)
             self.client.add_event_listener("event", self.handle_linkedin_event)
-            self.client.add_event_listener(
-                "reactionAdded", self.handle_linkedin_reaction_added
-            )
+            self.client.add_event_listener("reactionAdded", self.handle_linkedin_reaction_added)
             self.listener_event_handlers_created = True
         await self.client.start_listener()
 

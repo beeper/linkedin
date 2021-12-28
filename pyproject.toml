@@ -67,3 +67,10 @@ module = [
     "ruamel",
 ]
 ignore_missing_imports = true
+
+# Black config
+
+[tool.black]
+line-length = 99
+target-version = ["py39"]
+required-version = "21.12b0"

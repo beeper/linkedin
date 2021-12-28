@@ -149,9 +149,7 @@ class Portal(DBPortal, BasePortal):
         cls.matrix = bridge.matrix
         cls.invite_own_puppet_to_pm = cls.config["bridge.invite_own_puppet_to_pm"]
         NotificationDisabler.puppet_cls = p.Puppet
-        NotificationDisabler.config_enabled = cls.config[
-            "bridge.backfill.disable_notifications"
-        ]
+        NotificationDisabler.config_enabled = cls.config["bridge.backfill.disable_notifications"]
 
     # region DB conversion
 
@@ -192,9 +190,7 @@ class Portal(DBPortal, BasePortal):
     @property
     def main_intent(self) -> IntentAPI:
         if not self._main_intent:
-            raise ValueError(
-                "Portal must be postinit()ed before main_intent can be used"
-            )
+            raise ValueError("Portal must be postinit()ed before main_intent can be used")
         return self._main_intent
 
     @property
@@ -286,9 +282,7 @@ class Portal(DBPortal, BasePortal):
         for portal in portals:
             portal = cast(Portal, portal)
             try:
-                yield cls.by_li_thread_urn[
-                    (portal.li_thread_urn, portal.li_receiver_urn)
-                ]
+                yield cls.by_li_thread_urn[(portal.li_thread_urn, portal.li_receiver_urn)]
             except KeyError:
                 await portal.postinit()
                 yield portal
@@ -298,9 +292,7 @@ class Portal(DBPortal, BasePortal):
         portals = await super().all()
         for portal in cast(list[Portal], portals):
             try:
-                yield cls.by_li_thread_urn[
-                    (portal.li_thread_urn, portal.li_receiver_urn)
-                ]
+                yield cls.by_li_thread_urn[(portal.li_thread_urn, portal.li_receiver_urn)]
             except KeyError:
                 await portal.postinit()
                 yield portal
@@ -465,9 +457,7 @@ class Portal(DBPortal, BasePortal):
 
             if self.mxid:
                 if puppet.li_member_urn != self.li_receiver_urn or puppet.is_real_user:
-                    await puppet.intent_for(self).ensure_joined(
-                        self.mxid, bot=self.main_intent
-                    )
+                    await puppet.intent_for(self).ensure_joined(self.mxid, bot=self.main_intent)
 
         return changed
 
@@ -504,9 +494,7 @@ class Portal(DBPortal, BasePortal):
         except Exception:
             self.log.exception("Failed to update portal")
 
-    def _get_invite_content(
-        self, double_puppet: Optional["p.Puppet"]
-    ) -> dict[str, Any]:
+    def _get_invite_content(self, double_puppet: Optional["p.Puppet"]) -> dict[str, Any]:
         invite_content = {}
         if double_puppet:
             invite_content["fi.mau.will_auto_accept"] = True
@@ -599,9 +587,7 @@ class Portal(DBPortal, BasePortal):
                 try:
                     await self.az.intent.ensure_joined(self.mxid)
                 except Exception:
-                    self.log.warning(
-                        f"Failed to add bridge bot to new private chat {self.mxid}"
-                    )
+                    self.log.warning(f"Failed to add bridge bot to new private chat {self.mxid}")
 
             await self.save()
             self.log.debug(f"Matrix room created: {self.mxid}")
@@ -615,9 +601,7 @@ class Portal(DBPortal, BasePortal):
             if puppet:
                 try:
                     if self.is_direct:
-                        await source.update_direct_chats(
-                            {self.main_intent.mxid: [self.mxid]}
-                        )
+                        await source.update_direct_chats({self.main_intent.mxid: [self.mxid]})
                     await puppet.intent.join_room_by_id(self.mxid)
                 except MatrixError:
                     self.log.debug(
@@ -713,17 +697,11 @@ class Portal(DBPortal, BasePortal):
         if not is_initial and conversation and len(conversation.events) > 0:
             last_active = conversation.events[-1].created_at
 
-        most_recent = await DBMessage.get_most_recent(
-            self.li_thread_urn, self.li_receiver_urn
-        )
+        most_recent = await DBMessage.get_most_recent(self.li_thread_urn, self.li_receiver_urn)
         if most_recent and is_initial:
-            self.log.debug(
-                f"Not backfilling {self.li_urn_log}: already bridged messages found"
-            )
+            self.log.debug(f"Not backfilling {self.li_urn_log}: already bridged messages found")
         elif (not most_recent or not most_recent.timestamp) and not is_initial:
-            self.log.debug(
-                f"Not backfilling {self.li_urn_log}: no most recent message found"
-            )
+            self.log.debug(f"Not backfilling {self.li_urn_log}: no most recent message found")
         elif last_active and most_recent and most_recent.timestamp >= last_active:
             self.log.debug(
                 f"Not backfilling {self.li_urn_log}: last activity is equal to most "
@@ -757,9 +735,7 @@ class Portal(DBPortal, BasePortal):
         else:
             before_timestamp = datetime.now()
 
-        self.log.debug(
-            f"Fetching up to {limit} messages through {source.li_member_urn}"
-        )
+        self.log.debug(f"Fetching up to {limit} messages through {source.li_member_urn}")
 
         while limit is None or len(messages) < limit:
             result = await source.client.get_conversation(
@@ -809,9 +785,7 @@ class Portal(DBPortal, BasePortal):
                     or not (mp := mm.mini_profile)
                     or not (entity_urn := mp.entity_urn)
                 ):
-                    self.log.error(
-                        "No entity_urn found on message mini_profile!", message
-                    )
+                    self.log.error("No entity_urn found on message mini_profile!", message)
                     continue
                 member_urn = entity_urn
                 if member_urn == URN("UNKNOWN"):
@@ -846,13 +820,10 @@ class Portal(DBPortal, BasePortal):
 
     async def handle_matrix_leave(self, user: "u.User"):
         if self.is_direct:
-            self.log.info(
-                f"{user.mxid} left private chat portal with {self.li_other_user_urn}"
-            )
+            self.log.info(f"{user.mxid} left private chat portal with {self.li_other_user_urn}")
             if user.li_member_urn == self.li_receiver_urn:
                 self.log.info(
-                    f"{user.mxid} was the recipient of this portal. "
-                    "Cleaning up and deleting..."
+                    f"{user.mxid} was the recipient of this portal. " "Cleaning up and deleting..."
                 )
                 await self.cleanup_and_delete()
         else:
@@ -912,9 +883,7 @@ class Portal(DBPortal, BasePortal):
                 cast(MediaMessageEventContent, message),
             )
         else:
-            raise NotImplementedError(
-                f"Messages of type {message.msgtype} are not supported."
-            )
+            raise NotImplementedError(f"Messages of type {message.msgtype} are not supported.")
 
     async def _send_linkedin_message(
         self,
@@ -962,9 +931,7 @@ class Portal(DBPortal, BasePortal):
         message: TextMessageEventContent,
     ):
         assert sender.client
-        message_create = await matrix_to_linkedin(
-            message, sender, self.main_intent, self.log
-        )
+        message_create = await matrix_to_linkedin(message, sender, self.main_intent, self.log)
         await self._send_linkedin_message(
             event_id,
             sender,
@@ -999,9 +966,7 @@ class Portal(DBPortal, BasePortal):
         else:
             return
 
-        attachment = await sender.client.upload_media(
-            data, message.body, message.info.mimetype
-        )
+        attachment = await sender.client.upload_media(data, message.body, message.info.mimetype)
         attachment.media_type = attachment.media_type or ""
         await self._send_linkedin_message(
             event_id,
@@ -1043,9 +1008,7 @@ class Portal(DBPortal, BasePortal):
         if message:
             self.log.info(f"Deleting {message.li_message_urn} in {self.li_thread_urn}")
             await message.delete()
-            await sender.client.delete_message(
-                self.li_thread_urn, message.li_message_urn
-            )
+            await sender.client.delete_message(self.li_thread_urn, message.li_message_urn)
             return
 
         reaction = await DBReaction.get_by_mxid(event_id, self.mxid)
@@ -1125,8 +1088,7 @@ class Portal(DBPortal, BasePortal):
                 != Membership.JOIN
             ):
                 self.log.warning(
-                    f"Ignoring own {mid} in private chat because own puppet is not in"
-                    " room."
+                    f"Ignoring own {mid} in private chat because own puppet is not in" " room."
                 )
                 return False
         return True
@@ -1146,18 +1108,12 @@ class Portal(DBPortal, BasePortal):
                     and (nu := cc.conversation_name_update_content)
                 ):
                     await self._update_name(nu.new_name)
-            elif (
-                (ec := message.event_content)
-                and (me := ec.message_event)
-                and me.recalled_at
-            ):
+            elif (ec := message.event_content) and (me := ec.message_event) and me.recalled_at:
                 await self._handle_linkedin_message_deletion(sender, message)
             else:
                 await self._handle_linkedin_message(source, sender, message)
         except Exception as e:
-            self.log.exception(
-                f"Error handling LinkedIn message {message.entity_urn}: {e}"
-            )
+            self.log.exception(f"Error handling LinkedIn message {message.entity_urn}: {e}")
 
     async def _handle_linkedin_message(
         self,
@@ -1175,21 +1131,16 @@ class Portal(DBPortal, BasePortal):
         event_ids: list[EventID] = []
         async with self.require_send_lock(sender.li_member_urn):
             if li_message_urn in self._dedup:
-                self.log.trace(
-                    f"Not handling message {li_message_urn}, found ID in dedup queue"
-                )
+                self.log.trace(f"Not handling message {li_message_urn}, found ID in dedup queue")
                 # Return here, because it is in the process of being handled.
                 return
             self._dedup.appendleft(li_message_urn)
 
             # Check database for duplicates
-            dbm = await DBMessage.get_all_by_li_message_urn(
-                li_message_urn, self.li_receiver_urn
-            )
+            dbm = await DBMessage.get_all_by_li_message_urn(li_message_urn, self.li_receiver_urn)
             if len(dbm) > 0:
                 self.log.debug(
-                    f"Not handling message {li_message_urn}, found duplicate in "
-                    "database."
+                    f"Not handling message {li_message_urn}, found duplicate in " "database."
                 )
                 # Don't return here because we may need to update the reactions.
                 message_exists = True
@@ -1203,9 +1154,7 @@ class Portal(DBPortal, BasePortal):
                 if not mxid:
                     # Failed to create
                     return
-            if not await self._bridge_own_message_pm(
-                source, sender, f"message {li_message_urn}"
-            ):
+            if not await self._bridge_own_message_pm(source, sender, f"message {li_message_urn}"):
                 return
 
             if (
@@ -1214,9 +1163,7 @@ class Portal(DBPortal, BasePortal):
                 and intent != sender.intent
                 and intent not in self._backfill_leave
             ):
-                self.log.debug(
-                    "Adding %s's default puppet to room for backfilling", sender.mxid
-                )
+                self.log.debug("Adding %s's default puppet to room for backfilling", sender.mxid)
                 await self.main_intent.invite_user(self.mxid, intent.mxid)
                 await intent.ensure_joined(self.mxid)
                 self._backfill_leave.add(intent)
@@ -1306,9 +1253,7 @@ class Portal(DBPortal, BasePortal):
                     return
 
                 # Save all of the messages in the database.
-                self.log.debug(
-                    f"Handled LinkedIn message {li_message_urn} -> {event_ids}"
-                )
+                self.log.debug(f"Handled LinkedIn message {li_message_urn} -> {event_ids}")
                 await DBMessage.bulk_create(
                     li_message_urn=li_message_urn,
                     li_thread_urn=self.li_thread_urn,
@@ -1376,9 +1321,7 @@ class Portal(DBPortal, BasePortal):
             sender = await p.Puppet.get_by_li_member_urn(reactor.reactor_urn)
             intent = sender.intent_for(self)
 
-            mxid = await intent.react(
-                self.mxid, reaction_event_id, reaction_summary.emoji
-            )
+            mxid = await intent.react(self.mxid, reaction_event_id, reaction_summary.emoji)
             mxids.append(mxid)
 
             self.log.debug(
@@ -1523,9 +1466,7 @@ class Portal(DBPortal, BasePortal):
             file_data, decryption_info = encrypt_attachment(file_data)
             upload_mime_type = "application/octet-stream"
             filename = None
-        url = await intent.upload_media(
-            file_data, mime_type=upload_mime_type, filename=filename
-        )
+        url = await intent.upload_media(file_data, mime_type=upload_mime_type, filename=filename)
         if decryption_info:
             decryption_info.url = url
         return url, info, decryption_info
@@ -1536,17 +1477,11 @@ class Portal(DBPortal, BasePortal):
         sender: "p.Puppet",
         event: RealTimeEventStreamEvent,
     ):
-        if (
-            not event.event_urn
-            or not self.li_receiver_urn
-            or not event.reaction_summary
-        ):
+        if not event.event_urn or not self.li_receiver_urn or not event.reaction_summary:
             return
         reaction = event.reaction_summary.emoji
         # Make up a URN for the reacton for dedup purposes
-        dedup_id = URN(
-            f"({event.event_urn.id_str()},{sender.li_member_urn.id_str()},{reaction})"
-        )
+        dedup_id = URN(f"({event.event_urn.id_str()},{sender.li_member_urn.id_str()},{reaction})")
         async with self.optional_send_lock(sender.li_member_urn):
             if dedup_id in self._dedup:
                 return
@@ -1566,16 +1501,12 @@ class Portal(DBPortal, BasePortal):
                 )
                 return
 
-        if not await self._bridge_own_message_pm(
-            source, sender, f"reaction to {event.event_urn}"
-        ):
+        if not await self._bridge_own_message_pm(source, sender, f"reaction to {event.event_urn}"):
             return
 
         intent = sender.intent_for(self)
 
-        message = await DBMessage.get_by_li_message_urn(
-            event.event_urn, self.li_receiver_urn
-        )
+        message = await DBMessage.get_by_li_message_urn(event.event_urn, self.li_receiver_urn)
         if not message:
             self.log.debug(f"Ignoring reaction to unknown message {event.event_urn}")
             return

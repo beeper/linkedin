@@ -24,9 +24,7 @@ if TYPE_CHECKING:
 
 class MatrixHandler(BaseMatrixHandler):
     def __init__(self, bridge: "LinkedInBridge"):
-        prefix, suffix = (
-            bridge.config["bridge.username_template"].format(userid=":").split(":")
-        )
+        prefix, suffix = bridge.config["bridge.username_template"].format(userid=":").split(":")
         homeserver = bridge.config["homeserver.domain"]
         self.user_id_prefix = f"@{prefix}"
         self.user_id_suffix = f"{suffix}:{homeserver}"
@@ -39,8 +37,7 @@ class MatrixHandler(BaseMatrixHandler):
             await inviter.save()
             await self.az.intent.send_notice(
                 room_id,
-                "This room has been marked as your LinkedIn Messages bridge notice "
-                "room.",
+                "This room has been marked as your LinkedIn Messages bridge notice room.",
             )
 
     async def handle_read_receipt(self, user: "u.User", portal: "po.Portal", *_):
@@ -132,10 +129,6 @@ class MatrixHandler(BaseMatrixHandler):
 
     async def handle_event(self, evt: Event):
         if evt.type == EventType.ROOM_REDACTION:
-            await self.handle_redaction(
-                evt.room_id, evt.sender, evt.redacts, evt.event_id
-            )
+            await self.handle_redaction(evt.room_id, evt.sender, evt.redacts, evt.event_id)
         elif evt.type == EventType.REACTION:
-            await self.handle_reaction(
-                evt.room_id, evt.sender, evt.event_id, evt.content
-            )
+            await self.handle_reaction(evt.room_id, evt.sender, evt.event_id, evt.content)

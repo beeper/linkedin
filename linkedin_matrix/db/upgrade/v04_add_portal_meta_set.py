@@ -3,9 +3,7 @@ from asyncpg import Connection
 from . import upgrade_table
 
 
-@upgrade_table.register(
-    description="Add name_set, avatar_set, and topic_set to portals"
-)
+@upgrade_table.register(description="Add name_set, avatar_set, and topic_set to portals")
 async def upgrade_v4(conn: Connection):
     create_table_queries = [
         "ALTER TABLE portal ADD COLUMN name_set BOOLEAN NOT NULL DEFAULT false",

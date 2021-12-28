@@ -31,9 +31,7 @@ class User(Model):
         client_pickle = data.pop("client_pickle")
         li_member_urn = data.pop("li_member_urn")
         return cls(
-            client=LinkedInMessaging.from_pickle(client_pickle)
-            if client_pickle
-            else None,
+            client=LinkedInMessaging.from_pickle(client_pickle) if client_pickle else None,
             li_member_urn=URN(li_member_urn) if li_member_urn else None,
             **data,
         )

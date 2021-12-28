@@ -28,9 +28,7 @@ if os.path.exists(".git") and shutil.which("git"):
         git_revision_url = None
 
     try:
-        git_tag = (
-            run(["git", "describe", "--exact-match", "--tags"]).strip().decode("ascii")
-        )
+        git_tag = run(["git", "describe", "--exact-match", "--tags"]).strip().decode("ascii")
     except (subprocess.SubprocessError, OSError):
         git_tag = None
 else:
@@ -38,9 +36,7 @@ else:
     git_revision_url = None
     git_tag = None
 
-git_tag_url = (
-    f"https://gitlab.com/beeper/linkedin/-/releases/{git_tag}" if git_tag else None
-)
+git_tag_url = f"https://gitlab.com/beeper/linkedin/-/releases/{git_tag}" if git_tag else None
 
 if git_tag and __version__ == git_tag[1:].replace("-", ""):
     version = __version__

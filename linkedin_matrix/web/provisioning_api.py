@@ -54,9 +54,7 @@ class ProvisioningAPI:
                 headers=self._headers,
             )
         if token != self.shared_secret:
-            raise web.HTTPForbidden(
-                body='{"error": "Invalid token"}', headers=self._headers
-            )
+            raise web.HTTPForbidden(body='{"error": "Invalid token"}', headers=self._headers)
         try:
             user_id = request.query["user_id"]
         except KeyError:
@@ -95,14 +93,10 @@ class ProvisioningAPI:
         try:
             data = await request.json()
         except json.JSONDecodeError:
-            return web.HTTPBadRequest(
-                body='{"error": "Malformed JSON"}', headers=self._headers
-            )
+            return web.HTTPBadRequest(body='{"error": "Malformed JSON"}', headers=self._headers)
 
         if "li_at" not in data or "JSESSIONID" not in data:
-            return web.HTTPBadRequest(
-                body='{"error": "Missing keys"}', headers=self._headers
-            )
+            return web.HTTPBadRequest(body='{"error": "Missing keys"}', headers=self._headers)
 
         try:
             client = LinkedInMessaging()

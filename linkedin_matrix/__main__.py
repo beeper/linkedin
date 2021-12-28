@@ -98,9 +98,7 @@ class LinkedInBridge(Bridge):
     async def get_portal(self, room_id: RoomID) -> Portal:
         return await Portal.get_by_mxid(room_id)
 
-    async def get_puppet(
-        self, user_id: UserID, create: bool = False
-    ) -> Optional[Puppet]:
+    async def get_puppet(self, user_id: UserID, create: bool = False) -> Optional[Puppet]:
         return await Puppet.get_by_mxid(user_id, create=create)
 
     async def get_double_puppet(self, user_id: UserID) -> Puppet:
@@ -113,9 +111,7 @@ class LinkedInBridge(Bridge):
         return bool(Puppet.get_id_from_mxid(user_id))
 
     async def count_logged_in_users(self) -> int:
-        return len(
-            [user for user in User.by_li_member_urn.values() if user.li_member_urn]
-        )
+        return len([user for user in User.by_li_member_urn.values() if user.li_member_urn])
 
     async def manhole_global_namespace(self, user_id: UserID) -> dict[str, Any]:
         return {

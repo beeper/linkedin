@@ -100,9 +100,7 @@ class Puppet(DBPuppet, BasePuppet):
         cls.login_device_name = "LinkedIn Messages Bridge"
         cls.session = aiohttp.ClientSession()
 
-        return (
-            puppet.try_start() async for puppet in Puppet.get_all_with_custom_mxid()
-        )
+        return (puppet.try_start() async for puppet in Puppet.get_all_with_custom_mxid())
 
     @classmethod
     async def close(cls):
@@ -110,8 +108,7 @@ class Puppet(DBPuppet, BasePuppet):
 
     def intent_for(self, portal: "p.Portal") -> IntentAPI:
         if portal.li_other_user_urn == self.li_member_urn or (
-            portal.backfill_lock.locked
-            and self.config["bridge.backfill.invite_own_puppet"]
+            portal.backfill_lock.locked and self.config["bridge.backfill.invite_own_puppet"]
         ):
             return self.default_mxid_intent
         return self.intent
@@ -138,17 +135,13 @@ class Puppet(DBPuppet, BasePuppet):
             if changed:
                 await self.save()
         except Exception:
-            self.log.exception(
-                f"Failed to update info from source {source.li_member_urn}"
-            )
+            self.log.exception(f"Failed to update info from source {source.li_member_urn}")
         return self
 
     async def reupload_avatar(self, intent: IntentAPI, url: str) -> ContentURI:
         async with self.session.get(url) as req:
             if not req.ok:
-                raise Exception(
-                    f"Couldn't download avatar for {self.li_member_urn}: {url}"
-                )
+                raise Exception(f"Couldn't download avatar for {self.li_member_urn}: {url}")
 
             image_data = await req.content.read()
             mime = magic.from_buffer(image_data, mime=True)
@@ -193,9 +186,7 @@ class Puppet(DBPuppet, BasePuppet):
             match = self.photo_id_re.match(vi.root_url)
             # Handle InMail pictures which don't have any root_url
             if not match and len(vi.artifacts) > 0:
-                match = self.photo_id_re.match(
-                    vi.artifacts[0].file_identifying_url_path_segment
-                )
+                match = self.photo_id_re.match(vi.artifacts[0].file_identifying_url_path_segment)
             if match:
                 photo_id = match.group(1)
 
@@ -243,9 +234,7 @@ class Puppet(DBPuppet, BasePuppet):
         except KeyError:
             pass
 
-        puppet = cast(
-            Optional[Puppet], await super().get_by_li_member_urn(li_member_urn)
-        )
+        puppet = cast(Optional[Puppet], await super().get_by_li_member_urn(li_member_urn))
         if puppet:
             puppet._add_to_cache()
             return puppet

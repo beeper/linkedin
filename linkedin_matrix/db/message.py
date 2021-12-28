@@ -48,7 +48,7 @@ class Message(Model):
             li_thread_urn=URN(li_thread_urn),
             li_sender_urn=URN(li_sender_urn),
             li_receiver_urn=URN(li_receiver_urn),
-            timestamp=datetime.fromtimestamp(timestamp)
+            timestamp=datetime.fromtimestamp(timestamp),
         )
 
     @classmethod
@@ -72,9 +72,7 @@ class Message(Model):
         li_receiver_urn: URN,
         index: int = 0,
     ) -> Optional["Message"]:
-        query = Message.select_constructor(
-            "li_message_urn=$1 AND li_receiver_urn=$2 AND index=$3"
-        )
+        query = Message.select_constructor("li_message_urn=$1 AND li_receiver_urn=$2 AND index=$3")
         row = await cls.db.fetchrow(
             query,
             li_message_urn.id_str(),

@@ -34,9 +34,7 @@ class UserPortal(Model):
         portal: str,
         portal_receiver: str,
     ) -> Optional["UserPortal"]:
-        query = UserPortal.select_constructor(
-            '"user"=$1 AND portal=$2 AND portal_receiver=$3'
-        )
+        query = UserPortal.select_constructor('"user"=$1 AND portal=$2 AND portal_receiver=$3')
         row = await cls.db.fetchrow(query, user, portal, portal_receiver)
         return cls._from_row(row)
 
