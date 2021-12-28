@@ -59,8 +59,7 @@ class LinkedInFormatString(EntityString[SimpleEntity, EntityType], MarkdownStrin
 class MatrixParser(BaseMatrixParser[LinkedInFormatString]):
     fs = LinkedInFormatString
 
-    @classmethod
-    def parse(cls, data: str) -> LinkedInFormatString:
+    async def parse(cls, data: str) -> LinkedInFormatString:
         return cast(LinkedInFormatString, super().parse(data))
 
 
@@ -75,7 +74,7 @@ async def matrix_to_linkedin(
     attributes = []
 
     if content.format == Format.HTML and content.formatted_body:
-        parsed = MatrixParser.parse(content.formatted_body)
+        parsed = await MatrixParser().parse(content.formatted_body)
 
         if content.msgtype == MessageType.EMOTE:
             display_name = await intent.get_displayname(sender.mxid)
