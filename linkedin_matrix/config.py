@@ -40,6 +40,7 @@ class Config(BaseBridgeConfig):
         copy("bridge.backfill.initial_limit")
         copy("bridge.backfill.invite_own_puppet")
         copy("bridge.backfill.missed_limit")
+        copy("bridge.backfill.unread_hours_threshold")
         copy("bridge.command_prefix")
         copy("bridge.delivery_receipts")
         copy("bridge.displayname_preference")

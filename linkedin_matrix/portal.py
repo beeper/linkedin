@@ -1,6 +1,6 @@
 import asyncio
 from collections import deque
-from datetime import datetime
+from datetime import datetime, timedelta
 from io import BytesIO
 from typing import Any, AsyncGenerator, cast, Optional, TYPE_CHECKING, Union
 
@@ -715,6 +715,20 @@ class Portal(DBPortal, BasePortal):
                     most_recent.timestamp if most_recent else None,
                     conversation=conversation,
                 )
+
+            if (
+                (hours := self.config["bridge.backfill.unread_hours_threshold"]) > 0
+                and conversation.last_activity_at
+                and conversation.last_activity_at < datetime.now() - timedelta(hours=hours)
+                and (
+                    most_recent := await DBMessage.get_most_recent(
+                        self.li_thread_urn, self.li_receiver_urn
+                    )
+                )
+            ):
+                puppet = await source.bridge.get_double_puppet(source.mxid)
+                if puppet and puppet.is_real_user:
+                    await puppet.intent.mark_read(self.mxid, most_recent.mxid)
 
     async def _backfill(
         self,
