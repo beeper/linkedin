@@ -60,7 +60,7 @@ class MatrixParser(BaseMatrixParser[LinkedInFormatString]):
     fs = LinkedInFormatString
 
     async def parse(cls, data: str) -> LinkedInFormatString:
-        return cast(LinkedInFormatString, super().parse(data))
+        return cast(LinkedInFormatString, await super().parse(data))
 
 
 async def matrix_to_linkedin(
