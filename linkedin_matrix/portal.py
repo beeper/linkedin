@@ -1108,10 +1108,7 @@ class Portal(DBPortal, BasePortal):
         return True
 
     async def handle_linkedin_message(
-        self,
-        source: "u.User",
-        sender: "p.Puppet",
-        message: ConversationEvent,
+        self, source: "u.User", sender: "p.Puppet", message: ConversationEvent
     ):
         try:
             if message.subtype == "CONVERSATION_UPDATE":
@@ -1130,10 +1127,7 @@ class Portal(DBPortal, BasePortal):
             self.log.exception(f"Error handling LinkedIn message {message.entity_urn}: {e}")
 
     async def _handle_linkedin_message(
-        self,
-        source: "u.User",
-        sender: "p.Puppet",
-        message: ConversationEvent,
+        self, source: "u.User", sender: "p.Puppet", message: ConversationEvent
     ):
         assert self.mxid
         assert self.li_receiver_urn
@@ -1486,10 +1480,7 @@ class Portal(DBPortal, BasePortal):
         return url, info, decryption_info
 
     async def handle_linkedin_reaction_add(
-        self,
-        source: "u.User",
-        sender: "p.Puppet",
-        event: RealTimeEventStreamEvent,
+        self, source: "u.User", sender: "p.Puppet", event: RealTimeEventStreamEvent
     ):
         if not event.event_urn or not self.li_receiver_urn or not event.reaction_summary:
             return
@@ -1539,10 +1530,7 @@ class Portal(DBPortal, BasePortal):
         self._dedup.remove(dedup_id)
 
     async def handle_linkedin_reaction_remove(
-        self,
-        source: "u.User",
-        sender: "p.Puppet",
-        event: RealTimeEventStreamEvent,
+        self, source: "u.User", sender: "p.Puppet", event: RealTimeEventStreamEvent
     ):
         if (
             not self.mxid
@@ -1563,5 +1551,13 @@ class Portal(DBPortal, BasePortal):
             except MForbidden:
                 await self.main_intent.redact(reaction.mx_room, reaction.mxid)
             await reaction.delete()
+
+    async def handle_linkedin_conversation_read(self, source: "u.User"):
+        most_recent = await DBMessage.get_most_recent(self.li_thread_urn, self.li_receiver_urn)
+        if not most_recent:
+            return
+        puppet = await source.bridge.get_double_puppet(source.mxid)
+        if puppet and puppet.is_real_user:
+            await puppet.intent.mark_read(self.mxid, most_recent.mxid)
 
     # endregion

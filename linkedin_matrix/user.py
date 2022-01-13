@@ -479,6 +479,7 @@ class User(DBUser, BaseUser):
             self.client.add_event_listener("STREAM_ERROR", self.handle_linkedin_listener_error)
             self.client.add_event_listener("event", self.handle_linkedin_event)
             self.client.add_event_listener("reactionAdded", self.handle_linkedin_reaction_added)
+            self.client.add_event_listener("action", self.handle_linkedin_action)
             self.listener_event_handlers_created = True
         await self.client.start_listener()
 
@@ -577,5 +578,14 @@ class User(DBUser, BaseUser):
             await portal.handle_linkedin_reaction_add(self, puppet, event)
         else:
             await portal.handle_linkedin_reaction_remove(self, puppet, event)
+
+    async def handle_linkedin_action(self, event: RealTimeEventStreamEvent):
+        if event.action != "UPDATE":
+            return
+        if (conversation := event.conversation) and conversation.read:
+            portal = await po.Portal.get_by_li_thread_urn(
+                conversation.entity_urn, li_receiver_urn=self.li_member_urn
+            )
+            await portal.handle_linkedin_conversation_read(self)
 
     # endregion

@@ -43,7 +43,7 @@
   * [x] Real-time messages
   * [ ] Presence
   * [ ] Typing notifications
-  * [ ] Read receipts
+  * [x] Read receipts
   * [x] Admin status
   * [ ] Membership actions
     * [ ] Add member
