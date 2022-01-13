@@ -1078,6 +1078,9 @@ class Portal(DBPortal, BasePortal):
                 ).insert()
                 await self._send_delivery_receipt(event_id)
 
+    async def handle_matrix_typing(self, source: "u.User"):
+        await source.client.set_typing(self.li_thread_urn)
+
     # endregion
 
     # region LinkedIn event handling
@@ -1568,5 +1571,8 @@ class Portal(DBPortal, BasePortal):
         ):
             messages.sort(key=lambda m: m.index)
             await sender.intent.mark_read(self.mxid, messages[-1].mxid)
+
+    async def handle_linkedin_typing(self, sender: "p.Puppet"):
+        await sender.intent.set_typing(self.mxid)
 
     # endregion

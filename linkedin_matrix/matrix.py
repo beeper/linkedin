@@ -1,3 +1,4 @@
+import asyncio
 from typing import cast, Optional, TYPE_CHECKING, Union
 
 from mautrix.bridge import BaseMatrixHandler
@@ -111,8 +112,11 @@ class MatrixHandler(BaseMatrixHandler):
         portal: Optional[po.Portal] = await po.Portal.get_by_mxid(room_id)
         if not portal:
             return
-        # https://www.linkedin.com/voyager/api/messaging/conversations?action=typing
-        # {"conversationId":"2-ZmRhMGVmZDYtNDVjYS00Y2Y2LWE3ZTYtNmFkM2FlMGMxMDA1XzAxMg=="}
+
+        async def _send_typing(user_id: UserID):
+            await portal.handle_matrix_typing(await u.User.get_by_mxid(user_id))
+
+        await asyncio.gather(*(_send_typing(user_id) for user_id in typing))
 
     async def handle_ephemeral_event(
         self,

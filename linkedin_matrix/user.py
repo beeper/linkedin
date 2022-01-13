@@ -480,7 +480,7 @@ class User(DBUser, BaseUser):
             self.client.add_event_listener("event", self.handle_linkedin_event)
             self.client.add_event_listener("reactionAdded", self.handle_linkedin_reaction_added)
             self.client.add_event_listener("action", self.handle_linkedin_action)
-            self.client.add_event_listener("seenReceipt", self.handle_linkedin_seen_receipt)
+            self.client.add_event_listener("fromEntity", self.handle_linkedin_from_entity)
             self.listener_event_handlers_created = True
         await self.client.start_listener()
 
@@ -589,7 +589,7 @@ class User(DBUser, BaseUser):
             )
             await portal.handle_linkedin_conversation_read(self)
 
-    async def handle_linkedin_seen_receipt(self, event: RealTimeEventStreamEvent):
+    async def handle_linkedin_from_entity(self, event: RealTimeEventStreamEvent):
         if seen_receipt := event.seen_receipt:
             conversation_urn = URN(seen_receipt.event_urn.id_parts[0])
             portal = await po.Portal.get_by_li_thread_urn(
@@ -597,5 +597,12 @@ class User(DBUser, BaseUser):
             )
             puppet = await pu.Puppet.get_by_li_member_urn(event.from_entity)
             await portal.handle_linkedin_seen_receipt(self, puppet, event)
+
+        if isinstance(event.conversation, str):
+            portal = await po.Portal.get_by_li_thread_urn(
+                URN(event.conversation), li_receiver_urn=self.li_member_urn
+            )
+            puppet = await pu.Puppet.get_by_li_member_urn(event.from_entity)
+            await portal.handle_linkedin_typing(puppet)
 
     # endregion
