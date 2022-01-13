@@ -583,7 +583,12 @@ class User(DBUser, BaseUser):
     async def handle_linkedin_action(self, event: RealTimeEventStreamEvent):
         if event.action != "UPDATE":
             return
-        if (conversation := event.conversation) and conversation.read:
+        if (
+            (raw_conversation := event.conversation)
+            and isinstance(raw_conversation, dict)
+            and (conversation := Conversation.from_dict(raw_conversation))
+            and conversation.read
+        ):
             portal = await po.Portal.get_by_li_thread_urn(
                 conversation.entity_urn, li_receiver_urn=self.li_member_urn
             )
