@@ -17,7 +17,7 @@
   * [x] Message redactions
   * [x] Message reactions
   * [ ] Presence
-  * [ ] Typing notifications
+  * [x] Typing notifications
   * [x] Mark conversations as read
   * [x] Read receipts
   * [ ] Power level
@@ -42,7 +42,7 @@
   * [x] Message history
   * [x] Real-time messages
   * [ ] Presence
-  * [ ] Typing notifications
+  * [x] Typing notifications
   * [x] Read receipts
   * [x] Admin status
   * [ ] Membership actions
