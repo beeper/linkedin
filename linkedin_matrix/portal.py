@@ -1560,4 +1560,13 @@ class Portal(DBPortal, BasePortal):
         if puppet and puppet.is_real_user:
             await puppet.intent.mark_read(self.mxid, most_recent.mxid)
 
+    async def handle_linkedin_seen_receipt(
+        self, source: "u.User", sender: "p.Puppet", event: RealTimeEventStreamEvent
+    ):
+        if messages := await DBMessage.get_all_by_li_message_urn(
+            event.seen_receipt.event_urn, self.li_receiver_urn
+        ):
+            messages.sort(key=lambda m: m.index)
+            await sender.intent.mark_read(self.mxid, messages[-1].mxid)
+
     # endregion
