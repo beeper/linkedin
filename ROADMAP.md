@@ -19,7 +19,7 @@
   * [ ] Presence
   * [ ] Typing notifications
   * [x] Mark conversations as read
-  * [ ] Read receipts
+  * [x] Read receipts
   * [ ] Power level
   * [ ] Membership actions
     * [ ] Invite
@@ -43,7 +43,7 @@
   * [x] Real-time messages
   * [ ] Presence
   * [ ] Typing notifications
-  * [ ] Read receipts
+  * [x] Read receipts
   * [x] Admin status
   * [ ] Membership actions
     * [ ] Add member

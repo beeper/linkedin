@@ -479,6 +479,8 @@ class User(DBUser, BaseUser):
             self.client.add_event_listener("STREAM_ERROR", self.handle_linkedin_listener_error)
             self.client.add_event_listener("event", self.handle_linkedin_event)
             self.client.add_event_listener("reactionAdded", self.handle_linkedin_reaction_added)
+            self.client.add_event_listener("action", self.handle_linkedin_action)
+            self.client.add_event_listener("seenReceipt", self.handle_linkedin_seen_receipt)
             self.listener_event_handlers_created = True
         await self.client.start_listener()
 
@@ -577,5 +579,23 @@ class User(DBUser, BaseUser):
             await portal.handle_linkedin_reaction_add(self, puppet, event)
         else:
             await portal.handle_linkedin_reaction_remove(self, puppet, event)
+
+    async def handle_linkedin_action(self, event: RealTimeEventStreamEvent):
+        if event.action != "UPDATE":
+            return
+        if (conversation := event.conversation) and conversation.read:
+            portal = await po.Portal.get_by_li_thread_urn(
+                conversation.entity_urn, li_receiver_urn=self.li_member_urn
+            )
+            await portal.handle_linkedin_conversation_read(self)
+
+    async def handle_linkedin_seen_receipt(self, event: RealTimeEventStreamEvent):
+        if seen_receipt := event.seen_receipt:
+            conversation_urn = URN(seen_receipt.event_urn.id_parts[0])
+            portal = await po.Portal.get_by_li_thread_urn(
+                conversation_urn, li_receiver_urn=self.li_member_urn
+            )
+            puppet = await pu.Puppet.get_by_li_member_urn(event.from_entity)
+            await portal.handle_linkedin_seen_receipt(self, puppet, event)
 
     # endregion

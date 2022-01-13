@@ -373,7 +373,7 @@ reference = "matrix-olm"
 
 [[package]]
 name = "linkedin-messaging"
-version = "0.5.0"
+version = "0.5.1"
 description = "An unofficial API for interacting with LinkedIn Messaging"
 category = "main"
 optional = false
@@ -383,11 +383,6 @@ python-versions = ">=3.9,<4.0"
 aiohttp = ">=3.7.4,<4.0.0"
 beautifulsoup4 = ">=4.9.3,<5.0.0"
 dataclasses-json = ">=0.5.4,<0.6.0"
-
-[package.source]
-type = "legacy"
-url = "https://gitlab.matrix.org/api/v4/projects/27/packages/pypi/simple"
-reference = "matrix-olm"
 
 [[package]]
 name = "marshmallow"
@@ -929,7 +924,7 @@ metrics = ["prometheus-client"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "4ce92d6c668f9b99718a0cded83b3d52ee443ef56f7e1fdbc853d486ea38e74a"
+content-hash = "d11c9b7f336d24798b2853bae4a7650e071b42c366b6e4eb20abf10368642905"
 
 [metadata.files]
 aiohttp = [
@@ -1232,8 +1227,8 @@ iniconfig = [
     {file = "iniconfig-1.1.1.tar.gz", hash = "sha256:bc3af051d7d14b2ee5ef9969666def0cd1a000e121eaea580d4a313df4b37f32"},
 ]
 linkedin-messaging = [
-    {file = "linkedin_messaging-0.5.0-py3-none-any.whl", hash = "sha256:58eb59b657309754b8bf2f100e397e9be5adba16b9a01806d933ea1591e5522d"},
-    {file = "linkedin_messaging-0.5.0.tar.gz", hash = "sha256:bbacb1cd78ab94bfc0429a9179953136248c3dfe21cf35e4ca0c7ab23f882aa7"},
+    {file = "linkedin_messaging-0.5.1-py3-none-any.whl", hash = "sha256:226095035a2a796cb504ca00776c66b52509699e80a6c9b3ddf4a9ab44d81d40"},
+    {file = "linkedin_messaging-0.5.1.tar.gz", hash = "sha256:cb03cbf76efbe7faf8c2b2a87c3274b7a6e96d2a689c46903c0cccdff4d98cac"},
 ]
 marshmallow = [
     {file = "marshmallow-3.14.1-py3-none-any.whl", hash = "sha256:04438610bc6dadbdddb22a4a55bcc7f6f8099e69580b2e67f5a681933a1f4400"},
