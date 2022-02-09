@@ -541,9 +541,7 @@ class User(DBUser, BaseUser):
             raise Exception("Invalid sender: no entity_urn found!", event)
 
         portal = await po.Portal.get_by_li_thread_urn(
-            thread_urn,
-            li_receiver_urn=self.li_member_urn,
-            create=False,
+            thread_urn, li_receiver_urn=self.li_member_urn, create=False
         )
         if not portal:
             conversations = await self.client.get_conversations()
@@ -570,8 +568,19 @@ class User(DBUser, BaseUser):
         thread_urn, message_urn = map(URN, event.event_urn.id_parts)
 
         portal = await po.Portal.get_by_li_thread_urn(
-            thread_urn, li_receiver_urn=self.li_member_urn
+            thread_urn, li_receiver_urn=self.li_member_urn, create=False
         )
+        if not portal:
+            conversations = await self.client.get_conversations()
+            for conversation in conversations.elements:
+                if conversation.entity_urn == thread_urn:
+                    await self._sync_thread(conversation)
+                    break
+
+            # Nothing more to do, since the backfill should handle the message coming
+            # in.
+            return
+
         puppet = await pu.Puppet.get_by_li_member_urn(event.actor_mini_profile_urn)
 
         await portal.backfill_lock.wait(message_urn)
@@ -589,25 +598,25 @@ class User(DBUser, BaseUser):
             and (conversation := Conversation.from_dict(raw_conversation))
             and conversation.read
         ):
-            portal = await po.Portal.get_by_li_thread_urn(
-                conversation.entity_urn, li_receiver_urn=self.li_member_urn
-            )
-            await portal.handle_linkedin_conversation_read(self)
+            if portal := await po.Portal.get_by_li_thread_urn(
+                conversation.entity_urn, li_receiver_urn=self.li_member_urn, create=False
+            ):
+                await portal.handle_linkedin_conversation_read(self)
 
     async def handle_linkedin_from_entity(self, event: RealTimeEventStreamEvent):
         if seen_receipt := event.seen_receipt:
             conversation_urn = URN(seen_receipt.event_urn.id_parts[0])
-            portal = await po.Portal.get_by_li_thread_urn(
-                conversation_urn, li_receiver_urn=self.li_member_urn
-            )
-            puppet = await pu.Puppet.get_by_li_member_urn(event.from_entity)
-            await portal.handle_linkedin_seen_receipt(self, puppet, event)
+            if portal := await po.Portal.get_by_li_thread_urn(
+                conversation_urn, li_receiver_urn=self.li_member_urn, create=False
+            ):
+                puppet = await pu.Puppet.get_by_li_member_urn(event.from_entity)
+                await portal.handle_linkedin_seen_receipt(self, puppet, event)
 
         if isinstance(event.conversation, str):
-            portal = await po.Portal.get_by_li_thread_urn(
-                URN(event.conversation), li_receiver_urn=self.li_member_urn
-            )
-            puppet = await pu.Puppet.get_by_li_member_urn(event.from_entity)
-            await portal.handle_linkedin_typing(puppet)
+            if portal := await po.Portal.get_by_li_thread_urn(
+                URN(event.conversation), li_receiver_urn=self.li_member_urn, create=False
+            ):
+                puppet = await pu.Puppet.get_by_li_member_urn(event.from_entity)
+                await portal.handle_linkedin_typing(puppet)
 
     # endregion

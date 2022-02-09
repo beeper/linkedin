@@ -256,22 +256,23 @@ class Portal(DBPortal, BasePortal):
             Portal,
             await super().get_by_li_thread_urn(li_thread_urn, li_receiver_urn),
         )
-        if portal:
-            await portal.postinit()
-            return portal
+        if not portal:
+            if create:
+                portal = cls(
+                    li_thread_urn,
+                    li_receiver_urn=li_receiver_urn,
+                    li_is_group_chat=li_is_group_chat,
+                    li_other_user_urn=li_other_user_urn,
+                )
+                await portal.insert()
+            else:
+                return None
 
-        if create:
-            portal = cls(
-                li_thread_urn,
-                li_receiver_urn=li_receiver_urn,
-                li_is_group_chat=li_is_group_chat,
-                li_other_user_urn=li_other_user_urn,
-            )
-            await portal.insert()
-            await portal.postinit()
-            return portal
-
-        return None
+        if li_other_user_urn is not None:
+            portal.li_other_user_urn = li_other_user_urn
+        await portal.save()
+        await portal.postinit()
+        return portal
 
     @classmethod
     async def get_all_by_li_receiver_urn(
