@@ -1283,6 +1283,7 @@ class Portal(DBPortal, BasePortal):
                 source,
                 reaction_event_id,
                 reaction_summary,
+                message.created_at,
             )
 
     async def _handle_linkedin_message_deletion(
@@ -1315,6 +1316,7 @@ class Portal(DBPortal, BasePortal):
         source: "u.User",
         reaction_event_id: EventID,
         reaction_summary: ReactionSummary,
+        timestamp: Optional[datetime],
     ) -> list[EventID]:
         if not reaction_summary.emoji or not source.client:
             return []
@@ -1330,7 +1332,9 @@ class Portal(DBPortal, BasePortal):
             sender = await p.Puppet.get_by_li_member_urn(reactor.reactor_urn)
             intent = sender.intent_for(self)
 
-            mxid = await intent.react(self.mxid, reaction_event_id, reaction_summary.emoji)
+            mxid = await intent.react(
+                self.mxid, reaction_event_id, reaction_summary.emoji, timestamp=timestamp
+            )
             mxids.append(mxid)
 
             self.log.debug(
