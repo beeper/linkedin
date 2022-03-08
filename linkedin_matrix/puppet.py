@@ -1,23 +1,17 @@
-import re
+from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterable, Awaitable, Optional, cast
 from datetime import datetime
-from typing import (
-    AsyncGenerator,
-    AsyncIterable,
-    Awaitable,
-    cast,
-    Optional,
-    TYPE_CHECKING,
-)
+import re
 
-import aiohttp
-import magic
 from linkedin_messaging import URN
 from linkedin_messaging.api_objects import MessagingMember, Picture
+from yarl import URL
+import aiohttp
+import magic
+
 from mautrix.appservice import IntentAPI
-from mautrix.bridge import async_getter_lock, BasePuppet
+from mautrix.bridge import BasePuppet, async_getter_lock
 from mautrix.types import ContentURI, SyncToken, UserID
 from mautrix.util.simple_template import SimpleTemplate
-from yarl import URL
 
 from . import matrix as m, portal as p, user as u
 from .config import Config

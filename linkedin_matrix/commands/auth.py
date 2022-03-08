@@ -1,14 +1,15 @@
-import logging
 from typing import cast
+import logging
 
 from linkedin_messaging import ChallengeException, LinkedInMessaging
+
 from mautrix.bridge import custom_puppet as cpu
-from mautrix.bridge.commands import command_handler, HelpSection
+from mautrix.bridge.commands import HelpSection, command_handler
 from mautrix.client import Client
 from mautrix.errors import MForbidden
 
-from .typehint import CommandEvent
 from .. import puppet as pu
+from .typehint import CommandEvent
 
 SECTION_AUTH = HelpSection("Authentication", 10, "")
 

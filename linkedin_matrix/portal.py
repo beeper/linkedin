@@ -1,10 +1,9 @@
-import asyncio
+from typing import TYPE_CHECKING, Any, AsyncGenerator, Optional, Union, cast
 from collections import deque
 from datetime import datetime, timedelta
 from io import BytesIO
-from typing import Any, AsyncGenerator, cast, Optional, TYPE_CHECKING, Union
+import asyncio
 
-import magic
 from linkedin_messaging import URN
 from linkedin_messaging.api_objects import (
     AttributedBody,
@@ -18,8 +17,10 @@ from linkedin_messaging.api_objects import (
     RealTimeEventStreamEvent,
     ThirdPartyMedia,
 )
+import magic
+
 from mautrix.appservice import IntentAPI
-from mautrix.bridge import async_getter_lock, BasePortal, NotificationDisabler
+from mautrix.bridge import BasePortal, NotificationDisabler, async_getter_lock
 from mautrix.errors import MatrixError, MForbidden
 from mautrix.types import (
     AudioInfo,
@@ -44,11 +45,7 @@ from mautrix.util.simple_lock import SimpleLock
 
 from . import puppet as p, user as u
 from .config import Config
-from .db import (
-    Message as DBMessage,
-    Portal as DBPortal,
-    Reaction as DBReaction,
-)
+from .db import Message as DBMessage, Portal as DBPortal, Reaction as DBReaction
 from .formatter import (
     linkedin_spinmail_to_matrix,
     linkedin_subject_to_matrix,

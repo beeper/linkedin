@@ -1,5 +1,5 @@
+from typing import TYPE_CHECKING, Optional, Union, cast
 import asyncio
-from typing import cast, Optional, TYPE_CHECKING, Union
 
 from mautrix.bridge import BaseMatrixHandler
 from mautrix.types import (
@@ -17,7 +17,7 @@ from mautrix.types.event.message import RelationType
 from mautrix.types.event.reaction import ReactionEventContent
 
 # these have to be in this particular order to avoid circular imports
-from . import user as u, portal as po  # noqa: I101
+from . import user as u, portal as po  # isort:skip
 
 if TYPE_CHECKING:
     from .__main__ import LinkedInBridge

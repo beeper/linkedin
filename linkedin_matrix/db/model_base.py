@@ -1,4 +1,4 @@
-from typing import ClassVar, TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from mautrix.util.async_db import Database
 
