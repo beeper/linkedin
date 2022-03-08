@@ -329,15 +329,20 @@ url = "https://gitlab.matrix.org/api/v4/projects/27/packages/pypi/simple"
 reference = "matrix-olm"
 
 [[package]]
-name = "flake8-import-order"
-version = "0.18.1"
-description = "Flake8 and pylama plugin that checks the ordering of import statements."
+name = "flake8-isort"
+version = "4.1.1"
+description = "flake8 plugin that integrates isort ."
 category = "dev"
 optional = false
 python-versions = "*"
 
 [package.dependencies]
-pycodestyle = "*"
+flake8 = ">=3.2.1,<5"
+isort = ">=4.3.5,<6"
+testfixtures = ">=6.8.0,<7"
+
+[package.extras]
+test = ["pytest-cov"]
 
 [package.source]
 type = "legacy"
@@ -935,6 +940,24 @@ url = "https://gitlab.matrix.org/api/v4/projects/27/packages/pypi/simple"
 reference = "matrix-olm"
 
 [[package]]
+name = "testfixtures"
+version = "6.18.5"
+description = "A collection of helpers and mock objects for unit tests and doc tests."
+category = "dev"
+optional = false
+python-versions = "*"
+
+[package.extras]
+build = ["setuptools-git", "wheel", "twine"]
+docs = ["sphinx", "zope.component", "sybil", "twisted", "mock", "django (<2)", "django"]
+test = ["pytest (>=3.6)", "pytest-cov", "pytest-django", "zope.component", "sybil", "twisted", "mock", "django (<2)", "django"]
+
+[package.source]
+type = "legacy"
+url = "https://gitlab.matrix.org/api/v4/projects/27/packages/pypi/simple"
+reference = "matrix-olm"
+
+[[package]]
 name = "toml"
 version = "0.10.2"
 description = "Python Library for Tom's Obvious, Minimal Language"
@@ -1077,7 +1100,7 @@ metrics = ["prometheus-client"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "ca6d3acfefcae651458f653e25019cf12069fcea528cb4afad712b04013f31d5"
+content-hash = "fc616f05804954a3af16caafa5cddfe3bed2f51c2bdf5cbd27d94a8fab988419"
 
 [metadata.files]
 aiohttp = [
@@ -1298,9 +1321,9 @@ flake8-annotations = [
     {file = "flake8-annotations-2.7.0.tar.gz", hash = "sha256:52e53c05b0c06cac1c2dec192ea2c36e85081238add3bd99421d56f574b9479b"},
     {file = "flake8_annotations-2.7.0-py3-none-any.whl", hash = "sha256:3edfbbfb58e404868834fe6ec3eaf49c139f64f0701259f707d043185545151e"},
 ]
-flake8-import-order = [
-    {file = "flake8-import-order-0.18.1.tar.gz", hash = "sha256:a28dc39545ea4606c1ac3c24e9d05c849c6e5444a50fb7e9cdd430fc94de6e92"},
-    {file = "flake8_import_order-0.18.1-py2.py3-none-any.whl", hash = "sha256:90a80e46886259b9c396b578d75c749801a41ee969a235e163cfe1be7afd2543"},
+flake8-isort = [
+    {file = "flake8-isort-4.1.1.tar.gz", hash = "sha256:d814304ab70e6e58859bc5c3e221e2e6e71c958e7005239202fee19c24f82717"},
+    {file = "flake8_isort-4.1.1-py3-none-any.whl", hash = "sha256:c4e8b6dcb7be9b71a02e6e5d4196cefcef0f3447be51e82730fb336fff164949"},
 ]
 flake8-print = [
     {file = "flake8-print-4.0.0.tar.gz", hash = "sha256:5afac374b7dc49aac2c36d04b5eb1d746d72e6f5df75a6ecaecd99e9f79c6516"},
@@ -1742,6 +1765,10 @@ soupsieve = [
 ]
 termcolor = [
     {file = "termcolor-1.1.0.tar.gz", hash = "sha256:1d6d69ce66211143803fbc56652b41d73b4a400a2891d7bf7a1cdf4c02de613b"},
+]
+testfixtures = [
+    {file = "testfixtures-6.18.5-py2.py3-none-any.whl", hash = "sha256:7de200e24f50a4a5d6da7019fb1197aaf5abd475efb2ec2422fdcf2f2eb98c1d"},
+    {file = "testfixtures-6.18.5.tar.gz", hash = "sha256:02dae883f567f5b70fd3ad3c9eefb95912e78ac90be6c7444b5e2f46bf572c84"},
 ]
 toml = [
     {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},

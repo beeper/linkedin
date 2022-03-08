@@ -1,7 +1,7 @@
+from typing import Any, Optional
 import os
 import shutil
 import subprocess
-from typing import Any, Optional
 
 from . import __version__
 

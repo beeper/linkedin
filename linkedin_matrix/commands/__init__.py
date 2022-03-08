@@ -1,3 +1,3 @@
-from .auth import login, SECTION_AUTH
+from .auth import SECTION_AUTH, login
 
 __all__ = ("SECTION_AUTH", "login")

@@ -1,9 +1,10 @@
+from typing import Any, Awaitable
 import json
 import logging
-from typing import Any, Awaitable
 
 from aiohttp import web
 from linkedin_messaging import LinkedInMessaging
+
 from mautrix.types import UserID
 from mautrix.util.logging import TraceLogger
 

@@ -3,6 +3,7 @@ from typing import Optional
 from asyncpg import Record
 from attr import dataclass
 from linkedin_messaging import URN
+
 from mautrix.types import EventID, RoomID
 
 from .model_base import Model

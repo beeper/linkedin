@@ -1,5 +1,5 @@
-import os
 from typing import Any
+import os
 
 from mautrix.bridge.config import BaseBridgeConfig
 from mautrix.types import UserID

@@ -1,19 +1,11 @@
-import asyncio
-import time
+from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterable, Awaitable, Optional, cast
 from asyncio.futures import Future
 from datetime import datetime
-from typing import (
-    AsyncGenerator,
-    AsyncIterable,
-    Awaitable,
-    cast,
-    Optional,
-    TYPE_CHECKING,
-)
+import asyncio
+import time
 
-import aiohttp
 from aiohttp.client_exceptions import TooManyRedirects
-from linkedin_messaging import LinkedInMessaging, URN
+from linkedin_messaging import URN, LinkedInMessaging
 from linkedin_messaging.api_objects import (
     Conversation,
     ConversationEvent,
@@ -21,17 +13,13 @@ from linkedin_messaging.api_objects import (
     RealTimeEventStreamEvent,
     UserProfileResponse,
 )
-from mautrix.bridge import async_getter_lock, BaseUser
+import aiohttp
+
+from mautrix.bridge import BaseUser, async_getter_lock
 from mautrix.errors import MNotFound
-from mautrix.types import (
-    PushActionType,
-    PushRuleKind,
-    PushRuleScope,
-    RoomID,
-    UserID,
-)
+from mautrix.types import PushActionType, PushRuleKind, PushRuleScope, RoomID, UserID
 from mautrix.util.bridge_state import BridgeState, BridgeStateEvent
-from mautrix.util.opt_prometheus import async_time, Gauge, Summary
+from mautrix.util.opt_prometheus import Gauge, Summary, async_time
 from mautrix.util.simple_lock import SimpleLock
 
 from . import portal as po, puppet as pu

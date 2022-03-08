@@ -13,10 +13,10 @@ TODO (namespace/namespace/project#1)
 Additionally, the TODO can be postfixed with ``:``.
 """
 
+from typing import Pattern
+from pathlib import Path
 import re
 import sys
-from pathlib import Path
-from typing import Pattern
 
 from termcolor import cprint
 
