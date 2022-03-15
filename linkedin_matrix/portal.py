@@ -728,7 +728,12 @@ class Portal(DBPortal, BasePortal):
             ):
                 puppet = await source.bridge.get_double_puppet(source.mxid)
                 if puppet and puppet.is_real_user:
-                    await puppet.intent.mark_read(self.mxid, most_recent.mxid)
+                    if most_recent_reaction := await DBReaction.get_most_recent_by_li_message_urn(
+                        self.mxid, most_recent.li_message_urn
+                    ):
+                        await puppet.intent.mark_read(self.mxid, most_recent_reaction.mxid)
+                    else:
+                        await puppet.intent.mark_read(self.mxid, most_recent.mxid)
 
     async def _backfill(
         self,
@@ -1015,7 +1020,7 @@ class Portal(DBPortal, BasePortal):
             await self._send_delivery_receipt(redaction_event_id)
 
     async def _handle_matrix_redaction(self, sender: "u.User", event_id: EventID):
-        if not self.mxid or not sender.client:
+        if not self.mxid or not sender.client or not sender.li_member_urn:
             return
 
         message = await DBMessage.get_by_mxid(event_id, self.mxid)

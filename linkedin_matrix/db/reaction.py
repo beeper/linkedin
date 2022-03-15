@@ -50,6 +50,18 @@ class Reaction(Model):
         return cls._from_row(row)
 
     @classmethod
+    async def get_most_recent_by_li_message_urn(
+        cls, mx_room: RoomID, li_message_urn: URN
+    ) -> Optional["Reaction"]:
+        query = (
+            Reaction.select_constructor("mx_room=$1 AND li_message_urn=$2")
+            + " ORDER BY index DESC"
+            + " LIMIT 1"
+        )
+        row = await cls.db.fetchrow(query, mx_room, li_message_urn.id_str())
+        return cls._from_row(row)
+
+    @classmethod
     async def get_by_li_message_urn_and_emoji(
         cls,
         li_message_urn: URN,

@@ -99,7 +99,7 @@ class Message(Model):
         li_receiver_urn: URN,
     ) -> Optional["Message"]:
         query = (
-            Message.select_constructor("li_thread_urn=$1 AND li_receiver_urn=$2 ")
+            Message.select_constructor("li_thread_urn=$1 AND li_receiver_urn=$2")
             + " ORDER BY timestamp DESC, index DESC"
             + " LIMIT 1"
         )

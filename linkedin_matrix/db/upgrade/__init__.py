@@ -7,6 +7,7 @@ from . import (  # noqa: E402
     v02_multiple_reaction_per_message,
     v03_add_topic_to_portal,
     v04_add_portal_meta_set,
+    v05_add_index_to_reaction,
 )
 
 __all__ = (
@@ -14,4 +15,5 @@ __all__ = (
     "v02_multiple_reaction_per_message",
     "v03_add_topic_to_portal",
     "v04_add_portal_meta_set",
+    "v05_add_index_to_reaction",
 )
