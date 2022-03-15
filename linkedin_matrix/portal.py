@@ -715,13 +715,15 @@ class Portal(DBPortal, BasePortal):
                 )
 
             if (
-                (hours := self.config["bridge.backfill.unread_hours_threshold"]) > 0
-                and conversation.last_activity_at
-                and conversation.last_activity_at < datetime.now() - timedelta(hours=hours)
-                and (
-                    most_recent := await DBMessage.get_most_recent(
-                        self.li_thread_urn, self.li_receiver_urn
-                    )
+                conversation.unread_count == 0
+                or (
+                    (hours := self.config["bridge.backfill.unread_hours_threshold"]) > 0
+                    and conversation.last_activity_at
+                    and conversation.last_activity_at < datetime.now() - timedelta(hours=hours)
+                )
+            ) and (
+                most_recent := await DBMessage.get_most_recent(
+                    self.li_thread_urn, self.li_receiver_urn
                 )
             ):
                 puppet = await source.bridge.get_double_puppet(source.mxid)
