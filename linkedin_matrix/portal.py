@@ -295,6 +295,11 @@ class Portal(DBPortal, BasePortal):
                 await portal.postinit()
                 yield portal
 
+    async def get_dm_puppet(self) -> Optional["p.Puppet"]:
+        if not self.is_direct:
+            return None
+        return await p.Puppet.get_by_li_member_urn(self.li_other_user_urn)
+
     # endregion
 
     # region Chat info updating

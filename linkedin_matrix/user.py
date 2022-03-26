@@ -169,6 +169,18 @@ class User(DBUser, BaseUser):
 
         return None
 
+    async def get_puppet(self) -> Optional["pu.Puppet"]:
+        if not self.li_member_urn:
+            return None
+        return await pu.Puppet.get_by_li_member_urn(self.li_member_urn)
+
+    async def get_portal_with(
+        self, puppet: "pu.Puppet", create: bool = True
+    ) -> Optional[po.Portal]:
+        # We should probably make this work eventually, but for now, creating chats will just not
+        # work.
+        return None
+
     # endregion
 
     # region Session Management
