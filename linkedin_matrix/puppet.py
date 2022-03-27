@@ -139,7 +139,9 @@ class Puppet(DBPuppet, BasePuppet):
 
             image_data = await req.content.read()
             mime = magic.from_buffer(image_data, mime=True)
-            return await intent.upload_media(image_data, mime_type=mime)
+            return await intent.upload_media(
+                image_data, mime_type=mime, async_upload=self.config["homeserver.async_media"]
+            )
 
     async def _update_name(self, info: MessagingMember) -> bool:
         name = self._get_displayname(info)

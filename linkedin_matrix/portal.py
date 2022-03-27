@@ -295,6 +295,11 @@ class Portal(DBPortal, BasePortal):
                 await portal.postinit()
                 yield portal
 
+    async def get_dm_puppet(self) -> Optional["p.Puppet"]:
+        if not self.is_direct:
+            return None
+        return await p.Puppet.get_by_li_member_urn(self.li_other_user_urn)
+
     # endregion
 
     # region Chat info updating
@@ -1486,7 +1491,12 @@ class Portal(DBPortal, BasePortal):
             file_data, decryption_info = encrypt_attachment(file_data)
             upload_mime_type = "application/octet-stream"
             filename = None
-        url = await intent.upload_media(file_data, mime_type=upload_mime_type, filename=filename)
+        url = await intent.upload_media(
+            file_data,
+            mime_type=upload_mime_type,
+            filename=filename,
+            async_upload=cls.config["homeserver.async_media"],
+        )
         if decryption_info:
             decryption_info.url = url
         return url, info, decryption_info
