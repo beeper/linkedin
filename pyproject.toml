@@ -25,7 +25,7 @@ url = "https://gitlab.matrix.org/api/v4/projects/27/packages/pypi/simple"
 asyncpg = ">=0.23.0"
 commonmark = "^0.9.1"
 linkedin-messaging = "^0.5.1"
-mautrix = "^0.15.4"
+mautrix = "^0.16.9"
 Pillow = {version = "^8.3.1", optional = true}
 prometheus-client = {version = "^0.11.0", optional = true}
 pycryptodome = {version = "^3.10.1", optional = true}
@@ -36,7 +36,7 @@ python-olm = {version = "*", optional = true}
 unpaddedbase64 = {version = "^2.1.0", optional = true}
 
 [tool.poetry.dev-dependencies]
-black = "^21.12b0"
+black = "^22.3.0"
 flake8 = "^4.0.1"
 flake8-annotations = "^2.7.0"
 flake8-isort = "^4.1.1"
@@ -81,4 +81,4 @@ line_length = 99
 [tool.black]
 line-length = 99
 target-version = ["py38"]
-required-version = "21.12b0"
+required-version = "22.3.0"
