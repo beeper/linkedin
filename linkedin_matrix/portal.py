@@ -540,7 +540,7 @@ class Portal(DBPortal, BasePortal):
             initial_state.append(
                 {
                     "type": "m.room.encryption",
-                    "content": self.get_encryption_state_event_content(),
+                    "content": self.get_encryption_state_event_json(),
                 }
             )
             if self.is_direct:
