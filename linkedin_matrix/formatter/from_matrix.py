@@ -105,6 +105,8 @@ async def matrix_to_linkedin(
                     li_member_urn = puppet.li_member_urn
                 else:
                     continue
+            if not li_member_urn.prefix:
+                li_member_urn.prefix = "urn:li:fs_miniProfile"
             attributes.append(
                 Attribute(
                     mention.offset,
