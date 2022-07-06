@@ -30,7 +30,7 @@ COPY docker-requirements.txt /opt/linkedin-matrix/requirements.txt
 WORKDIR /opt/linkedin-matrix
 
 RUN apk add --virtual .build-deps python3-dev libffi-dev build-base \
- && pip3 install linkedin-messaging==0.5.1 \
+ && pip3 install linkedin-messaging==0.5.2 \
  && pip3 install -r requirements.txt \
  && apk del .build-deps
 

@@ -509,7 +509,7 @@ reference = "matrix-olm"
 
 [[package]]
 name = "mautrix"
-version = "0.16.11"
+version = "0.17.1"
 description = "A Python 3 asyncio Matrix framework."
 category = "main"
 optional = false
@@ -522,8 +522,9 @@ yarl = ">=1.5,<2"
 
 [package.extras]
 detect_mimetype = ["python-magic (>=0.4.15,<0.5)"]
+encryption = ["pycryptodome", "python-olm", "unpaddedbase64"]
 lint = ["black (==22.1.0)", "isort"]
-test = ["aiosqlite", "asyncpg", "pytest", "pytest-asyncio", "sqlalchemy"]
+test = ["aiosqlite", "asyncpg", "pycryptodome", "pytest", "pytest-asyncio", "python-olm", "sqlalchemy", "unpaddedbase64"]
 
 [package.source]
 type = "legacy"
@@ -1100,7 +1101,7 @@ metrics = ["prometheus-client"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "e905831c39153dcd401e9f9cb2844eff954306fa5fb5986c921a2e05be33159e"
+content-hash = "19e6b42fe4d30bf84badc73412cb49611ecd8f0f22c44ab27d86dfd6de8e4bef"
 
 [metadata.files]
 aiohttp = [
@@ -1457,8 +1458,8 @@ marshmallow-enum = [
     {file = "marshmallow_enum-1.5.1-py2.py3-none-any.whl", hash = "sha256:57161ab3dbfde4f57adeb12090f39592e992b9c86d206d02f6bd03ebec60f072"},
 ]
 mautrix = [
-    {file = "mautrix-0.16.11-py3-none-any.whl", hash = "sha256:a4fd43f5679e00e428a8ccafdcfeb28263a12b5385fe7275ef76b20a6cc06496"},
-    {file = "mautrix-0.16.11.tar.gz", hash = "sha256:83073e1b14806412f475edce5d06f685a340b85ca413caa4d291530c86095849"},
+    {file = "mautrix-0.17.1-py3-none-any.whl", hash = "sha256:de5786a86d61857a0f169acbe53cea80f31d716e17a83d1f21a449bb76f7d0cd"},
+    {file = "mautrix-0.17.1.tar.gz", hash = "sha256:6e81bdf5dc0cf8b686c724415ec6adaef3d9ae7cf7169aec937418c05a031381"},
 ]
 mccabe = [
     {file = "mccabe-0.6.1-py2.py3-none-any.whl", hash = "sha256:ab8a6258860da4b6677da4bd2fe5dc2c659cff31b3ee4f7f5d64e79735b80d42"},
