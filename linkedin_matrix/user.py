@@ -487,8 +487,8 @@ class User(DBUser, BaseUser):
     _prev_connected_bridge_state = -600
 
     async def _push_connected_state(self):
-        # Only send once every 10 minutes.
-        if self._prev_connected_bridge_state + 600 < time.monotonic():
+        # Only send once every 12 hours.
+        if self._prev_connected_bridge_state + (12 * 60 * 60) < time.monotonic():
             await self.push_bridge_state(BridgeStateEvent.CONNECTED)
             self._prev_connected_bridge_state = time.monotonic()
         else:
