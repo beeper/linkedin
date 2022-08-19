@@ -80,10 +80,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull latest
-        run: |
-          docker pull ${{ env.CI_REGISTRY_IMAGE }}:latest || true
-
       - name: Set up Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@v4
         with:
@@ -104,6 +100,7 @@ jobs:
         with:
           context: .
           cache-from: ${{ env.CI_REGISTRY_IMAGE }}:latest
+          pull: true
           file: Dockerfile
           tags: |
             ${{ env.CI_REGISTRY_IMAGE }}:${{ github.sha }}
@@ -131,17 +128,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Tag latest on Beeper Docker registry
-        run: |
-          docker pull ${{ env.CI_REGISTRY_IMAGE }}:${{ github.sha }}
-          docker tag ${{ env.CI_REGISTRY_IMAGE }}:${{ github.sha }} ${{ env.CI_REGISTRY_IMAGE }}:latest
-          docker push ${{ env.CI_REGISTRY_IMAGE }}:latest
+      - uses: beeper/docker-retag-push-latest@main
+        with:
+          image: ${{ env.CI_REGISTRY_IMAGE }}
 
-      - name: Tag latest on ghcr
-        run: |
-          docker pull ${{ env.GHCR_REGISTRY_IMAGE }}:${{ github.sha }}
-          docker tag ${{ env.GHCR_REGISTRY_IMAGE }}:${{ github.sha }} ${{ env.GHCR_REGISTRY_IMAGE }}:latest
-          docker push ${{ env.GHCR_REGISTRY_IMAGE }}:latest
+      - uses: beeper/docker-retag-push-latest@main
+        with:
+          image: ${{ env.GHCR_REGISTRY_IMAGE }}
+
+      - name: Run bridge CD tool
+        uses: beeper/bridge-cd-tool@main
+        env:
+          CI_REGISTRY: "${{ secrets.CI_REGISTRY }}"
+          BEEPER_DEV_ADMIN_API_URL: "${{ secrets.BEEPER_DEV_ADMIN_API_URL }}"
+          BEEPER_STAGING_ADMIN_API_URL: "${{ secrets.BEEPER_STAGING_ADMIN_API_URL }}"
+          BEEPER_PROD_ADMIN_API_URL: "${{ secrets.BEEPER_PROD_ADMIN_API_URL }}"
+          BEEPER_DEV_ADMIN_NIGHTLY_PASS: "${{ secrets.BEEPER_DEV_ADMIN_NIGHTLY_PASS }}"
+          BEEPER_STAGING_ADMIN_NIGHTLY_PASS: "${{ secrets.BEEPER_STAGING_ADMIN_NIGHTLY_PASS }}"
+          BEEPER_PROD_ADMIN_NIGHTLY_PASS: "${{ secrets.BEEPER_PROD_ADMIN_NIGHTLY_PASS }}"
 
   publish-pypi:
     runs-on: ubuntu-latest
@@ -170,7 +174,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Tag latest on ghcr
+      - name: Create a label for the tag on ghcr
         run: |
           docker pull ${{ env.GHCR_REGISTRY_IMAGE }}:${{ github.sha }}
           docker tag ${{ env.GHCR_REGISTRY_IMAGE }}:${{ github.sha }} ${{ env.GHCR_REGISTRY_IMAGE }}:${{ github.ref_name }}
