@@ -151,16 +151,6 @@ jobs:
     if: ${{ github.event_name == 'release' && github.event.action == 'created' }}
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - uses: abatilo/actions-poetry@v2.1.5
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pypoetry/virtualenvs
-          key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
-
       - name: Publish to pypi
         uses: JRubics/poetry-publish@v1.12
         with:
