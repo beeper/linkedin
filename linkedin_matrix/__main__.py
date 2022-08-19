@@ -24,7 +24,7 @@ class LinkedInBridge(Bridge):
     module = "linkedin_matrix"
     command = "linkedin-matrix"
     description = "A Matrix-LinkedIn Messages puppeting bridge."
-    repo_url = "https://gitlab.com/beeper/linkedin"
+    repo_url = "https://github.com/beeper/linkedin"
     version = version
     markdown_version = linkified_version
     config_class = Config
