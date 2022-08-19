@@ -1,3 +1,30 @@
+# v0.5.3
+
+**Migrated to GitHub**. You should change all of your Docker images to point to
+ghcr rather than registry.gitlab.com. For example:
+```
+registry.gitlab.com/beeper/linkedin:latest
+```
+should become
+```
+ghcr.io/beeper/linkedin:latest
+```
+
+You'll also need to change your git commit URLs.
+
+**Features**
+
+* Implemented typing notifications
+* Implemented read receipts
+
+**Other changes:**
+
+* Switched to GitHub Actions for CI/CD
+* Added pre-commit config to help prevent bad pushes
+* Upgraded `mautrix` to `^0.17.6`
+* Upgraded `linkedin-messaging` to `^0.5.2`
+* Converted to use `isort` instead of `flake8-import-order`
+
 # v0.5.2
 
 * Upgraded mautrix to `^0.14.0`
