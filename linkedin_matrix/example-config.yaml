@@ -96,7 +96,7 @@ bridge:
     username_template: "linkedin_{userid}"
     # Whether or not to enable creating a space per user and inviting the user
     # (as well as all of the puppets) to that space.
-    enable_space_per_user: true
+    enable_space_per_user: false
     # Displayname template for LinkedIn users.
     # {displayname} is replaced with the display name of the LinkedIn user
     #               as defined below in displayname_preference.

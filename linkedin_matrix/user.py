@@ -19,7 +19,7 @@ from mautrix.bridge import BaseUser, async_getter_lock
 from mautrix.errors import MNotFound
 from mautrix.types import EventType, PushActionType, PushRuleKind, PushRuleScope, RoomID, UserID
 from mautrix.util.bridge_state import BridgeState, BridgeStateEvent
-from mautrix.util.opt_prometheus import async_time, Gauge, Summary
+from mautrix.util.opt_prometheus import Gauge, Summary, async_time
 from mautrix.util.simple_lock import SimpleLock
 
 from . import portal as po, puppet as pu
@@ -319,9 +319,7 @@ class User(DBUser, BaseUser):
                 self.space_mxid, EventType.ROOM_NAME, name_state_event_content
             )
         else:
-            self.log.debug(
-                f"Creating space for {self.li_member_urn}, inviting {self.mxid}"
-            )
+            self.log.debug(f"Creating space for {self.li_member_urn}, inviting {self.mxid}")
             room = await self.az.intent.create_room(
                 is_direct=False,
                 invitees=[self.mxid],

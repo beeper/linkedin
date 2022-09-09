@@ -656,13 +656,9 @@ class Portal(DBPortal, BasePortal):
                     try:
                         did_join = await puppet.intent.join_room_by_id(self.mxid)
                         if did_join:
-                            await source.update_direct_chats(
-                                {self.main_intent.mxid: [self.mxid]}
-                            )
+                            await source.update_direct_chats({self.main_intent.mxid: [self.mxid]})
                         if source.space_mxid:
-                            await self.az.intent.invite_user(
-                                source.space_mxid, puppet.custom_mxid
-                            )
+                            await self.az.intent.invite_user(source.space_mxid, puppet.custom_mxid)
                             await puppet.intent.join_room_by_id(source.space_mxid)
                     except MatrixError:
                         self.log.debug(
