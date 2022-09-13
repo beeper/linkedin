@@ -305,11 +305,11 @@ class User(DBUser, BaseUser):
     # Spaces support
 
     async def _create_or_update_space(self):
-        if not self.config["bridge.enable_space_per_user"]:
+        if not self.config["bridge.space_support.enable"]:
             return
 
         avatar_state_event_content = {"url": self.config["appservice.bot_avatar"]}
-        name_state_event_content = {"name": "LinkedIn"}  # TODO template
+        name_state_event_content = {"name": self.config["bridge.space_support.name"]}
 
         if self.space_mxid:
             await self.az.intent.send_state_event(
