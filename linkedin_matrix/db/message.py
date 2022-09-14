@@ -6,6 +6,7 @@ from attr import dataclass
 from linkedin_messaging import URN
 
 from mautrix.types import EventID, RoomID
+from mautrix.util.async_db import Scheme
 
 from .model_base import Model
 
@@ -59,11 +60,7 @@ class Message(Model):
         li_receiver_urn: URN,
     ) -> list["Message"]:
         query = Message.select_constructor("li_message_urn=$1 AND li_receiver_urn=$2")
-        rows = await cls.db.fetch(
-            query,
-            li_message_urn.id_str(),
-            li_receiver_urn.id_str(),
-        )
+        rows = await cls.db.fetch(query, li_message_urn.id_str(), li_receiver_urn.id_str())
         return [cast(Message, cls._from_row(row)) for row in rows if row]
 
     @classmethod
@@ -107,11 +104,7 @@ class Message(Model):
             + ' ORDER BY timestamp DESC, "index" DESC'
             + " LIMIT 1"
         )
-        row = await cls.db.fetchrow(
-            query,
-            li_thread_urn.id_str(),
-            li_receiver_urn.id_str(),
-        )
+        row = await cls.db.fetchrow(query, li_thread_urn.id_str(), li_receiver_urn.id_str())
         return cls._from_row(row)
 
     async def insert(self):
@@ -156,11 +149,12 @@ class Message(Model):
             for index, mxid in enumerate(event_ids)
         ]
         async with cls.db.acquire() as conn, conn.transaction():
-            await conn.copy_records_to_table(
-                "message",
-                records=records,
-                columns=cls._field_list,
-            )
+            if cls.db.scheme == Scheme.POSTGRES:
+                await conn.copy_records_to_table(
+                    "message", records=records, columns=cls._field_list
+                )
+            else:
+                await conn.executemany(Message.insert_constructor(), records)
 
     async def delete(self):
         q = """
