@@ -22,10 +22,11 @@ name = "matrix-olm"
 url = "https://gitlab.matrix.org/api/v4/projects/27/packages/pypi/simple"
 
 [tool.poetry.dependencies]
+aiosqlite = "^0.17.0"
 asyncpg = ">=0.23.0"
 commonmark = "^0.9.1"
 linkedin-messaging = "^0.5.2"
-mautrix = "^0.17.6"
+mautrix = "^0.17.8"
 Pillow = {version = "^8.3.1", optional = true}
 prometheus-client = {version = "^0.11.0", optional = true}
 pycryptodome = {version = "^3.10.1", optional = true}
@@ -34,7 +35,6 @@ python-magic = "^0.4.24"
 python-olm = {version = "*", optional = true}
 "ruamel.yaml" = "^0.17.0"
 unpaddedbase64 = {version = "^2.1.0", optional = true}
-aiosqlite = "^0.17.0"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"
