@@ -76,10 +76,6 @@ class LinkedInBridge(Bridge):
         await self.db.stop()
 
     async def start(self):
-        await self.db.start()
-        await self.state_store.upgrade_table.upgrade(self.db)
-        if self.matrix.e2ee and self.matrix.e2ee.crypto_db:
-            self.matrix.e2ee.crypto_db.override_pool(self.db)
         self.add_startup_actions(User.init_cls(self))
         self.add_startup_actions(Puppet.init_cls(self))
         Portal.init_cls(self)
