@@ -73,7 +73,11 @@ class Message(Model):
         li_receiver_urn: URN,
         index: int = 0,
     ) -> Optional["Message"]:
-        query = Message.select_constructor("li_message_urn=$1 AND li_receiver_urn=$2 AND index=$3")
+        query = Message.select_constructor(
+            """
+            li_message_urn=$1 AND li_receiver_urn=$2 AND "index"=$3'
+            """
+        )
         row = await cls.db.fetchrow(
             query,
             li_message_urn.id_str(),
@@ -100,7 +104,7 @@ class Message(Model):
     ) -> Optional["Message"]:
         query = (
             Message.select_constructor("li_thread_urn=$1 AND li_receiver_urn=$2")
-            + " ORDER BY timestamp DESC, index DESC"
+            + ' ORDER BY timestamp DESC, "index" DESC'
             + " LIMIT 1"
         )
         row = await cls.db.fetchrow(
@@ -163,7 +167,7 @@ class Message(Model):
             DELETE FROM message
              WHERE li_message_urn=$1
                AND li_receiver_urn=$2
-               AND index=$3
+               AND "index"=$3
         """
         await self.db.execute(
             q,

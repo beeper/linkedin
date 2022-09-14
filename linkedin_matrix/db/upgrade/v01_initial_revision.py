@@ -1,4 +1,4 @@
-from asyncpg import Connection
+from mautrix.util.async_db import Connection
 
 from . import upgrade_table
 
@@ -56,10 +56,10 @@ async def upgrade_v1(conn: Connection):
             li_thread_urn       TEXT,
             li_sender_urn       TEXT,
             li_receiver_urn     TEXT,
-            index               SMALLINT,
+            "index"             SMALLINT,
             timestamp           FLOAT,
 
-            PRIMARY KEY (li_message_urn, li_receiver_urn, index),
+            PRIMARY KEY (li_message_urn, li_receiver_urn, "index"),
 
             FOREIGN KEY (li_thread_urn, li_receiver_urn)
              REFERENCES portal (li_thread_urn, li_receiver_urn)

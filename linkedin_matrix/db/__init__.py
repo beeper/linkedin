@@ -1,6 +1,7 @@
 from mautrix.util.async_db import Database
 
 from .message import Message
+from .model_base import Model
 from .portal import Portal
 from .puppet import Puppet
 from .reaction import Reaction

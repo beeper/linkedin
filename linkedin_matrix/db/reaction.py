@@ -55,7 +55,7 @@ class Reaction(Model):
     ) -> Optional["Reaction"]:
         query = (
             Reaction.select_constructor("mx_room=$1 AND li_message_urn=$2")
-            + " ORDER BY index DESC"
+            + ' ORDER BY "index" DESC'
             + " LIMIT 1"
         )
         row = await cls.db.fetchrow(query, mx_room, li_message_urn.id_str())
