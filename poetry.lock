@@ -423,7 +423,7 @@ reference = "matrix-olm"
 
 [[package]]
 name = "idna"
-version = "3.3"
+version = "3.4"
 description = "Internationalized Domain Names in Applications (IDNA)"
 category = "main"
 optional = false
@@ -524,7 +524,7 @@ reference = "matrix-olm"
 
 [[package]]
 name = "mautrix"
-version = "0.17.8"
+version = "0.18.1"
 description = "A Python 3 asyncio Matrix framework."
 category = "main"
 optional = false
@@ -1097,7 +1097,7 @@ metrics = ["prometheus-client"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "493892bf1c89282e7d35231d549e8bca162dce47b54850bef8d3e621f99a4be3"
+content-hash = "b010f6bfa582b7f1f0a44f47f64d5416ecb4590af915170fbf98aedebf7cd444"
 
 [metadata.files]
 aiohttp = [
@@ -1433,8 +1433,8 @@ identify = [
     {file = "identify-2.5.5.tar.gz", hash = "sha256:322a5699daecf7c6fd60e68852f36f2ecbb6a36ff6e6e973e0d2bb6fca203ee6"},
 ]
 idna = [
-    {file = "idna-3.3-py3-none-any.whl", hash = "sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff"},
-    {file = "idna-3.3.tar.gz", hash = "sha256:9d643ff0a55b762d5cdb124b8eaa99c66322e2157b69160bc32796e824360e6d"},
+    {file = "idna-3.4-py3-none-any.whl", hash = "sha256:90b77e79eaa3eba6de819a0c442c0b4ceefc341a7a2ab77d7562bf49f425c5c2"},
+    {file = "idna-3.4.tar.gz", hash = "sha256:814f528e8dead7d329833b91c5faa87d60bf71824cd12a7530b5526063d02cb4"},
 ]
 iniconfig = [
     {file = "iniconfig-1.1.1-py2.py3-none-any.whl", hash = "sha256:011e24c64b7f47f6ebd835bb12a743f2fbe9a26d4cecaa7f53bc4f35ee9da8b3"},
@@ -1457,8 +1457,8 @@ marshmallow-enum = [
     {file = "marshmallow_enum-1.5.1-py2.py3-none-any.whl", hash = "sha256:57161ab3dbfde4f57adeb12090f39592e992b9c86d206d02f6bd03ebec60f072"},
 ]
 mautrix = [
-    {file = "mautrix-0.17.8-py3-none-any.whl", hash = "sha256:18cc44351f2bd52c5b3a4ebe03500570d6e1a8301bff6ca1ee01e31eece72ac5"},
-    {file = "mautrix-0.17.8.tar.gz", hash = "sha256:0c56a3003e669d72d0989191bf88f699686d223efb9d93524216deb17e2a332b"},
+    {file = "mautrix-0.18.1-py3-none-any.whl", hash = "sha256:22c686dc2fb14dbd790bef35f904e6e8feb4819d51001fc37438556a5a9f0369"},
+    {file = "mautrix-0.18.1.tar.gz", hash = "sha256:7e51f0c3a8ef7a51387d8910ccf17294c3c647a5b8c744c790ac33f1b5461396"},
 ]
 mccabe = [
     {file = "mccabe-0.6.1-py2.py3-none-any.whl", hash = "sha256:ab8a6258860da4b6677da4bd2fe5dc2c659cff31b3ee4f7f5d64e79735b80d42"},
