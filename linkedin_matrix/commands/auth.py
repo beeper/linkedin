@@ -114,9 +114,10 @@ async def enter_password(evt: CommandEvent):
             "received via SMS or your authenticator app here."
         )
         return
-    except Exception:
+    except Exception as e:
+        logging.exception("Failed to log in")
         evt.sender.command_status = None
-        await evt.reply("Failed to log in")
+        await evt.reply(f"Failed to log in: {e}")
         return
 
     # We were able to log in successfully without 2FA.
@@ -132,6 +133,7 @@ async def enter_2fa_code(evt: CommandEvent):
     try:
         await client.enter_2fa("".join(evt.args).strip())
     except Exception as e:
+        logging.exception("Failed to log in")
         evt.sender.command_status = None
         await evt.reply(f"Failed to log in: {e}")
 
