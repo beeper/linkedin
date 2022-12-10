@@ -83,6 +83,36 @@ async def login(evt: CommandEvent):
         await evt.reply(missing_email)
 
 
+@command_handler(
+    needs_auth=False,
+    management_only=False,
+    help_section=SECTION_AUTH,
+    help_text="Log in to LinkedIn using a manual login flow",
+    help_args="<_li\\_at_> <_jsessionid_>",
+)
+async def login_manual(evt: CommandEvent):
+    if evt.sender.client and await evt.sender.client.logged_in():
+        await evt.reply("You're already logged in.")
+        return
+    elif len(evt.args) != 2:
+        await evt.reply("**Usage:** `$cmdprefix+sp login-manual <li_at> <jsessionid>`")
+        return
+
+    li_at = evt.args[0]
+    jsessionid = evt.args[1]
+    await evt.redact()
+
+    client = LinkedInMessaging()
+    try:
+        await client.login_manual(li_at, jsessionid)
+        await evt.sender.on_logged_in(client)
+        await evt.reply("Successfully logged in")
+    except Exception as e:
+        logging.exception("Failed to log in")
+        await evt.reply(f"Failed to log in: {e}")
+        return
+
+
 async def enter_password(evt: CommandEvent):
     try:
         await evt.az.intent.redact(evt.room_id, evt.event_id)
