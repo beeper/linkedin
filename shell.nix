@@ -15,7 +15,7 @@ in
 mkShell rec {
   buildInputs = [
     python39
-    python39Packages.poetry
+    python39Packages.poetry-core
 
     # Python Dependencies
     python39Packages.psycopg2

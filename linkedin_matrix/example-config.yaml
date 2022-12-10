@@ -233,7 +233,7 @@ bridge:
         # If using double puppeting, should notifications be disabled
         # while the initial backfill is in progress?
         disable_notifications: false
-        # If this value is greater than 0, then on backfill if the
+        # If this value is greater than 0, then (on backfill) if the
         # conversation's last message was more than this number of hours ago,
         # then the conversation will automatically be marked it as read.
         unread_hours_threshold: 0
