@@ -1,3 +1,24 @@
+# v0.5.4
+
+**Migrated away from Poetry**. The dependency management was getting very
+annoying, and it was quite different from the dependency management of all of
+the other mautrix Python bridges, so I switched to use `setup.py` and
+`requirements.txt`.
+
+**Features**
+
+* Added `login-manual` option to log in to LinkedIn using a manual login flow.
+
+  You can now pull the cookies manually from within an incognito browser after
+  logging in instead of using the (very unreliable) old login method.
+
+* Added personal filtering space support.
+
+**Internal**
+
+* Updated to `mautrix>=0.18.7,<0.19`.
+* Add support for SQLite.
+
 # v0.5.3
 
 **Migrated to GitHub**. You should change all of your Docker images to point to
