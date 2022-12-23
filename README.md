@@ -12,33 +12,11 @@ LinkedIn Messaging <-> Matrix bridge built using
 
 Not much yet :)
 
-It is a Poetry project that requires Python 3.9+, PostgreSQL. Theoretically, all
-you need to do is:
+Following the
+[Generic Instructions](https://docs.mau.fi/bridges/python/setup.html)
+from the mautrix docs is probably the best approach.
 
-1. Copy the `linkedin_matrix/example-config.yaml` file and modify it to your
-   needs.
-
-2. Install the dependencies with Poetry:
-
-   ```
-   $ poetry install
-   ```
-
-   and activate the virtualenv.
-
-3. Generate the registration file
-
-   ```
-   $ python -m linkedin_matrix -g
-   ```
-
-   and add it to your Synapse config.
-
-4. Run the bridge using:
-
-   ```
-   $ python -m linkedin_matrix
-   ```
+Note that this project requires Python 3.9 or greater.
 
 ### Features & Roadmap
 

@@ -20,43 +20,25 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - uses: abatilo/actions-poetry@v2.1.5
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pypoetry/virtualenvs
-          key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
-      - run: poetry install
-
-      - name: Run pre-commit
-        run: |
-          poetry run pre-commit run --all --verbose
-
-  build-wheel:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - uses: abatilo/actions-poetry@v2.1.5
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pypoetry/virtualenvs
-          key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
-
-      - run: poetry build
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: dist
-          path: dist/*
-          retention-days: 14
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    - uses: isort/isort-action@master
+      with:
+        sortPaths: "./linkedin_matrix"
+    - uses: psf/black@stable
+      with:
+        src: "./linkedin_matrix"
+        version: "22.3.0"
+    - name: pre-commit
+      run: |
+        pip install pre-commit
+        pre-commit run -av trailing-whitespace
+        pre-commit run -av end-of-file-fixer
+        pre-commit run -av check-yaml
+        pre-commit run -av check-added-large-files
 
   build-docker:
     runs-on: ubuntu-latest
@@ -79,21 +61,6 @@ jobs:
           registry: ${{ env.GHCR_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - uses: abatilo/actions-poetry@v2.1.5
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pypoetry/virtualenvs
-          key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
-      - run: poetry install
-
-      - name: Generate docker-requirements.txt
-        run: |
-          poetry export --without-hashes -E e2be -E images -E metrics | sed 's/==.*//g' > docker-requirements.txt
 
       - name: Docker Build
         uses: docker/build-push-action@v2
@@ -151,14 +118,13 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - lint
-      - build-wheel
     if: ${{ github.event_name == 'release' && github.event.action == 'created' }}
     steps:
       - uses: actions/checkout@v3
       - name: Publish to pypi
-        uses: JRubics/poetry-publish@v1.12
+        uses: pypa/gh-action-pypi-publish@v1
         with:
-          pypi_token: ${{ secrets.PYPI_TOKEN }}
+          password: ${{ secrets.PYPI_TOKEN }}
 
   tag-docker-release:
     runs-on: ubuntu-latest

@@ -8,13 +8,6 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
 
-  # poetry check
-  # TODO replace with upstream once poetry has direct pre-commit support
-  - repo: https://github.com/medigateio/poetry-pre-commit
-    rev: 1.1.12-v2
-    hooks:
-      - id: poetry-check
-
   # black
   - repo: local
     hooks:
@@ -22,18 +15,18 @@ repos:
         name: black
         entry: black --check
         language: system
-        files: ^.*\.py$
+        files: ^(cicd|linkedin_matrix)/.*\.pyi?$
 
   # isort
   - repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
       - id: isort
-        files: ^.*\.py$
+        files: ^(cicd|linkedin_matrix)/.*\.pyi?$
 
   # flake8
-  - repo: https://gitlab.com/pycqa/flake8
-    rev: 4.0.1
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.0.0
     hooks:
       - id: flake8
         files: ^.*\.py$
@@ -44,4 +37,6 @@ repos:
       - id: custom-style-check
         name: custom style check
         entry: ./cicd/custom_style_check.py
-        language: system
+        language: python
+        additional_dependencies:
+          - termcolor==2.1.1
