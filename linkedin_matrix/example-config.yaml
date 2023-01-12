@@ -304,8 +304,6 @@ logging:
     loggers:
         mau:
             level: DEBUG
-        paho:
-            level: INFO
         aiohttp:
             level: INFO
     root:

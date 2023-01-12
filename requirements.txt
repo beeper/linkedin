@@ -3,7 +3,6 @@ asyncpg>=0.20,<0.28
 commonmark>=0.8,<0.10
 linkedin-messaging==0.5.3
 mautrix>=0.18.7,<0.19
-paho-mqtt>=1.5,<2
 pycryptodome>=3,<4
 python-magic>=0.4,<0.5
 ruamel.yaml>=0.15.94,<0.18

@@ -9,7 +9,6 @@ RUN apk add --no-cache \
     py3-magic \
     py3-ruamel.yaml \
     py3-commonmark \
-    py3-paho-mqtt \
     py3-prometheus-client \
     py3-olm \
     py3-cffi \
