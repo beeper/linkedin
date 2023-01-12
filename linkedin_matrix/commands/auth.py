@@ -61,36 +61,13 @@ async def whoami(evt: CommandEvent):
     needs_auth=False,
     management_only=False,
     help_section=SECTION_AUTH,
-    help_text="Log in to LinkedIn",
-    help_args="[_email_]",
-)
-async def login(evt: CommandEvent):
-    if evt.sender.client and await evt.sender.client.logged_in():
-        await evt.reply("You're already logged in.")
-        return
-
-    email = evt.args[0] if len(evt.args) > 0 else None
-
-    if email:
-        evt.sender.command_status = {
-            "action": "Login",
-            "room_id": evt.room_id,
-            "next": enter_password,
-            "email": email,
-        }
-        await evt.reply(send_password)
-    else:
-        await evt.reply(missing_email)
-
-
-@command_handler(
-    needs_auth=False,
-    management_only=False,
-    help_section=SECTION_AUTH,
-    help_text="Log in to LinkedIn using a manual login flow",
+    help_text=(
+        "Log in to LinkedIn by cookies from an existing LinkedIn browser session (recommended "
+        "to use a private window to extract the cookies)"
+    ),
     help_args="<_li\\_at_> <_jsessionid_>",
 )
-async def login_manual(evt: CommandEvent):
+async def login(evt: CommandEvent):
     if evt.sender.client and await evt.sender.client.logged_in():
         await evt.reply("You're already logged in.")
         return
