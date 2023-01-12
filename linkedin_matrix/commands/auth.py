@@ -98,8 +98,8 @@ async def login_manual(evt: CommandEvent):
         await evt.reply("**Usage:** `$cmdprefix+sp login-manual <li_at> <jsessionid>`")
         return
 
-    li_at = evt.args[0]
-    jsessionid = evt.args[1]
+    li_at = evt.args[0].strip('"')
+    jsessionid = evt.args[1].strip('"')
     await evt.redact()
 
     client = LinkedInMessaging()
