@@ -520,7 +520,9 @@ class User(DBUser, BaseUser):
         self.listen_task.add_done_callback(self.on_listen_task_end)
 
     async def _try_listen(self):
-        assert self.client
+        if not self.client:
+            self.log.error("No client, cannot start listener!")
+            return
         if not self.listener_event_handlers_created:
             self.client.add_event_listener("ALL_EVENTS", self.handle_linkedin_stream_event)
             self.client.add_event_listener("STREAM_ERROR", self.handle_linkedin_listener_error)
