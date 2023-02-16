@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.1.0
+    rev: v4.4.0
     hooks:
       - id: trailing-whitespace
         exclude_types: [markdown]
@@ -9,17 +9,15 @@ repos:
       - id: check-added-large-files
 
   # black
-  - repo: local
+  - repo: https://github.com/psf/black
+    rev: 23.1.0
     hooks:
       - id: black
-        name: black
-        entry: black --check
-        language: system
         files: ^(cicd|linkedin_matrix)/.*\.pyi?$
 
   # isort
   - repo: https://github.com/PyCQA/isort
-    rev: 5.10.1
+    rev: 5.12.0
     hooks:
       - id: isort
         files: ^(cicd|linkedin_matrix)/.*\.pyi?$
