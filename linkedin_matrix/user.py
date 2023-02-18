@@ -13,7 +13,6 @@ from linkedin_messaging.api_objects import (
     RealTimeEventStreamEvent,
     UserProfileResponse,
 )
-import aiohttp
 
 from mautrix.bridge import BaseUser, async_getter_lock
 from mautrix.errors import MNotFound
@@ -552,7 +551,7 @@ class User(DBUser, BaseUser):
         self._prev_connected_bridge_state = -600
         self.user_profile_cache = None
 
-        if isinstance(error, aiohttp.client.TooManyRedirects):
+        if isinstance(error, TooManyRedirects):
             # This means that the user's session is borked (the redirects mean it's
             # trying to redirect to the login page).
             await self.push_bridge_state(
