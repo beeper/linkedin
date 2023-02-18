@@ -72,7 +72,7 @@ async def login(evt: CommandEvent):
         await evt.reply("You're already logged in.")
         return
     elif len(evt.args) != 2:
-        await evt.reply("**Usage:** `$cmdprefix+sp login-manual <li_at> <jsessionid>`")
+        await evt.reply("**Usage:** `$cmdprefix+sp login <li_at> <jsessionid>`")
         return
 
     li_at = evt.args[0].strip('"')
