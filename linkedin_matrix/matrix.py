@@ -17,7 +17,7 @@ from mautrix.types.event.message import RelationType
 from mautrix.types.event.reaction import ReactionEventContent
 
 # these have to be in this particular order to avoid circular imports
-from . import user as u, portal as po  # isort:skip
+from . import portal as po, user as u
 
 if TYPE_CHECKING:
     from .__main__ import LinkedInBridge

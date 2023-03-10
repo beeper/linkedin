@@ -43,7 +43,7 @@ from mautrix.types.primitive import UserID
 from mautrix.util.message_send_checkpoint import MessageSendCheckpointStatus
 from mautrix.util.simple_lock import SimpleLock
 
-from . import puppet as p, user as u
+from . import matrix as m, puppet as p, user as u
 from .config import Config
 from .db import Message as DBMessage, Portal as DBPortal, Reaction as DBReaction
 from .formatter import (
@@ -55,7 +55,6 @@ from .formatter import (
 
 if TYPE_CHECKING:
     from .__main__ import LinkedInBridge
-    from .matrix import MatrixHandler
 
 try:
     from PIL import Image
@@ -85,7 +84,7 @@ class Portal(DBPortal, BasePortal):
     invite_own_puppet_to_pm: bool = False
     by_mxid: dict[RoomID, "Portal"] = {}
     by_li_thread_urn: dict[tuple[URN, Optional[URN]], "Portal"] = {}
-    matrix: "MatrixHandler"
+    matrix: m.MatrixHandler
     config: Config
 
     backfill_lock: SimpleLock

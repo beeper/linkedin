@@ -5,13 +5,9 @@ from mautrix.bridge.state_store.asyncpg import PgBridgeStateStore
 from mautrix.types import RoomID, UserID
 from mautrix.util.async_db import Database
 
-from . import commands  # noqa: F401
 from .config import Config
 from .db import init as init_db, upgrade_table
-
-# This has to be imported after the rest of the modules because it relies on them
-# being imported already.
-from .matrix import MatrixHandler  # noqa: I100 I202
+from .matrix import MatrixHandler
 from .portal import Portal  # noqa: I100 (needs to be after because it relies on Puppet)
 from .puppet import Puppet
 from .user import User
