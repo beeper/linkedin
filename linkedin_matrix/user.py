@@ -97,7 +97,7 @@ class User(DBUser, BaseUser):
         cls.az = bridge.az
         cls.loop = bridge.loop
         cls.temp_disconnect_notices = bridge.config["bridge.temporary_disconnect_notices"]
-        return (user.load_session() async for user in cls.all_logged_in())
+        return (user.load_session(is_startup=True) async for user in cls.all_logged_in())
 
     @property
     def is_connected(self) -> Optional[bool]:
@@ -188,12 +188,13 @@ class User(DBUser, BaseUser):
 
     async def load_session(
         self,
-        _override: bool = False,
+        is_startup: bool = False,
         _raise_errors: bool = False,
     ) -> bool:
-        if self._is_logged_in and not _override:
+        if self._is_logged_in and is_startup:
             return True
         if not self.client:
+            await self.push_bridge_state(BridgeStateEvent.BAD_CREDENTIALS, error="logged-out")
             return False
 
         try:
@@ -231,10 +232,10 @@ class User(DBUser, BaseUser):
         self.start_listen()
         self._is_refreshing = False
 
-    async def is_logged_in(self, _override: bool = False) -> bool:
+    async def is_logged_in(self) -> bool:
         if not self.client:
             return False
-        if self._is_logged_in is None or _override:
+        if self._is_logged_in is None:
             try:
                 self._is_logged_in = await self.client.logged_in()
             except Exception:
