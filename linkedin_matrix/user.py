@@ -253,7 +253,7 @@ class User(DBUser, BaseUser):
         await self.push_bridge_state(BridgeStateEvent.CONNECTING)
         await self.save()
         self.stop_listen()
-        asyncio.create_task(self.post_login())
+        await self.load_session()
 
     async def post_login(self):
         self.log.info("Running post-login actions")
@@ -296,6 +296,7 @@ class User(DBUser, BaseUser):
         self.user_profile_cache = None
         self.li_member_urn = None
         self.notice_room = None
+        self.listener_event_handlers_created = False
         await self.save()
         self._is_logging_out = False
 
@@ -465,6 +466,8 @@ class User(DBUser, BaseUser):
 
     async def fill_bridge_state(self, state: BridgeState):
         await super().fill_bridge_state(state)
+        if not self.li_member_urn:
+            return
         state.remote_id = self.li_member_urn.get_id()
         state.remote_name = ""
         user = await User.get_by_li_member_urn(self.li_member_urn)
