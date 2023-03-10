@@ -533,7 +533,15 @@ class User(DBUser, BaseUser):
             self.client.add_event_listener("action", self.handle_linkedin_action)
             self.client.add_event_listener("fromEntity", self.handle_linkedin_from_entity)
             self.listener_event_handlers_created = True
-        await self.client.start_listener()
+        try:
+            await self.client.start_listener()
+        except TooManyRedirects as e:
+            self.log.exception(
+                "Too many redirects. This is likely due to being logged out from another session.",
+                e,
+            )
+            self._is_logged_in = False
+            self._is_connected = False
 
     _prev_connected_bridge_state = -600
 
