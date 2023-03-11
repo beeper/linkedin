@@ -508,8 +508,10 @@ class User(DBUser, BaseUser):
                 and self.client
                 and not self.shutdown
             ):
+                self._track_metric(METRIC_CONNECTED, False)
                 self.log.warn("Logged out, but not by a logout call, sending bad credentials.")
                 asyncio.create_task(self.push_bridge_state(BridgeStateEvent.BAD_CREDENTIALS))
+            future.cancel()
 
     listener_event_handlers_created: bool = False
     listener_task_i: int = 0
@@ -528,7 +530,6 @@ class User(DBUser, BaseUser):
             return
         if not self.listener_event_handlers_created:
             self.client.add_event_listener("ALL_EVENTS", self.handle_linkedin_stream_event)
-            self.client.add_event_listener("STREAM_ERROR", self.handle_linkedin_listener_error)
             self.client.add_event_listener("event", self.handle_linkedin_event)
             self.client.add_event_listener("reactionAdded", self.handle_linkedin_reaction_added)
             self.client.add_event_listener("action", self.handle_linkedin_action)
@@ -536,13 +537,13 @@ class User(DBUser, BaseUser):
             self.listener_event_handlers_created = True
         try:
             await self.client.start_listener()
-        except TooManyRedirects as e:
-            self.log.exception(
-                "Too many redirects. This is likely due to being logged out from another session.",
-                e,
-            )
+        except Exception as e:
+            self.log.exception(f"Exception in listener: {e}")
             self._is_logged_in = False
             self._is_connected = False
+            self.li_member_urn = None
+            self._prev_connected_bridge_state = -600
+            self.user_profile_cache = None
 
     _prev_connected_bridge_state = -600
 
@@ -557,31 +558,6 @@ class User(DBUser, BaseUser):
     async def handle_linkedin_stream_event(self, _):
         self._track_metric(METRIC_CONNECTED, True)
         await self._push_connected_state()
-
-    async def handle_linkedin_listener_error(self, error: Exception):
-        self._track_metric(METRIC_CONNECTED, False)
-        self._prev_connected_bridge_state = -600
-        self.user_profile_cache = None
-
-        if isinstance(error, TooManyRedirects):
-            # This means that the user's session is borked (the redirects mean it's
-            # trying to redirect to the login page).
-            await self.push_bridge_state(
-                BridgeStateEvent.BAD_CREDENTIALS,
-                message=f"TooManyRedirects: {error}",
-            )
-            if self.listen_task:
-                self.client = None
-                self.user_profile_cache = None
-                self.li_member_urn = None
-                self._is_logged_in = False
-                self._prev_connected_bridge_state = -600
-                self.stop_listen()
-        else:
-            await self.push_bridge_state(
-                BridgeStateEvent.TRANSIENT_DISCONNECT,
-                message=str(error),
-            )
 
     async def handle_linkedin_event(self, event: RealTimeEventStreamEvent):
         assert self.client
