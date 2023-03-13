@@ -233,11 +233,14 @@ class User(DBUser, BaseUser):
         self._is_refreshing = False
 
     async def is_logged_in(self) -> bool:
+        self.log.debug("Checking if logged in")
         if not self.client:
+            self.log.debug("Not logged in: no client")
             return False
         if self._is_logged_in is None:
             try:
                 self._is_logged_in = await self.client.logged_in()
+                self.log.debug("checked if client is logged in: %s", self._is_logged_in)
             except Exception:
                 self.log.exception("Exception checking login status")
                 self._is_logged_in = False
