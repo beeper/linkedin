@@ -249,6 +249,7 @@ class User(DBUser, BaseUser):
 
     async def on_logged_in(self, client: LinkedInMessaging):
         self.client = client
+        self.listener_event_handlers_created = False
         self.user_profile_cache = await self.client.get_user_profile()
         if (mp := self.user_profile_cache.mini_profile) and mp.entity_urn:
             self.li_member_urn = mp.entity_urn
@@ -297,10 +298,10 @@ class User(DBUser, BaseUser):
                 pass
         self._track_metric(METRIC_LOGGED_IN, True)
         self.client = None
+        self.listener_event_handlers_created = False
         self.user_profile_cache = None
         self.li_member_urn = None
         self.notice_room = None
-        self.listener_event_handlers_created = False
         await self.save()
         self._is_logging_out = False
 
@@ -528,10 +529,12 @@ class User(DBUser, BaseUser):
         self.listen_task.add_done_callback(self.on_listen_task_end)
 
     async def _try_listen(self):
+        self.log.info("Trying to start the listener")
         if not self.client:
             self.log.error("No client, cannot start listener!")
             return
         if not self.listener_event_handlers_created:
+            self.log.info("Adding listeners to client")
             self.client.add_event_listener("ALL_EVENTS", self.handle_linkedin_stream_event)
             self.client.add_event_listener("event", self.handle_linkedin_event)
             self.client.add_event_listener("reactionAdded", self.handle_linkedin_reaction_added)
