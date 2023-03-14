@@ -544,7 +544,6 @@ class User(DBUser, BaseUser):
             self.log.exception(f"Exception in listener: {e}")
             self._is_logged_in = False
             self._is_connected = False
-            self.li_member_urn = None
             self._prev_connected_bridge_state = -600
             self.user_profile_cache = None
 
