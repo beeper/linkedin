@@ -545,10 +545,18 @@ class User(DBUser, BaseUser):
             await self.client.start_listener()
         except Exception as e:
             self.log.exception(f"Exception in listener: {e}")
-            self._is_logged_in = False
-            self._is_connected = False
             self._prev_connected_bridge_state = -600
+            self._track_metric(METRIC_CONNECTED, False)
             self.user_profile_cache = None
+
+            if isinstance(e, TooManyRedirects):
+                # This means that the user's session is borked (the redirects mean it's trying to
+                # redirect to the login page).
+                self._is_logged_in = False
+                self._is_connected = False
+            else:
+                await self.push_bridge_state(BridgeStateEvent.TRANSIENT_DISCONNECT, message=str(e))
+                await asyncio.sleep(5)
 
     _prev_connected_bridge_state = -600
 
