@@ -122,7 +122,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Publish to pypi
-        uses: pypa/gh-action-pypi-publish@v1.6.4
+        uses: pypa/gh-action-pypi-publish@v1.8.3
         with:
           password: ${{ secrets.PYPI_TOKEN }}
 
