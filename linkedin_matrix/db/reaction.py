@@ -1,4 +1,4 @@
-from typing import Optional
+from __future__ import annotations
 
 from asyncpg import Record
 from attr import dataclass
@@ -29,7 +29,7 @@ class Reaction(Model):
     ]
 
     @classmethod
-    def _from_row(cls, row: Optional[Record]) -> Optional["Reaction"]:
+    def _from_row(cls, row: Record | None) -> Reaction | None:
         if row is None:
             return None
         data = {**row}
@@ -44,7 +44,7 @@ class Reaction(Model):
         )
 
     @classmethod
-    async def get_by_mxid(cls, mxid: EventID, mx_room: RoomID) -> Optional["Reaction"]:
+    async def get_by_mxid(cls, mxid: EventID, mx_room: RoomID) -> Reaction | None:
         query = Reaction.select_constructor("mxid=$1 AND mx_room=$2")
         row = await cls.db.fetchrow(query, mxid, mx_room)
         return cls._from_row(row)
@@ -52,7 +52,7 @@ class Reaction(Model):
     @classmethod
     async def get_most_recent_by_li_message_urn(
         cls, mx_room: RoomID, li_message_urn: URN
-    ) -> Optional["Reaction"]:
+    ) -> Reaction | None:
         query = (
             Reaction.select_constructor("mx_room=$1 AND li_message_urn=$2")
             + ' ORDER BY "index" DESC'
@@ -68,7 +68,7 @@ class Reaction(Model):
         li_receiver_urn: URN,
         li_sender_urn: URN,
         reaction: str,
-    ) -> Optional["Reaction"]:
+    ) -> Reaction | None:
         query = Reaction.select_constructor(
             """
                 li_message_urn=$1

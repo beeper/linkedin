@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, Optional, Union, cast
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, cast
 import asyncio
 
 from mautrix.bridge import BaseMatrixHandler
@@ -109,7 +111,7 @@ class MatrixHandler(BaseMatrixHandler):
 
     async def handle_typing(self, room_id: RoomID, typing: list[UserID]):
         self.log.info(f"room: {room_id}: typing {typing}")
-        portal: Optional[po.Portal] = await po.Portal.get_by_mxid(room_id)
+        portal: po.Portal | None = await po.Portal.get_by_mxid(room_id)
         if not portal:
             return
 
@@ -120,7 +122,7 @@ class MatrixHandler(BaseMatrixHandler):
 
     async def handle_ephemeral_event(
         self,
-        evt: Union[ReceiptEvent, PresenceEvent, TypingEvent],
+        evt: ReceiptEvent | PresenceEvent | TypingEvent,
     ):
         if evt.type == EventType.PRESENCE:
             evt = cast(PresenceEvent, evt)

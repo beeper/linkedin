@@ -1,4 +1,6 @@
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import Any
 import os
 import shutil
 import subprocess
@@ -17,7 +19,7 @@ def run(cmd: list[str]) -> Any:
     return subprocess.check_output(cmd, stderr=subprocess.DEVNULL, env=cmd_env)
 
 
-git_revision_url: Optional[str]
+git_revision_url: str | None
 if os.path.exists(".git") and shutil.which("git"):
     try:
         git_revision = run(["git", "rev-parse", "HEAD"]).strip().decode("ascii")

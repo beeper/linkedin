@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, Any, AsyncGenerator, Optional, Union, cast
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, AsyncGenerator, cast
 from collections import deque
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -77,13 +79,13 @@ class FakeLock:
 
 StateBridge = EventType.find("m.bridge", EventType.Class.STATE)
 StateHalfShotBridge = EventType.find("uk.half-shot.bridge", EventType.Class.STATE)
-MediaInfo = Union[FileInfo, VideoInfo, AudioInfo, ImageInfo]
+MediaInfo = FileInfo | VideoInfo | AudioInfo | ImageInfo
 
 
 class Portal(DBPortal, BasePortal):
     invite_own_puppet_to_pm: bool = False
     by_mxid: dict[RoomID, "Portal"] = {}
-    by_li_thread_urn: dict[tuple[URN, Optional[URN]], "Portal"] = {}
+    by_li_thread_urn: dict[tuple[URN, URN | None], "Portal"] = {}
     matrix: m.MatrixHandler
     config: Config
 
@@ -95,14 +97,14 @@ class Portal(DBPortal, BasePortal):
     def __init__(
         self,
         li_thread_urn: URN,
-        li_receiver_urn: Optional[URN],
+        li_receiver_urn: URN | None,
         li_is_group_chat: bool,
-        li_other_user_urn: Optional[URN] = None,
-        mxid: Optional[RoomID] = None,
-        name: Optional[str] = None,
-        photo_id: Optional[str] = None,
-        avatar_url: Optional[ContentURI] = None,
-        topic: Optional[str] = None,
+        li_other_user_urn: URN | None = None,
+        mxid: RoomID | None = None,
+        name: str | None = None,
+        photo_id: str | None = None,
+        avatar_url: ContentURI | None = None,
+        topic: str | None = None,
         name_set: bool = False,
         avatar_set: bool = False,
         topic_set: bool = False,
@@ -134,7 +136,7 @@ class Portal(DBPortal, BasePortal):
         self.backfill_lock = SimpleLock(
             "Waiting for backfilling to finish before handling %s", log=self.log
         )
-        self._backfill_leave: Optional[set[IntentAPI]] = None
+        self._backfill_leave: set[IntentAPI] | None = None
 
     @classmethod
     def init_cls(cls, bridge: "LinkedInBridge"):
@@ -168,7 +170,7 @@ class Portal(DBPortal, BasePortal):
             self._send_locks[li_member_urn] = lock
         return lock
 
-    def optional_send_lock(self, li_member_urn: URN) -> Union[asyncio.Lock, FakeLock]:
+    def optional_send_lock(self, li_member_urn: URN) -> asyncio.Lock | FakeLock:
         try:
             return self._send_locks[li_member_urn]
         except KeyError:
@@ -180,7 +182,7 @@ class Portal(DBPortal, BasePortal):
     # region Properties
 
     @property
-    def li_urn_full(self) -> tuple[URN, Optional[URN]]:
+    def li_urn_full(self) -> tuple[URN, URN | None]:
         return self.li_thread_urn, self.li_receiver_urn
 
     @property
@@ -219,7 +221,7 @@ class Portal(DBPortal, BasePortal):
 
     @classmethod
     @async_getter_lock
-    async def get_by_mxid(cls, mxid: RoomID) -> Optional["Portal"]:
+    async def get_by_mxid(cls, mxid: RoomID) -> Portal | None:
         try:
             return cls.by_mxid[mxid]
         except KeyError:
@@ -238,11 +240,11 @@ class Portal(DBPortal, BasePortal):
         cls,
         li_thread_urn: URN,
         *,
-        li_receiver_urn: URN = None,
+        li_receiver_urn: URN | None = None,
         li_is_group_chat: bool = False,
-        li_other_user_urn: URN = None,
+        li_other_user_urn: URN | None = None,
         create: bool = True,
-    ) -> Optional["Portal"]:
+    ) -> Portal | None:
         try:
             return cls.by_li_thread_urn[(li_thread_urn, li_receiver_urn)]
         except KeyError:
@@ -294,7 +296,7 @@ class Portal(DBPortal, BasePortal):
                 await portal.postinit()
                 yield portal
 
-    async def get_dm_puppet(self) -> Optional["p.Puppet"]:
+    async def get_dm_puppet(self) -> p.Puppet | None:
         if not self.is_direct:
             return None
         return await p.Puppet.get_by_li_member_urn(self.li_other_user_urn)
@@ -305,8 +307,8 @@ class Portal(DBPortal, BasePortal):
 
     async def update_info(
         self,
-        source: Optional["u.User"] = None,
-        conversation: Optional[Conversation] = None,
+        source: u.User | None = None,
+        conversation: Conversation | None = None,
     ):
         if not conversation:
             # shouldn't happen currently
@@ -436,7 +438,7 @@ class Portal(DBPortal, BasePortal):
     async def _update_participants(
         self,
         source: "u.User",
-        conversation: Optional[Conversation] = None,
+        conversation: Conversation | None = None,
     ) -> bool:
         changed = False
 
@@ -482,8 +484,8 @@ class Portal(DBPortal, BasePortal):
     async def create_matrix_room(
         self,
         source: "u.User",
-        conversation: Optional[Conversation] = None,
-    ) -> Optional[RoomID]:
+        conversation: Conversation | None = None,
+    ) -> RoomID | None:
         if self.mxid:
             try:
                 await self._update_matrix_room(source, conversation)
@@ -501,14 +503,14 @@ class Portal(DBPortal, BasePortal):
     async def update_matrix_room(
         self,
         source: "u.User",
-        conversation: Optional[Conversation] = None,
+        conversation: Conversation | None = None,
     ):
         try:
             await self._update_matrix_room(source, conversation)
         except Exception:
             self.log.exception("Failed to update portal")
 
-    def _get_invite_content(self, double_puppet: Optional["p.Puppet"]) -> dict[str, Any]:
+    def _get_invite_content(self, double_puppet: p.Puppet | None) -> dict[str, Any]:
         invite_content = {}
         if double_puppet:
             invite_content["fi.mau.will_auto_accept"] = True
@@ -519,8 +521,8 @@ class Portal(DBPortal, BasePortal):
     async def _create_matrix_room(
         self,
         source: "u.User",
-        conversation: Optional[Conversation] = None,
-    ) -> Optional[RoomID]:
+        conversation: Conversation | None = None,
+    ) -> RoomID | None:
         if self.mxid:
             await self._update_matrix_room(source, conversation)
             return self.mxid
@@ -530,7 +532,7 @@ class Portal(DBPortal, BasePortal):
         await self.update_info(source, conversation)
 
         self.log.debug("Creating Matrix room")
-        name: Optional[str] = None
+        name: str | None = None
         initial_state = [
             {
                 "type": str(StateBridge),
@@ -679,7 +681,7 @@ class Portal(DBPortal, BasePortal):
     async def _update_matrix_room(
         self,
         source: "u.User",
-        conversation: Optional[Conversation] = None,
+        conversation: Conversation | None = None,
     ):
         puppet = await p.Puppet.get_by_custom_mxid(source.mxid)
         await self.main_intent.invite_user(
@@ -728,11 +730,11 @@ class Portal(DBPortal, BasePortal):
     async def backfill(
         self,
         source: "u.User",
-        conversation: Optional[Conversation],
+        conversation: Conversation | None,
         is_initial: bool,
     ):
         assert self.li_receiver_urn
-        limit: Optional[int] = (
+        limit: int | None = (
             self.config["bridge.backfill.initial_limit"]
             if is_initial
             else self.config["bridge.backfill.missed_limit"]
@@ -789,8 +791,8 @@ class Portal(DBPortal, BasePortal):
     async def _backfill(
         self,
         source: "u.User",
-        limit: Optional[int],
-        after_timestamp: Optional[datetime],
+        limit: int | None,
+        after_timestamp: datetime | None,
         conversation: Conversation,
     ):
         assert self.mxid
@@ -915,7 +917,7 @@ class Portal(DBPortal, BasePortal):
     ):
         assert self.mxid
 
-        exception: Optional[Exception] = None
+        exception: Exception | None = None
         status = MessageSendCheckpointStatus.PERM_FAILURE
         try:
             await self._handle_matrix_message(sender, message, event_id)
@@ -1382,7 +1384,7 @@ class Portal(DBPortal, BasePortal):
         source: "u.User",
         reaction_event_id: EventID,
         reaction_summary: ReactionSummary,
-        timestamp: Optional[datetime],
+        timestamp: datetime | None,
     ) -> list[EventID]:
         if not reaction_summary.emoji or not source.client:
             return []
@@ -1509,12 +1511,12 @@ class Portal(DBPortal, BasePortal):
         source: "u.User",
         intent: IntentAPI,
         *,
-        filename: Optional[str] = None,
+        filename: str | None = None,
         encrypt: bool = False,
         find_size: bool = False,
-        width: Optional[int] = None,
-        height: Optional[int] = None,
-    ) -> tuple[ContentURI, MediaInfo, Optional[EncryptedFile]]:
+        width: int | None = None,
+        height: int | None = None,
+    ) -> tuple[ContentURI, MediaInfo, EncryptedFile | None]:
         if not url:
             raise ValueError("URL not provided")
 

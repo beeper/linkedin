@@ -1,4 +1,5 @@
-from typing import Union
+from __future__ import annotations
+
 from html import escape
 
 from bs4 import BeautifulSoup
@@ -23,7 +24,7 @@ def linkedin_subject_to_matrix(subject: str) -> TextMessageEventContent:
 async def linkedin_to_matrix(msg: AttributedBody) -> TextMessageEventContent:
     content = TextMessageEventContent(msgtype=MessageType.TEXT, body=msg.text)
 
-    segments: list[Union[str, tuple[str, URN]]] = []
+    segments: list[str | tuple[str, URN]] = []
     profile_urns = []
 
     text = msg.text

@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, ClassVar, Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, ClassVar
 
 from mautrix.util.async_db import Database
 
@@ -17,7 +19,7 @@ class Model:
         return ",".join(map(lambda f: f'"{f}"', cls._field_list))
 
     @classmethod
-    def select_constructor(cls, where_clause: Optional[str] = None) -> str:
+    def select_constructor(cls, where_clause: str | None = None) -> str:
         query = f'SELECT {cls.field_list_str()} FROM "{cls._table_name}"'
         if where_clause:
             query += f" WHERE {where_clause}"

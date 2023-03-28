@@ -1,4 +1,6 @@
-from typing import Optional, cast
+from __future__ import annotations
+
+from typing import cast
 
 from asyncpg import Record
 from attr import dataclass
@@ -13,14 +15,14 @@ from .model_base import Model
 @dataclass
 class Puppet(Model):
     li_member_urn: URN
-    name: Optional[str]
-    photo_id: Optional[str]
-    photo_mxc: Optional[ContentURI]
+    name: str | None
+    photo_id: str | None
+    photo_mxc: ContentURI | None
 
-    custom_mxid: Optional[UserID]
-    access_token: Optional[str]
-    next_batch: Optional[SyncToken]
-    base_url: Optional[URL]
+    custom_mxid: UserID | None
+    access_token: str | None
+    next_batch: SyncToken | None
+    base_url: URL | None
 
     name_set: bool = False
     avatar_set: bool = False
@@ -42,7 +44,7 @@ class Puppet(Model):
     ]
 
     @classmethod
-    def _from_row(cls, row: Optional[Record]) -> Optional["Puppet"]:
+    def _from_row(cls, row: Record | None) -> Puppet | None:
         if row is None:
             return None
         data = {**row}
@@ -55,19 +57,19 @@ class Puppet(Model):
         )
 
     @classmethod
-    async def get_by_li_member_urn(cls, li_member_urn: URN) -> Optional["Puppet"]:
+    async def get_by_li_member_urn(cls, li_member_urn: URN) -> Puppet | None:
         query = Puppet.select_constructor("li_member_urn=$1")
         row = await cls.db.fetchrow(query, li_member_urn.id_str())
         return cls._from_row(row)
 
     @classmethod
-    async def get_by_name(cls, name: str) -> Optional["Puppet"]:
+    async def get_by_name(cls, name: str) -> Puppet | None:
         query = Puppet.select_constructor("name=$1")
         row = await cls.db.fetchrow(query, name)
         return cls._from_row(row)
 
     @classmethod
-    async def get_by_custom_mxid(cls, mxid: UserID) -> Optional["Puppet"]:
+    async def get_by_custom_mxid(cls, mxid: UserID) -> Puppet | None:
         query = Puppet.select_constructor("custom_mxid=$1")
         row = await cls.db.fetchrow(query, mxid)
         return cls._from_row(row)

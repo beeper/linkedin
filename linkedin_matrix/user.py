@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterable, Awaitable, Optional, cast
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterable, Awaitable, cast
 from asyncio.futures import Future
 from datetime import datetime
 import asyncio
@@ -37,16 +39,16 @@ class User(DBUser, BaseUser):
     shutdown: bool = False
     config: Config
 
-    user_profile_cache: Optional[UserProfileResponse] = None
+    user_profile_cache: UserProfileResponse | None = None
 
     by_mxid: dict[UserID, "User"] = {}
     by_li_member_urn: dict[URN, "User"] = {}
 
-    listen_task: Optional[asyncio.Task]
+    listen_task: asyncio.Task | None
 
-    _is_connected: Optional[bool]
-    _is_logged_in: Optional[bool]
-    _is_logging_out: Optional[bool]
+    _is_connected: bool | None
+    _is_logged_in: bool | None
+    _is_logging_out: bool | None
     _is_refreshing: bool
     _notice_room_lock: asyncio.Lock
     _notice_send_lock: asyncio.Lock
@@ -56,10 +58,10 @@ class User(DBUser, BaseUser):
     def __init__(
         self,
         mxid: UserID,
-        li_member_urn: Optional[URN] = None,
-        client: Optional[LinkedInMessaging] = None,
-        notice_room: Optional[RoomID] = None,
-        space_mxid: Optional[RoomID] = None,
+        li_member_urn: URN | None = None,
+        client: LinkedInMessaging | None = None,
+        notice_room: RoomID | None = None,
+        space_mxid: RoomID | None = None,
     ):
         super().__init__(mxid, li_member_urn, notice_room, space_mxid, client)
         BaseUser.__init__(self)
@@ -91,7 +93,7 @@ class User(DBUser, BaseUser):
         self.listen_task = None
 
     @classmethod
-    def init_cls(cls, bridge: "LinkedInBridge") -> AsyncIterable[Awaitable[bool]]:
+    def init_cls(cls, bridge: LinkedInBridge) -> AsyncIterable[Awaitable[bool]]:
         cls.bridge = bridge
         cls.config = bridge.config
         cls.az = bridge.az
@@ -100,11 +102,11 @@ class User(DBUser, BaseUser):
         return (user.load_session(is_startup=True) async for user in cls.all_logged_in())
 
     @property
-    def is_connected(self) -> Optional[bool]:
+    def is_connected(self) -> bool | None:
         return self._is_connected
 
     @is_connected.setter
-    def is_connected(self, val: Optional[bool]):
+    def is_connected(self, val: bool | None):
         if self._is_connected != val:
             self._is_connected = val
             self._connection_time = time.monotonic()
@@ -133,7 +135,7 @@ class User(DBUser, BaseUser):
         mxid: UserID,
         *,
         create: bool = True,
-    ) -> Optional["User"]:
+    ) -> User | None:
         if pu.Puppet.get_id_from_mxid(mxid) or mxid == cls.az.bot_mxid:
             return None
         try:
@@ -157,7 +159,7 @@ class User(DBUser, BaseUser):
 
     @classmethod
     @async_getter_lock
-    async def get_by_li_member_urn(cls, li_member_urn: URN) -> Optional["User"]:
+    async def get_by_li_member_urn(cls, li_member_urn: URN) -> User | None:
         try:
             return cls.by_li_member_urn[li_member_urn]
         except KeyError:
@@ -170,14 +172,12 @@ class User(DBUser, BaseUser):
 
         return None
 
-    async def get_puppet(self) -> Optional["pu.Puppet"]:
+    async def get_puppet(self) -> pu.Puppet | None:
         if not self.li_member_urn:
             return None
         return await pu.Puppet.get_by_li_member_urn(self.li_member_urn)
 
-    async def get_portal_with(
-        self, puppet: "pu.Puppet", create: bool = True
-    ) -> Optional[po.Portal]:
+    async def get_portal_with(self, puppet: pu.Puppet, create: bool = True) -> po.Portal | None:
         # We should probably make this work eventually, but for now, creating chats will just not
         # work.
         return None

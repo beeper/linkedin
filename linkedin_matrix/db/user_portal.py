@@ -1,4 +1,4 @@
-from typing import Optional
+from __future__ import annotations
 
 from asyncpg import Record
 from attr import dataclass
@@ -16,7 +16,7 @@ class UserPortal(Model):
     _field_list = ["user", "portal", "portal_receiver"]
 
     @classmethod
-    def _from_row(cls, row: Optional[Record]) -> Optional["UserPortal"]:
+    def _from_row(cls, row: Record | None) -> UserPortal | None:
         if row is None:
             return None
         return cls(**row)
@@ -33,7 +33,7 @@ class UserPortal(Model):
         user: str,
         portal: str,
         portal_receiver: str,
-    ) -> Optional["UserPortal"]:
+    ) -> UserPortal | None:
         query = UserPortal.select_constructor('"user"=$1 AND portal=$2 AND portal_receiver=$3')
         row = await cls.db.fetchrow(query, user, portal, portal_receiver)
         return cls._from_row(row)

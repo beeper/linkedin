@@ -1,10 +1,13 @@
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import Any
 
 from mautrix.bridge import Bridge
 from mautrix.bridge.state_store.asyncpg import PgBridgeStateStore
 from mautrix.types import RoomID, UserID
 from mautrix.util.async_db import Database
 
+from . import commands as _  # noqa: F401
 from .config import Config
 from .db import init as init_db, upgrade_table
 from .matrix import MatrixHandler
@@ -90,7 +93,7 @@ class LinkedInBridge(Bridge):
     async def get_portal(self, room_id: RoomID) -> Portal:
         return await Portal.get_by_mxid(room_id)
 
-    async def get_puppet(self, user_id: UserID, create: bool = False) -> Optional[Puppet]:
+    async def get_puppet(self, user_id: UserID, create: bool = False) -> Puppet | None:
         return await Puppet.get_by_mxid(user_id, create=create)
 
     async def get_double_puppet(self, user_id: UserID) -> Puppet:

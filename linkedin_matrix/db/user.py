@@ -1,4 +1,6 @@
-from typing import Optional, cast
+from __future__ import annotations
+
+from typing import cast
 
 from asyncpg import Record
 from attr import dataclass
@@ -12,11 +14,11 @@ from .model_base import Model
 @dataclass
 class User(Model):
     mxid: UserID
-    li_member_urn: Optional[URN]
-    notice_room: Optional[RoomID]
-    space_mxid: Optional[RoomID]
+    li_member_urn: URN | None
+    notice_room: RoomID | None
+    space_mxid: RoomID | None
 
-    client: Optional[LinkedInMessaging]
+    client: LinkedInMessaging | None
 
     _table_name = "user"
     _field_list = [
@@ -28,11 +30,11 @@ class User(Model):
     ]
 
     @property
-    def _client_pickle(self) -> Optional[bytes]:
+    def _client_pickle(self) -> bytes | None:
         return self.client.to_pickle() if self.client else None
 
     @classmethod
-    def _from_row(cls, row: Optional[Record]) -> Optional["User"]:
+    def _from_row(cls, row: Record | None) -> User | None:
         if row is None:
             return None
         data = {**row}
@@ -51,13 +53,13 @@ class User(Model):
         return [cast(User, cls._from_row(row)) for row in rows if row]
 
     @classmethod
-    async def get_by_li_member_urn(cls, li_member_urn: URN) -> Optional["User"]:
+    async def get_by_li_member_urn(cls, li_member_urn: URN) -> User | None:
         query = User.select_constructor("li_member_urn=$1")
         row = await cls.db.fetchrow(query, li_member_urn.id_str())
         return cls._from_row(row)
 
     @classmethod
-    async def get_by_mxid(cls, mxid: UserID) -> Optional["User"]:
+    async def get_by_mxid(cls, mxid: UserID) -> User | None:
         query = User.select_constructor("mxid=$1")
         row = await cls.db.fetchrow(query, mxid)
         return cls._from_row(row)

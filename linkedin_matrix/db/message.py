@@ -1,4 +1,6 @@
-from typing import Optional, cast
+from __future__ import annotations
+
+from typing import cast
 from datetime import datetime
 
 from asyncpg import Record
@@ -35,7 +37,7 @@ class Message(Model):
     ]
 
     @classmethod
-    def _from_row(cls, row: Optional[Record]) -> Optional["Message"]:
+    def _from_row(cls, row: Record | None) -> Message | None:
         if row is None:
             return None
         data = {**row}
@@ -69,7 +71,7 @@ class Message(Model):
         li_message_urn: URN,
         li_receiver_urn: URN,
         index: int = 0,
-    ) -> Optional["Message"]:
+    ) -> Message | None:
         query = Message.select_constructor(
             """
             li_message_urn=$1 AND li_receiver_urn=$2 AND "index"=$3'
@@ -88,7 +90,7 @@ class Message(Model):
         await cls.db.execute("DELETE FROM message WHERE mx_room=$1", room_id)
 
     @classmethod
-    async def get_by_mxid(cls, mxid: EventID, mx_room: RoomID) -> Optional["Message"]:
+    async def get_by_mxid(cls, mxid: EventID, mx_room: RoomID) -> Message | None:
         query = Message.select_constructor("mxid=$1 AND mx_room=$2")
         row = await cls.db.fetchrow(query, mxid, mx_room)
         return cls._from_row(row)
@@ -98,7 +100,7 @@ class Message(Model):
         cls,
         li_thread_urn: URN,
         li_receiver_urn: URN,
-    ) -> Optional["Message"]:
+    ) -> Message | None:
         query = (
             Message.select_constructor("li_thread_urn=$1 AND li_receiver_urn=$2")
             + ' ORDER BY timestamp DESC, "index" DESC'

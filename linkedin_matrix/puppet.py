@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterable, Awaitable, Optional, cast
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterable, Awaitable, cast
 from datetime import datetime
 import re
 
@@ -35,16 +37,16 @@ class Puppet(DBPuppet, BasePuppet):
     def __init__(
         self,
         li_member_urn: URN,
-        name: Optional[str] = None,
-        photo_id: Optional[str] = None,
-        photo_mxc: Optional[ContentURI] = None,
+        name: str | None = None,
+        photo_id: str | None = None,
+        photo_mxc: ContentURI | None = None,
         name_set: bool = False,
         avatar_set: bool = False,
         is_registered: bool = False,
-        custom_mxid: Optional[UserID] = None,
-        access_token: Optional[str] = None,
-        next_batch: Optional[SyncToken] = None,
-        base_url: Optional[URL] = None,
+        custom_mxid: UserID | None = None,
+        access_token: str | None = None,
+        next_batch: SyncToken | None = None,
+        base_url: URL | None = None,
     ):
         super().__init__(
             li_member_urn,
@@ -59,7 +61,7 @@ class Puppet(DBPuppet, BasePuppet):
             avatar_set,
             is_registered,
         )
-        self._last_info_sync: Optional[datetime] = None
+        self._last_info_sync: datetime | None = None
 
         self.default_mxid = self.get_mxid_from_id(li_member_urn)
         self.default_mxid_intent = self.az.intent.user(self.default_mxid)
@@ -111,7 +113,7 @@ class Puppet(DBPuppet, BasePuppet):
 
     async def update_info(
         self,
-        source: Optional[u.User],
+        source: u.User | None,
         info: MessagingMember,
         update_avatar: bool = True,
     ) -> "Puppet":
@@ -176,7 +178,7 @@ class Puppet(DBPuppet, BasePuppet):
 
     photo_id_re = re.compile(r"https://.*?/image/(.*?)/(profile|spinmail)-.*?")
 
-    async def _update_photo(self, picture: Optional[Picture]) -> bool:
+    async def _update_photo(self, picture: Picture | None) -> bool:
         photo_id = None
         if picture and (vi := picture.vector_image):
             match = self.photo_id_re.match(vi.root_url)
@@ -224,13 +226,13 @@ class Puppet(DBPuppet, BasePuppet):
         li_member_urn: URN,
         *,
         create: bool = True,
-    ) -> Optional["Puppet"]:
+    ) -> Puppet | None:
         try:
             return cls.by_li_member_urn[li_member_urn]
         except KeyError:
             pass
 
-        puppet = cast(Optional[Puppet], await super().get_by_li_member_urn(li_member_urn))
+        puppet = cast(Puppet | None, await super().get_by_li_member_urn(li_member_urn))
         if puppet:
             puppet._add_to_cache()
             return puppet
@@ -244,7 +246,7 @@ class Puppet(DBPuppet, BasePuppet):
         return None
 
     @classmethod
-    async def get_by_mxid(cls, mxid: UserID, create: bool = True) -> Optional["Puppet"]:
+    async def get_by_mxid(cls, mxid: UserID, create: bool = True) -> Puppet | None:
         li_member_urn = cls.get_id_from_mxid(mxid)
         if li_member_urn:
             return await cls.get_by_li_member_urn(li_member_urn, create=create)
@@ -252,7 +254,7 @@ class Puppet(DBPuppet, BasePuppet):
 
     @classmethod
     @async_getter_lock
-    async def get_by_custom_mxid(cls, mxid: UserID) -> Optional["Puppet"]:
+    async def get_by_custom_mxid(cls, mxid: UserID) -> Puppet | None:
         try:
             return cls.by_custom_mxid[mxid]
         except KeyError:
@@ -276,7 +278,7 @@ class Puppet(DBPuppet, BasePuppet):
                 yield puppet
 
     @classmethod
-    def get_id_from_mxid(cls, mxid: UserID) -> Optional[URN]:
+    def get_id_from_mxid(cls, mxid: UserID) -> URN | None:
         parsed = cls.mxid_template.parse(mxid)
         return URN(parsed) if parsed else None
 

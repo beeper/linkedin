@@ -1,4 +1,6 @@
-from typing import Optional, cast
+from __future__ import annotations
+
+from typing import cast
 
 from asyncpg import Record
 from attr import dataclass
@@ -12,17 +14,17 @@ from .model_base import Model
 @dataclass
 class Portal(Model):
     li_thread_urn: URN
-    li_receiver_urn: Optional[URN]
+    li_receiver_urn: URN | None
     li_is_group_chat: bool
-    li_other_user_urn: Optional[URN]
+    li_other_user_urn: URN | None
 
-    mxid: Optional[RoomID]
+    mxid: RoomID | None
     encrypted: bool
 
-    name: Optional[str]
-    photo_id: Optional[str]
-    avatar_url: Optional[ContentURI]
-    topic: Optional[str]
+    name: str | None
+    photo_id: str | None
+    avatar_url: ContentURI | None
+    topic: str | None
     name_set: bool
     avatar_set: bool
     topic_set: bool
@@ -48,7 +50,7 @@ class Portal(Model):
     ]
 
     @classmethod
-    def _from_row(cls, row: Optional[Record]) -> Optional["Portal"]:
+    def _from_row(cls, row: Record | None) -> Portal | None:
         if row is None:
             return None
         data = {**row}
@@ -66,8 +68,8 @@ class Portal(Model):
     async def get_by_li_thread_urn(
         cls,
         li_thread_urn: URN,
-        li_receiver_urn: Optional[URN],
-    ) -> Optional["Portal"]:
+        li_receiver_urn: URN | None,
+    ) -> Portal | None:
         query = Portal.select_constructor("li_thread_urn=$1 AND li_receiver_urn=$2")
         row = await cls.db.fetchrow(
             query,
@@ -77,7 +79,7 @@ class Portal(Model):
         return cls._from_row(row)
 
     @classmethod
-    async def get_by_mxid(cls, mxid: RoomID) -> Optional["Portal"]:
+    async def get_by_mxid(cls, mxid: RoomID) -> Portal | None:
         query = Portal.select_constructor("mxid=$1")
         row = await cls.db.fetchrow(query, mxid)
         return cls._from_row(row)
