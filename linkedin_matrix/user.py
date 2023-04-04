@@ -287,7 +287,7 @@ class User(DBUser, BaseUser):
             self.log.info("Logging out the client.")
             await self.client.logout()
         await self.push_bridge_state(BridgeStateEvent.LOGGED_OUT)
-        self._prev_connected_bridge_state = -600
+        self._prev_connected_bridge_state = None
         puppet = await pu.Puppet.get_by_li_member_urn(self.li_member_urn, create=False)
         if puppet and puppet.is_real_user:
             await puppet.switch_mxid(None, None)
@@ -528,6 +528,8 @@ class User(DBUser, BaseUser):
         )
         self.listen_task.add_done_callback(self.on_listen_task_end)
 
+    _prev_connected_bridge_state: float | None = None
+
     async def _try_listen(self):
         self.log.info("Trying to start the listener")
         if not self.client:
@@ -545,7 +547,7 @@ class User(DBUser, BaseUser):
             await self.client.start_listener()
         except Exception as e:
             self.log.exception(f"Exception in listener: {e}")
-            self._prev_connected_bridge_state = -600
+            self._prev_connected_bridge_state = None
             self._track_metric(METRIC_CONNECTED, False)
             self.user_profile_cache = None
 
@@ -558,11 +560,13 @@ class User(DBUser, BaseUser):
                 await self.push_bridge_state(BridgeStateEvent.TRANSIENT_DISCONNECT, message=str(e))
                 await asyncio.sleep(5)
 
-    _prev_connected_bridge_state = -600
-
     async def _push_connected_state(self):
-        # Only send once every 12 hours.
-        if self._prev_connected_bridge_state + (12 * 60 * 60) < time.monotonic():
+        if (
+            # We haven't sent a CONNECTED state ever.
+            not self._prev_connected_bridge_state
+            # We haven't sent a CONNECTED state in the last 12 hours.
+            or self._prev_connected_bridge_state + (12 * 60 * 60) < time.monotonic()
+        ):
             await self.push_bridge_state(BridgeStateEvent.CONNECTED)
             self._prev_connected_bridge_state = time.monotonic()
         else:
