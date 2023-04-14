@@ -2,7 +2,7 @@ aiohttp>=3,<4
 asyncpg>=0.20,<0.28
 commonmark>=0.8,<0.10
 linkedin-messaging==0.5.5
-mautrix>=0.19.10,<0.20
+mautrix>=0.19.11,<0.20
 pycryptodome>=3,<4
 python-magic>=0.4,<0.5
 ruamel.yaml>=0.15.94,<0.18
