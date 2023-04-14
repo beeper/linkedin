@@ -21,6 +21,8 @@ from .web import ProvisioningAPI
 class LinkedInBridge(Bridge):
     name = "linkedin-matrix"
     module = "linkedin_matrix"
+    beeper_service_name = "linkedin"
+    beeper_network_name = "linkedin"
     command = "linkedin-matrix"
     description = "A Matrix-LinkedIn Messages puppeting bridge."
     repo_url = "https://github.com/beeper/linkedin"
