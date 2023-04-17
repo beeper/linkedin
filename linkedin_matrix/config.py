@@ -70,6 +70,10 @@ class Config(BaseBridgeConfig):
 
         copy_dict("bridge.permissions")
 
+        copy("bridge.private_chat_portal_meta")
+        if base["bridge.private_chat_portal_meta"] not in ("default", "always", "never"):
+            base["bridge.private_chat_portal_meta"] = "default"
+
         # Metrics
         copy("metrics.enabled")
         copy("metrics.listen_port")

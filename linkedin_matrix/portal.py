@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, AsyncGenerator, cast
+from typing import TYPE_CHECKING, Any, AsyncGenerator, Literal, cast
 from collections import deque
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -88,6 +88,7 @@ class Portal(DBPortal, BasePortal):
     by_li_thread_urn: dict[tuple[URN, URN | None], "Portal"] = {}
     matrix: m.MatrixHandler
     config: Config
+    private_chat_portal_meta: Literal["default", "always", "never"]
 
     backfill_lock: SimpleLock
     _dedup: deque[URN]
@@ -146,6 +147,7 @@ class Portal(DBPortal, BasePortal):
         cls.loop = bridge.loop
         cls.matrix = bridge.matrix
         cls.invite_own_puppet_to_pm = cls.config["bridge.invite_own_puppet_to_pm"]
+        cls.private_chat_portal_meta = cls.config["bridge.private_chat_portal_meta"]
         NotificationDisabler.puppet_cls = p.Puppet
         NotificationDisabler.config_enabled = cls.config["bridge.backfill.disable_notifications"]
 
@@ -190,6 +192,14 @@ class Portal(DBPortal, BasePortal):
         if not self._main_intent:
             raise ValueError("Portal must be postinit()ed before main_intent can be used")
         return self._main_intent
+
+    @property
+    def set_dm_room_metadata(self) -> bool:
+        return (
+            not self.is_direct
+            or self.private_chat_portal_meta == "always"
+            or (self.encrypted and self.private_chat_portal_meta != "never")
+        )
 
     @property
     def is_direct(self) -> bool:
@@ -340,10 +350,11 @@ class Portal(DBPortal, BasePortal):
         if not name:
             self.log.warning("Got empty name in _update_name call")
             return False
-        if self.name != name or not self.name_set:
+        if self.name != name or (not self.name_set and self.set_dm_room_metadata):
             self.log.trace("Updating name %s -> %s", self.name, name)
             self.name = name
-            if self.mxid and (self.encrypted or not self.is_direct):
+            self.name_set = False
+            if self.mxid and self.set_dm_room_metadata:
                 try:
                     await self.main_intent.set_room_name(self.mxid, self.name)
                     self.name_set = True
@@ -354,8 +365,9 @@ class Portal(DBPortal, BasePortal):
         return False
 
     async def _update_photo_from_puppet(self, puppet: "p.Puppet") -> bool:
-        if self.photo_id == puppet.photo_id and self.avatar_set:
+        if self.photo_id == puppet.photo_id and (self.avatar_set or not self.set_dm_room_metadata):
             return False
+        self.avatar_set = False
         self.photo_id = puppet.photo_id
         if puppet.photo_mxc:
             self.avatar_url = puppet.photo_mxc
@@ -365,13 +377,12 @@ class Portal(DBPortal, BasePortal):
             puppet.photo_mxc = profile.avatar_url
         else:
             self.avatar_url = ContentURI("")
-        if self.mxid:
+        if self.mxid and self.set_dm_room_metadata:
             try:
                 await self.main_intent.set_room_avatar(self.mxid, self.avatar_url)
                 self.avatar_set = True
             except Exception:
                 self.log.exception("Failed to set room avatar")
-                self.avatar_set = False
         return True
 
     async def _update_topic(self, mini_profile: MiniProfile) -> bool:
@@ -572,7 +583,7 @@ class Portal(DBPortal, BasePortal):
         #         "update_info() didn't return info, cancelling room creation")
         #     return None
 
-        if self.encrypted or not self.is_direct:
+        if self.set_dm_room_metadata:
             name = self.name
             initial_state.append(
                 {
@@ -598,6 +609,8 @@ class Portal(DBPortal, BasePortal):
             )
             if not self.mxid:
                 raise Exception("Failed to create room: no mxid returned")
+            self.name_set = bool(name)
+            self.avatar_set = bool(self.avatar_url) and self.set_dm_room_metadata
 
             if self.encrypted and self.matrix.e2ee and self.is_direct:
                 try:
