@@ -26,6 +26,7 @@ class Puppet(Model):
 
     name_set: bool = False
     avatar_set: bool = False
+    contact_info_set: bool = False
     is_registered: bool = False
 
     _table_name = "puppet"
@@ -36,6 +37,7 @@ class Puppet(Model):
         "photo_mxc",
         "name_set",
         "avatar_set",
+        "contact_info_set",
         "is_registered",
         "custom_mxid",
         "access_token",
@@ -90,6 +92,7 @@ class Puppet(Model):
             self.photo_mxc,
             self.name_set,
             self.avatar_set,
+            self.contact_info_set,
             self.is_registered,
             self.custom_mxid,
             self.access_token,
@@ -111,11 +114,12 @@ class Puppet(Model):
                    photo_mxc=$4,
                    name_set=$5,
                    avatar_set=$6,
-                   is_registered=$7,
-                   custom_mxid=$8,
-                   access_token=$9,
-                   next_batch=$10,
-                   base_url=$11
+                   contact_info_set=$7,
+                   is_registered=$8,
+                   custom_mxid=$9,
+                   access_token=$10,
+                   next_batch=$11,
+                   base_url=$12
              WHERE li_member_urn=$1
         """
         await self.db.execute(
@@ -126,6 +130,7 @@ class Puppet(Model):
             self.photo_mxc,
             self.name_set,
             self.avatar_set,
+            self.contact_info_set,
             self.is_registered,
             self.custom_mxid,
             self.access_token,

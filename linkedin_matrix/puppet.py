@@ -42,6 +42,7 @@ class Puppet(DBPuppet, BasePuppet):
         photo_mxc: ContentURI | None = None,
         name_set: bool = False,
         avatar_set: bool = False,
+        contact_info_set: bool = False,
         is_registered: bool = False,
         custom_mxid: UserID | None = None,
         access_token: str | None = None,
@@ -59,6 +60,7 @@ class Puppet(DBPuppet, BasePuppet):
             base_url,
             name_set,
             avatar_set,
+            contact_info_set,
             is_registered,
         )
         self._last_info_sync: datetime | None = None
