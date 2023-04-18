@@ -25,8 +25,6 @@ class Config(BaseBridgeConfig):
         super().do_update(helper)
         copy, copy_dict, base = helper.copy, helper.copy_dict, helper.base
 
-        copy("homeserver.asmux")
-
         # appservice
         copy("appservice.bot_avatar")
         copy("appservice.provisioning.enabled")
