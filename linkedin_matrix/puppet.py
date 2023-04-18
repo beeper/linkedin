@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 
 
 class Puppet(DBPuppet, BasePuppet):
+    bridge: LinkedInBridge
     mx: m.MatrixHandler
     config: Config
     hs_domain: str
@@ -73,6 +74,7 @@ class Puppet(DBPuppet, BasePuppet):
 
     @classmethod
     def init_cls(cls, bridge: "LinkedInBridge") -> AsyncIterable[Awaitable[None]]:
+        cls.bridge = bridge
         cls.config = bridge.config
         cls.loop = bridge.loop
         cls.mx = bridge.matrix
@@ -123,7 +125,8 @@ class Puppet(DBPuppet, BasePuppet):
 
         self._last_info_sync = datetime.now()
         try:
-            changed = await self._update_name(info)
+            changed = await self._update_contact_info(info)
+            changed = await self._update_name(info) or changed
             if update_avatar:
                 photo = info.alternate_image or (
                     info.mini_profile.picture if info.mini_profile else None
@@ -135,6 +138,31 @@ class Puppet(DBPuppet, BasePuppet):
         except Exception:
             self.log.exception(f"Failed to update info from source {source.li_member_urn}")
         return self
+
+    async def _update_contact_info(self, info: MessagingMember, force: bool = False) -> bool:
+        if not self.bridge.homeserver_software.is_hungry:
+            return False
+
+        if self.contact_info_set and not force:
+            return False
+
+        try:
+            identifiers = []
+            if info.mini_profile:
+                identifiers.append(f"linkedin:{info.mini_profile.public_identifier}")
+            await self.default_mxid_intent.beeper_update_profile(
+                {
+                    "com.beeper.bridge.identifiers": identifiers,
+                    "com.beeper.bridge.remote_id": str(self.li_member_urn),
+                    "com.beeper.bridge.service": self.bridge.beeper_service_name,
+                    "com.beeper.bridge.network": self.bridge.beeper_network_name,
+                }
+            )
+            self.contact_info_set = True
+        except Exception:
+            self.log.exception("Error updating contact info")
+            self.contact_info_set = False
+        return True
 
     async def reupload_avatar(self, intent: IntentAPI, url: str) -> ContentURI:
         async with self.session.get(url) as req:
