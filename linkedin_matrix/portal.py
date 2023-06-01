@@ -661,10 +661,7 @@ class Portal(DBPortal, BasePortal):
                     and (mp := mm.mini_profile)
                     and (mp.entity_urn == URN("UNKNOWN"))
                 ):
-                    levels = await self.main_intent.get_power_levels(self.mxid)
-                    if levels.get_user_level(self.main_intent.mxid) == 100:
-                        levels.events_default = 50
-                        await self.main_intent.set_power_levels(self.mxid, levels)
+                    await self._disable_responding()
 
                 puppet = await p.Puppet.get_by_custom_mxid(source.mxid)
                 if puppet:
@@ -1209,6 +1206,17 @@ class Portal(DBPortal, BasePortal):
         except Exception as e:
             self.log.exception(f"Error handling LinkedIn message {message.entity_urn}: {e}")
 
+    async def _disable_responding(self, message: str | None = None):
+        levels = await self.main_intent.get_power_levels(self.mxid)
+        if levels.get_user_level(self.main_intent.mxid) == 100:
+            levels.events_default = 50
+            await self.main_intent.set_power_levels(self.mxid, levels)
+        if message:
+            await self._send_message(
+                self.main_intent,
+                TextMessageEventContent(msgtype=MessageType.NOTICE, body=message),
+            )
+
     async def _handle_linkedin_message(
         self, source: "u.User", sender: "p.Puppet", message: ConversationEvent
     ):
@@ -1302,6 +1310,7 @@ class Portal(DBPortal, BasePortal):
                                 timestamp=timestamp,
                             )
                         )
+                        await self._disable_responding()
 
                 # Handle the normal message text itself
                 if message_event.attributed_body and message_event.attributed_body.text:
@@ -1317,6 +1326,10 @@ class Portal(DBPortal, BasePortal):
                     event_ids.append(
                         await self._send_message(intent, content, timestamp=timestamp)
                     )
+                    if message.subtype == "SPONSORED_MESSAGE":
+                        await self._disable_responding(
+                            "Open the LinkedIn app to respond to this message"
+                        )
                     # TODO (#55) error handling
 
                 # Handle shared posts
