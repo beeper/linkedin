@@ -96,8 +96,10 @@ async def linkedin_spinmail_to_matrix(
         html_message += f'<p><a href="{action}"><b>{action_text}</b></a></p>'
 
     if sp_inmail_content.legal_text:
+        html_message += "<hr/><details><summary>Legal text</summary>"
         html_message += sp_inmail_content.legal_text.static_legal_text
         html_message += sp_inmail_content.legal_text.custom_legal_text
+        html_message += "</details>"
 
     return TextMessageEventContent(
         msgtype=MessageType.TEXT,
