@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from io import BytesIO
 import asyncio
 
+from bs4 import BeautifulSoup
 from linkedin_messaging import URN
 from linkedin_messaging.api_objects import (
     AttributedBody,
@@ -1230,7 +1231,7 @@ class Portal(DBPortal, BasePortal):
             dbm = await DBMessage.get_all_by_li_message_urn(li_message_urn, self.li_receiver_urn)
             if len(dbm) > 0:
                 self.log.debug(
-                    f"Not handling message {li_message_urn}, found duplicate in " "database."
+                    f"Not handling message {li_message_urn}, found duplicate in database."
                 )
                 # Don't return here because we may need to update the reactions.
                 message_exists = True
@@ -1304,7 +1305,15 @@ class Portal(DBPortal, BasePortal):
 
                 # Handle the normal message text itself
                 if message_event.attributed_body and message_event.attributed_body.text:
-                    content = await linkedin_to_matrix(message_event.attributed_body)
+                    if message.subtype == "SPONSORED_MESSAGE":
+                        content = TextMessageEventContent(
+                            msgtype=MessageType.TEXT,
+                            body=BeautifulSoup(message_event.attributed_body.text).text,
+                            format=Format.HTML,
+                            formatted_body=message_event.attributed_body.text,
+                        )
+                    else:
+                        content = await linkedin_to_matrix(message_event.attributed_body)
                     event_ids.append(
                         await self._send_message(intent, content, timestamp=timestamp)
                     )
