@@ -36,6 +36,7 @@
       * [x] Files
       * [x] Images
       * [x] GIFs
+      * [x] Voice Messages
     * [x] Mentions
   * [x] Message delete
   * [x] Message reactions
