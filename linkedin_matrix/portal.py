@@ -13,6 +13,7 @@ from linkedin_messaging.api_objects import (
     Conversation,
     ConversationEvent,
     Error,
+    MediaAttachment,
     MessageAttachment,
     MessageCreate,
     MiniProfile,
@@ -1282,6 +1283,12 @@ class Portal(DBPortal, BasePortal):
                         )
                     )
 
+                event_ids.extend(
+                    await self._handle_linkedin_media_attachments(
+                        source, intent, timestamp, message_event.media_attachments
+                    )
+                )
+
                 # Handle attachments
                 event_ids.extend(
                     await self._handle_linkedin_attachments(
@@ -1488,14 +1495,52 @@ class Portal(DBPortal, BasePortal):
                 body=attachment.name,
             )
 
-            event_id = await self._send_message(
-                intent,
-                content,
-                timestamp=timestamp,
-            )
+            event_id = await self._send_message(intent, content, timestamp=timestamp)
             # TODO (#55) error handling
 
             event_ids.append(event_id)
+
+        return event_ids
+
+    async def _handle_linkedin_media_attachments(
+        self,
+        source: "u.User",
+        intent: IntentAPI,
+        timestamp: datetime,
+        media_attachments: list[MediaAttachment],
+    ) -> list[EventID]:
+        event_ids = []
+        for attachment in media_attachments:
+            if attachment.media_type == "AUDIO":
+                if attachment.audio_metadata is None:
+                    content = TextMessageEventContent(
+                        msgtype=MessageType.NOTICE,
+                        body="Unsupported audio message. No metadata found!",
+                    )
+                else:
+                    url = attachment.audio_metadata.url
+                    mxc, info, decryption_info = await self._reupload_linkedin_file(
+                        url, source, intent, encrypt=self.encrypted
+                    )
+                    info["duration"] = attachment.audio_metadata.duration
+                    content = MediaMessageEventContent(
+                        url=mxc,
+                        file=decryption_info,
+                        info=info,
+                        msgtype=MessageType.AUDIO,
+                        body="Voice message",
+                    )
+                    content["org.matrix.msc1767.audio"] = {
+                        "duration": attachment.audio_metadata.duration,
+                    }
+                    content["org.matrix.msc3245.voice"] = {}
+            else:
+                content = TextMessageEventContent(
+                    msgtype=MessageType.NOTICE,
+                    body=f"Unsupported media type {attachment.media_type}",
+                )
+
+            await self._send_message(self.main_intent, content, timestamp=timestamp)
 
         return event_ids
 
@@ -1528,11 +1573,7 @@ class Portal(DBPortal, BasePortal):
                 msgtype=msgtype,
             )
 
-            event_id = await self._send_message(
-                intent,
-                content,
-                timestamp=timestamp,
-            )
+            event_id = await self._send_message(intent, content, timestamp=timestamp)
             # TODO (#55) error handling
             return [event_id]
 
