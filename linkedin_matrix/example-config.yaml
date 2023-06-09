@@ -67,7 +67,7 @@ appservice:
     # Display name and avatar for bot. Set to "remove" to remove display name/avatar, leave empty
     # to leave display name/avatar as-is.
     bot_displayname: LinkedIn bridge bot
-    bot_avatar: mxc://sumnerevans.com/XMtwdeUBnxYvWNFFrfeTSHqB
+    bot_avatar: mxc://nevarro.space/cwsWnmeMpWSMZLUNblJHaIvP
 
     # Whether or not to receive ephemeral events via appservice transactions.
     # Requires MSC2409 support (i.e. Synapse 1.22+).
