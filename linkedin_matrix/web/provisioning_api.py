@@ -9,6 +9,7 @@ from mautrix.types import UserID
 from mautrix.util.logging import TraceLogger
 
 from .. import user as u
+from ..segment_analytics import track
 
 
 class ProvisioningAPI:
@@ -91,6 +92,7 @@ class ProvisioningAPI:
         except web.HTTPError as e:
             return e
 
+        track(user, "$login_start")
         try:
             data = await request.json()
         except json.JSONDecodeError:
@@ -105,7 +107,9 @@ class ProvisioningAPI:
             client.session.cookie_jar.update_cookies(data)
             client.session.headers["csrf-token"] = data["JSESSIONID"]
             await user.on_logged_in(client)
-        except Exception:
+            track(user, "$login_success")
+        except Exception as e:
+            track(user, "$login_failed", {"error": str(e)})
             self.log.exception("Failed to log in", exc_info=True)
             return web.HTTPUnauthorized(
                 body='{"error": "LinkedIn authorization failed"}', headers=self._headers
