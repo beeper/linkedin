@@ -32,6 +32,8 @@ class Config(BaseBridgeConfig):
         copy("appservice.provisioning.shared_secret")
         if base["appservice.provisioning.shared_secret"] == "generate":
             base["appservice.provisioning.shared_secret"] = self._new_token()
+        copy("appservice.provisioning.segment_key")
+        copy("appservice.provisioning.segment_user_id")
 
         # bridge
         copy("bridge.backfill.disable_notifications")

@@ -13,6 +13,7 @@ from .db import init as init_db, upgrade_table
 from .matrix import MatrixHandler
 from .portal import Portal  # noqa: I100 (needs to be after because it relies on Puppet)
 from .puppet import Puppet
+from .segment_analytics import init as init_segment
 from .user import User
 from .version import linkified_version, version
 from .web import ProvisioningAPI
@@ -64,9 +65,16 @@ class LinkedInBridge(Bridge):
 
     def prepare_bridge(self):
         super().prepare_bridge()
-        cfg = self.config["appservice.provisioning"]
-        self.provisioning_api = ProvisioningAPI(cfg["shared_secret"])
-        self.az.app.add_subapp(cfg["prefix"], self.provisioning_api.app)
+        if self.config["appservice.provisioning.enabled"]:
+            segment_key = self.config["appservice.provisioning.segment_key"]
+            segment_user_id = self.config["appservice.provisioning.segment_user_id"]
+            if segment_key:
+                init_segment(segment_key, segment_user_id)
+
+            secret = self.config["appservice.provisioning.shared_secret"]
+            prefix = self.config["appservice.provisioning.prefix"]
+            self.provisioning_api = ProvisioningAPI(secret)
+            self.az.app.add_subapp(prefix, self.provisioning_api.app)
 
     async def stop(self):
         await Puppet.close()
