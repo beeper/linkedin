@@ -570,7 +570,7 @@ class User(DBUser, BaseUser):
             await self.push_bridge_state(BridgeStateEvent.CONNECTED)
             self._prev_connected_bridge_state = time.monotonic()
         else:
-            self.log.debug("Event received on event stream, but not sending CONNECTED")
+            self.log.trace("Event received on event stream, but not sending CONNECTED")
 
     async def handle_linkedin_stream_event(self, _):
         self._track_metric(METRIC_CONNECTED, True)
