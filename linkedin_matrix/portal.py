@@ -82,6 +82,7 @@ class FakeLock:
 StateBridge = EventType.find("m.bridge", EventType.Class.STATE)
 StateHalfShotBridge = EventType.find("uk.half-shot.bridge", EventType.Class.STATE)
 MediaInfo = FileInfo | VideoInfo | AudioInfo | ImageInfo
+ConvertedMessage = tuple[EventType, MessageEventContent]
 
 
 class Portal(DBPortal, BasePortal):
@@ -1218,6 +1219,89 @@ class Portal(DBPortal, BasePortal):
                 TextMessageEventContent(msgtype=MessageType.NOTICE, body=message),
             )
 
+    async def _convert_linkedin_message(
+        self, source: "u.User", intent: IntentAPI, message: ConversationEvent
+    ) -> list[ConvertedMessage]:
+        if not message.event_content or not message.event_content.message_event:
+            return []
+        message_event = message.event_content.message_event
+
+        converted: list[ConvertedMessage] = []
+
+        # Handle subject
+        if message_event.subject:
+            content = linkedin_subject_to_matrix(message_event.subject)
+            converted.append((EventType.ROOM_MESSAGE, content))
+
+        # Handle attachments
+        converted.extend(
+            await self._convert_linkedin_media_attachments(
+                source, intent, message_event.media_attachments
+            )
+        )
+        converted.extend(
+            await self._convert_linkedin_attachments(source, intent, message_event.attachments)
+        )
+
+        # Handle custom content
+        if cc := message_event.custom_content:
+            if cc.third_party_media:
+                converted.extend(
+                    await self._convert_linkedin_third_party_media(
+                        source,
+                        intent,
+                        cc.third_party_media,
+                    )
+                )
+
+            # Handle InMail message text
+            if cc.sp_inmail_content:
+                content = await linkedin_spinmail_to_matrix(cc.sp_inmail_content)
+                converted.append((EventType.ROOM_MESSAGE, content))
+                await self._disable_responding()
+
+        # Handle the normal message text itself
+        if message_event.attributed_body and message_event.attributed_body.text:
+            if message.subtype == "SPONSORED_MESSAGE":
+                content = TextMessageEventContent(
+                    msgtype=MessageType.TEXT,
+                    body=BeautifulSoup(message_event.attributed_body.text).text,
+                    format=Format.HTML,
+                    formatted_body=message_event.attributed_body.text,
+                )
+            else:
+                content = await linkedin_to_matrix(message_event.attributed_body)
+            converted.append((EventType.ROOM_MESSAGE, content))
+            if message.subtype == "SPONSORED_MESSAGE":
+                await self._disable_responding("Open the LinkedIn app to respond to this message")
+
+        # Handle shared posts
+        if f := message_event.feed_update:
+            plaintext_content = "Feed update shared:\n"
+            html_content = "<i>Feed update shared:</i><br>"
+            if (c := f.commentary) and (ct := c.text) and (text := ct.text):
+                plaintext_content += text + "\n"
+                html_content += text + "<br>"
+
+            if (
+                (c := f.content)
+                and (ac := c.article_component)
+                and (nc := ac.navigation_context)
+                and (target := nc.action_target)
+            ):
+                plaintext_content += target
+                html_content += f'<a href="{target}">{target}</a>'
+
+            content = TextMessageEventContent(
+                msgtype=MessageType.TEXT,
+                body=plaintext_content,
+                format=Format.HTML,
+                formatted_body=html_content,
+            )
+            converted.append((EventType.ROOM_MESSAGE, content))
+
+        return converted
+
     async def _handle_linkedin_message(
         self, source: "u.User", sender: "p.Puppet", message: ConversationEvent
     ):
@@ -1268,121 +1352,33 @@ class Portal(DBPortal, BasePortal):
                 await intent.ensure_joined(self.mxid)
                 self._backfill_leave.add(intent)
 
-            if (ec := message.event_content) and (message_event := ec.message_event):
-                timestamp = message.created_at or datetime.now()
-
-                event_ids = []
-
-                # Handle subject
-                if message_event.subject:
-                    event_ids.append(
-                        await self._send_message(
-                            intent,
-                            linkedin_subject_to_matrix(message_event.subject),
-                            timestamp=timestamp,
-                        )
-                    )
-
-                event_ids.extend(
-                    await self._handle_linkedin_media_attachments(
-                        source, intent, timestamp, message_event.media_attachments
+            timestamp = message.created_at or datetime.now()
+            event_ids = []
+            for event_type, content in await self._convert_linkedin_message(
+                source, intent, message
+            ):
+                event_ids.append(
+                    await self._send_message(
+                        intent, content, event_type=event_type, timestamp=timestamp
                     )
                 )
+            event_ids = [event_id for event_id in event_ids if event_id]
+            if not event_ids:
+                self.log.warning(f"Unhandled LinkedIn message {message.entity_urn}")
+                return
 
-                # Handle attachments
-                event_ids.extend(
-                    await self._handle_linkedin_attachments(
-                        source, intent, timestamp, message_event.attachments
-                    )
-                )
-
-                # Handle custom content
-                if cc := message_event.custom_content:
-                    if cc.third_party_media:
-                        event_ids.extend(
-                            await self._handle_linkedin_third_party_media(
-                                source,
-                                intent,
-                                timestamp,
-                                cc.third_party_media,
-                            )
-                        )
-
-                    # Handle InMail message text
-                    if cc.sp_inmail_content:
-                        event_ids.append(
-                            await self._send_message(
-                                intent,
-                                await linkedin_spinmail_to_matrix(cc.sp_inmail_content),
-                                timestamp=timestamp,
-                            )
-                        )
-                        await self._disable_responding()
-
-                # Handle the normal message text itself
-                if message_event.attributed_body and message_event.attributed_body.text:
-                    if message.subtype == "SPONSORED_MESSAGE":
-                        content = TextMessageEventContent(
-                            msgtype=MessageType.TEXT,
-                            body=BeautifulSoup(message_event.attributed_body.text).text,
-                            format=Format.HTML,
-                            formatted_body=message_event.attributed_body.text,
-                        )
-                    else:
-                        content = await linkedin_to_matrix(message_event.attributed_body)
-                    event_ids.append(
-                        await self._send_message(intent, content, timestamp=timestamp)
-                    )
-                    if message.subtype == "SPONSORED_MESSAGE":
-                        await self._disable_responding(
-                            "Open the LinkedIn app to respond to this message"
-                        )
-                    # TODO (#55) error handling
-
-                # Handle shared posts
-                if f := message_event.feed_update:
-                    plaintext_content = "Feed update shared:\n"
-                    html_content = "<i>Feed update shared:</i><br>"
-                    if (c := f.commentary) and (ct := c.text) and (text := ct.text):
-                        plaintext_content += text + "\n"
-                        html_content += text + "<br>"
-
-                    if (
-                        (c := f.content)
-                        and (ac := c.article_component)
-                        and (nc := ac.navigation_context)
-                        and (target := nc.action_target)
-                    ):
-                        plaintext_content += target
-                        html_content += f'<a href="{target}">{target}</a>'
-
-                    content = TextMessageEventContent(
-                        msgtype=MessageType.TEXT,
-                        body=plaintext_content,
-                        format=Format.HTML,
-                        formatted_body=html_content,
-                    )
-                    event_ids.append(
-                        await self._send_message(intent, content, timestamp=timestamp)
-                    )
-                    # TODO (#55) error handling
-
-                event_ids = [event_id for event_id in event_ids if event_id]
-                if len(event_ids) == 0:
-                    return
-
-                # Save all of the messages in the database.
-                self.log.debug(f"Handled LinkedIn message {li_message_urn} -> {event_ids}")
-                await DBMessage.bulk_create(
-                    li_message_urn=li_message_urn,
-                    li_thread_urn=self.li_thread_urn,
-                    li_sender_urn=sender.li_member_urn,
-                    li_receiver_urn=self.li_receiver_urn,
-                    mx_room=self.mxid,
-                    timestamp=timestamp,
-                    event_ids=event_ids,
-                )
-                await self._send_delivery_receipt(event_ids[-1])
+            # Save all of the messages in the database.
+            self.log.debug(f"Handled LinkedIn message {li_message_urn} -> {event_ids}")
+            await DBMessage.bulk_create(
+                li_message_urn=li_message_urn,
+                li_thread_urn=self.li_thread_urn,
+                li_sender_urn=sender.li_member_urn,
+                li_receiver_urn=self.li_receiver_urn,
+                mx_room=self.mxid,
+                timestamp=timestamp,
+                event_ids=event_ids,
+            )
+            await self._send_delivery_receipt(event_ids[-1])
         # end if message_exists
 
         # Handle reactions
@@ -1463,14 +1459,13 @@ class Portal(DBPortal, BasePortal):
 
         return mxids
 
-    async def _handle_linkedin_attachments(
+    async def _convert_linkedin_attachments(
         self,
         source: "u.User",
         intent: IntentAPI,
-        timestamp: datetime,
         attachments: list[MessageAttachment],
-    ) -> list[EventID]:
-        event_ids = []
+    ) -> list[ConvertedMessage]:
+        converted = []
         for attachment in attachments:
             if not attachment.reference:
                 continue
@@ -1494,22 +1489,17 @@ class Portal(DBPortal, BasePortal):
                 msgtype=msgtype,
                 body=attachment.name,
             )
+            converted.append((EventType.ROOM_MESSAGE, content))
 
-            event_id = await self._send_message(intent, content, timestamp=timestamp)
-            # TODO (#55) error handling
+        return converted
 
-            event_ids.append(event_id)
-
-        return event_ids
-
-    async def _handle_linkedin_media_attachments(
+    async def _convert_linkedin_media_attachments(
         self,
         source: "u.User",
         intent: IntentAPI,
-        timestamp: datetime,
         media_attachments: list[MediaAttachment],
-    ) -> list[EventID]:
-        event_ids = []
+    ) -> list[ConvertedMessage]:
+        converted = []
         for attachment in media_attachments:
             if attachment.media_type == "AUDIO":
                 if attachment.audio_metadata is None:
@@ -1539,18 +1529,16 @@ class Portal(DBPortal, BasePortal):
                     msgtype=MessageType.NOTICE,
                     body=f"Unsupported media type {attachment.media_type}",
                 )
+            converted.append((EventType.ROOM_MESSAGE, content))
 
-            await self._send_message(self.main_intent, content, timestamp=timestamp)
+        return converted
 
-        return event_ids
-
-    async def _handle_linkedin_third_party_media(
+    async def _convert_linkedin_third_party_media(
         self,
         source: "u.User",
         intent: IntentAPI,
-        timestamp: datetime,
         third_party_media: ThirdPartyMedia,
-    ) -> list[EventID]:
+    ) -> list[ConvertedMessage]:
         if not third_party_media:
             return []
 
@@ -1572,10 +1560,7 @@ class Portal(DBPortal, BasePortal):
                 info=info,
                 msgtype=msgtype,
             )
-
-            event_id = await self._send_message(intent, content, timestamp=timestamp)
-            # TODO (#55) error handling
-            return [event_id]
+            return [(EventType.ROOM_MESSAGE, content)]
 
         self.log.warning(f"Unsupported third party media: {third_party_media}.")
         return []
