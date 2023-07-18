@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, AsyncGenerator, Literal, cast
 from collections import deque
 from datetime import datetime, timedelta
 from io import BytesIO
+from itertools import zip_longest
 import asyncio
 
 from bs4 import BeautifulSoup
@@ -23,6 +24,7 @@ from linkedin_messaging.api_objects import (
 )
 import magic
 
+from linkedin_matrix.db.message import Message
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import BasePortal, NotificationDisabler, async_getter_lock
 from mautrix.errors import MatrixError, MForbidden
@@ -1203,6 +1205,8 @@ class Portal(DBPortal, BasePortal):
                     await self._update_name(nu.new_name)
             elif (ec := message.event_content) and (me := ec.message_event) and me.recalled_at:
                 await self._handle_linkedin_message_deletion(sender, message)
+            elif (ec := message.event_content) and (me := ec.message_event) and me.last_edited_at:
+                await self._handle_linkedin_message_edit(source, sender, message)
             else:
                 await self._handle_linkedin_message(source, sender, message)
         except Exception as e:
@@ -1392,6 +1396,15 @@ class Portal(DBPortal, BasePortal):
                 message.created_at,
             )
 
+    async def _redact_and_delete_message(
+        self, sender: "p.Puppet", msg: Message, timestamp: datetime | None
+    ):
+        try:
+            await sender.intent_for(self).redact(msg.mx_room, msg.mxid, timestamp=timestamp)
+        except MForbidden:
+            await self.main_intent.redact(msg.mx_room, msg.mxid, timestamp=timestamp)
+        await msg.delete()
+
     async def _handle_linkedin_message_deletion(
         self,
         sender: "p.Puppet",
@@ -1399,22 +1412,68 @@ class Portal(DBPortal, BasePortal):
     ):
         if not self.mxid or not self.li_receiver_urn:
             return
+        assert message.entity_urn
         for db_message in await DBMessage.get_all_by_li_message_urn(
             message.entity_urn, self.li_receiver_urn
         ):
-            try:
-                await sender.intent_for(self).redact(
-                    db_message.mx_room,
-                    db_message.mxid,
-                    timestamp=message.created_at,
-                )
-            except MForbidden:
-                await self.main_intent.redact(
-                    db_message.mx_room,
-                    db_message.mxid,
-                    timestamp=message.created_at,
-                )
-            await db_message.delete()
+            await self._redact_and_delete_message(sender, db_message, message.created_at)
+
+    async def _handle_linkedin_message_edit(
+        self,
+        source: "u.User",
+        sender: "p.Puppet",
+        message: ConversationEvent,
+    ):
+        if not self.mxid or not self.li_receiver_urn:
+            return
+        assert message.entity_urn
+        assert message.event_content
+        assert message.event_content.message_event
+        intent = sender.intent_for(self)
+        converted = await self._convert_linkedin_message(source, intent, message)
+        timestamp = message.event_content.message_event.last_edited_at or datetime.now()
+
+        messages = await DBMessage.get_all_by_li_message_urn(
+            message.entity_urn,
+            self.li_receiver_urn,
+        )
+
+        event_ids = []
+        for old_message, new_message in zip_longest(messages, converted):
+            if not new_message:
+                # There are extra old messages, delete them.
+                await self._redact_and_delete_message(sender, old_message, timestamp)
+                continue
+
+            new_event_type, content = new_message
+            if old_message:
+                content.set_edit(old_message.mxid)
+            event_id = await self._send_message(
+                intent,
+                content,
+                event_type=new_event_type,
+                timestamp=timestamp,
+            )
+            if not old_message:
+                # If this event is new, we need to save it to the database.
+                event_ids.append(event_id)
+        event_ids = [event_id for event_id in event_ids if event_id]
+        if not event_ids:
+            self.log.warning(f"Unhandled LinkedIn message edit {message.entity_urn}")
+            return
+
+        # Save all of the messages in the database.
+        self.log.debug(f"Handled LinkedIn message edit {message.entity_urn} -> {event_ids}")
+        await DBMessage.bulk_create(
+            li_message_urn=message.entity_urn,
+            li_thread_urn=self.li_thread_urn,
+            li_sender_urn=sender.li_member_urn,
+            li_receiver_urn=self.li_receiver_urn,
+            mx_room=self.mxid,
+            timestamp=timestamp,
+            event_ids=event_ids,
+        )
+        await self._send_delivery_receipt(event_ids[-1])
 
     async def _handle_reaction_summary(
         self,
