@@ -200,12 +200,10 @@ class User(DBUser, BaseUser):
         try:
             self.user_profile_cache = await self.client.get_user_profile()
         except TooManyRedirects as e:
-            await self.push_bridge_state(
-                BridgeStateEvent.BAD_CREDENTIALS,
-                message=str(e),
-            )
+            await self.push_bridge_state(BridgeStateEvent.BAD_CREDENTIALS, message=str(e))
             return False
         except Exception as e:
+            self.log.exception("Failed to get user profile")
             await self.push_bridge_state(BridgeStateEvent.UNKNOWN_ERROR, message=str(e))
             return False
         else:
