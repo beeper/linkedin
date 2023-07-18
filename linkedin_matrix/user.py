@@ -6,7 +6,7 @@ from datetime import datetime
 import asyncio
 import time
 
-from aiohttp.client_exceptions import TooManyRedirects
+from aiohttp.client_exceptions import ServerConnectionError, TooManyRedirects
 from linkedin_messaging import URN, LinkedInMessaging
 from linkedin_messaging.api_objects import (
     Conversation,
@@ -199,7 +199,7 @@ class User(DBUser, BaseUser):
 
         try:
             self.user_profile_cache = await self.client.get_user_profile()
-        except TooManyRedirects as e:
+        except (TooManyRedirects, ServerConnectionError) as e:
             await self.push_bridge_state(BridgeStateEvent.BAD_CREDENTIALS, message=str(e))
             return False
         except Exception as e:
