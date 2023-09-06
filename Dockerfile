@@ -36,7 +36,8 @@ RUN apk add --virtual .build-deps python3-dev libffi-dev build-base \
 COPY . /opt/linkedin-matrix
 RUN apk add --no-cache git && pip3 install --no-cache-dir .[e2be] && apk del git \
     # This doesn't make the image smaller, but it's needed so that the `version` command works properly
-    && cp linkedin_matrix/example-config.yaml . && rm -rf linkedin_matrix .git build
+    && cp linkedin_matrix/example-config.yaml . && rm -rf linkedin_matrix .git build \
+    && chown -R 1337:1337 /opt/linkedin-matrix
 
 VOLUME /data
 ENV UID=1337 GID=1337
