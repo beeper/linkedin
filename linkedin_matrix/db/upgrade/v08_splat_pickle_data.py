@@ -1,4 +1,4 @@
-from logging import log
+import logging
 import pickle
 
 from mautrix.util.async_db import Connection
@@ -19,7 +19,7 @@ async def upgrade_v8(conn: Connection):
         user_id = row["mxid"]
         client_pickle = row["client_pickle"]
         if client_pickle is None:
-            log.warning(f"User {user_id} has no client_pickle")
+            logging.warning(f"User {user_id} has no client_pickle")
             continue
 
         cookies = pickle.loads(client_pickle)
@@ -31,7 +31,7 @@ async def upgrade_v8(conn: Connection):
                 li_at = li.value
 
         if not jsessionid or not li_at:
-            log.warning(f"User {user_id} doesn't have JSESSIONID or li_at")
+            logging.warning(f"User {user_id} doesn't have JSESSIONID or li_at")
             continue
 
         await conn.execute(
