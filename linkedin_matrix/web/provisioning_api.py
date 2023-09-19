@@ -3,7 +3,6 @@ import json
 import logging
 
 from aiohttp import web
-from linkedin_messaging import LinkedInMessaging
 
 from mautrix.types import UserID
 from mautrix.util.logging import TraceLogger
@@ -102,11 +101,8 @@ class ProvisioningAPI:
             return web.HTTPBadRequest(body='{"error": "Missing keys"}', headers=self._headers)
 
         try:
-            client = LinkedInMessaging()
-            data["JSESSIONID"] = data["JSESSIONID"].strip('"')
-            client.session.cookie_jar.update_cookies(data)
-            client.session.headers["csrf-token"] = data["JSESSIONID"]
-            await user.on_logged_in(client)
+            jsessionid = data["JSESSIONID"].strip('"')
+            await user.on_logged_in(data["li_at"], jsessionid)
             track(user, "$login_success")
         except Exception as e:
             track(user, "$login_failed", {"error": str(e)})

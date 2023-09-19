@@ -1,10 +1,6 @@
-from typing import cast
 import logging
 
-from linkedin_messaging import ChallengeException, LinkedInMessaging
-
 from mautrix.bridge.commands import HelpSection, command_handler
-from mautrix.errors import MForbidden
 
 from .typehint import CommandEvent
 
@@ -76,74 +72,13 @@ async def login(evt: CommandEvent):
     jsessionid = evt.args[1].strip('"')
     await evt.redact()
 
-    client = LinkedInMessaging()
     try:
-        await client.login_manual(li_at, jsessionid)
-        await evt.sender.on_logged_in(client)
+        await evt.sender.on_logged_in(li_at, jsessionid)
         await evt.reply("Successfully logged in")
     except Exception as e:
         logging.exception("Failed to log in")
         await evt.reply(f"Failed to log in: {e}")
         return
-
-
-async def enter_password(evt: CommandEvent):
-    try:
-        await evt.az.intent.redact(evt.room_id, evt.event_id)
-    except MForbidden:
-        pass
-
-    assert evt.sender.command_status
-    email = evt.sender.command_status["email"]
-    password = evt.content.body
-    if not isinstance(password, str):
-        await evt.reply("Password was not a string!")
-        evt.sender.command_status = None
-        return
-
-    # Try to log on
-    client = LinkedInMessaging()
-    try:
-        await client.login(email, password)
-    except ChallengeException:
-        # 2FA is enabled, need another step.
-        evt.sender.command_status = {
-            "action": "Login",
-            "room_id": evt.room_id,
-            "next": enter_2fa_code,
-            "client": client,
-        }
-        await evt.reply(
-            "You have two-factor authentication turned on. Please enter the code you "
-            "received via SMS or your authenticator app here."
-        )
-        return
-    except Exception as e:
-        logging.exception("Failed to log in")
-        evt.sender.command_status = None
-        await evt.reply(f"Failed to log in: {e}")
-        return
-
-    # We were able to log in successfully without 2FA.
-    await evt.sender.on_logged_in(client)
-    await evt.reply("Successfully logged in")
-    evt.sender.command_status = None
-
-
-async def enter_2fa_code(evt: CommandEvent):
-    assert evt.sender.command_status, "command_status not present in event"
-
-    client = cast(LinkedInMessaging, evt.sender.command_status["client"])
-    try:
-        await client.enter_2fa("".join(evt.args).strip())
-    except Exception as e:
-        logging.exception("Failed to log in")
-        evt.sender.command_status = None
-        await evt.reply(f"Failed to log in: {e}")
-
-    await evt.sender.on_logged_in(client)
-    await evt.reply("Successfully logged in")
-    evt.sender.command_status = None
 
 
 # endregion

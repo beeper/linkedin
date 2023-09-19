@@ -10,6 +10,7 @@ from . import (  # noqa: E402
     v05_add_index_to_reaction,
     v06_add_space_mxid_to_user,
     v07_puppet_contact_info_set,
+    v08_splat_pickle_data,
 )
 
 __all__ = (
@@ -20,4 +21,5 @@ __all__ = (
     "v05_add_index_to_reaction",
     "v06_add_space_mxid_to_user",
     "v07_puppet_contact_info_set",
+    "v08_splat_pickle_data",
 )

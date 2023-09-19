@@ -55,15 +55,18 @@ class User(DBUser, BaseUser):
     _sync_lock: SimpleLock
     is_admin: bool
 
+    client: LinkedInMessaging | None = None
+
     def __init__(
         self,
         mxid: UserID,
         li_member_urn: URN | None = None,
-        client: LinkedInMessaging | None = None,
+        jsessionid: str | None = None,
+        li_at: str | None = None,
         notice_room: RoomID | None = None,
         space_mxid: RoomID | None = None,
     ):
-        super().__init__(mxid, li_member_urn, notice_room, space_mxid, client)
+        super().__init__(mxid, li_member_urn, notice_room, space_mxid, jsessionid, li_at)
         BaseUser.__init__(self)
         self.notice_room = notice_room
         self.space_mxid = space_mxid
@@ -186,16 +189,14 @@ class User(DBUser, BaseUser):
 
     # region Session Management
 
-    async def load_session(
-        self,
-        is_startup: bool = False,
-        _raise_errors: bool = False,
-    ) -> bool:
+    async def load_session(self, is_startup: bool = False) -> bool:
         if self._is_logged_in and is_startup:
             return True
-        if not self.client:
+        if not self.jsessionid or not self.li_at:
             await self.push_bridge_state(BridgeStateEvent.BAD_CREDENTIALS, error="logged-out")
             return False
+
+        self.client = LinkedInMessaging.from_cookies(self.li_at, self.jsessionid)
 
         try:
             self.user_profile_cache = await self.client.get_user_profile()
@@ -245,8 +246,10 @@ class User(DBUser, BaseUser):
                 self.user_profile_cache = None
         return self._is_logged_in or False
 
-    async def on_logged_in(self, client: LinkedInMessaging):
-        self.client = client
+    async def on_logged_in(self, li_at: str, jsessionid: str):
+        self.li_at = li_at
+        self.jsessionid = jsessionid
+        self.client = LinkedInMessaging.from_cookies(self.li_at, self.jsessionid)
         self.listener_event_handlers_created = False
         self.user_profile_cache = await self.client.get_user_profile()
         if (mp := self.user_profile_cache.mini_profile) and mp.entity_urn:
@@ -296,6 +299,8 @@ class User(DBUser, BaseUser):
                 pass
         self._track_metric(METRIC_LOGGED_IN, True)
         self.client = None
+        self.jsessionid = None
+        self.li_at = None
         self.listener_event_handlers_created = False
         self.user_profile_cache = None
         self.li_member_urn = None

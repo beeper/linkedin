@@ -4,7 +4,7 @@ from typing import cast
 
 from asyncpg import Record
 from attr import dataclass
-from linkedin_messaging import URN, LinkedInMessaging
+from linkedin_messaging import URN
 
 from mautrix.types import RoomID, UserID
 
@@ -18,30 +18,26 @@ class User(Model):
     notice_room: RoomID | None
     space_mxid: RoomID | None
 
-    client: LinkedInMessaging | None
+    jsessionid: str | None
+    li_at: str | None
 
     _table_name = "user"
     _field_list = [
         "mxid",
         "li_member_urn",
-        "client_pickle",
+        "jsessionid",
+        "li_at",
         "notice_room",
         "space_mxid",
     ]
-
-    @property
-    def _client_pickle(self) -> bytes | None:
-        return self.client.to_pickle() if self.client else None
 
     @classmethod
     def _from_row(cls, row: Record | None) -> User | None:
         if row is None:
             return None
         data = {**row}
-        client_pickle = data.pop("client_pickle")
         li_member_urn = data.pop("li_member_urn")
         return cls(
-            client=LinkedInMessaging.from_pickle(client_pickle) if client_pickle else None,
             li_member_urn=URN(li_member_urn) if li_member_urn else None,
             **data,
         )
@@ -70,7 +66,8 @@ class User(Model):
             query,
             self.mxid,
             self.li_member_urn.id_str() if self.li_member_urn else None,
-            self._client_pickle,
+            self.jsessionid,
+            self.li_at,
             self.notice_room,
             self.space_mxid,
         )
@@ -82,16 +79,18 @@ class User(Model):
         query = """
             UPDATE "user"
                SET li_member_urn=$2,
-                   client_pickle=$3,
-                   notice_room=$4,
-                   space_mxid=$5
+                   jsessionid=$3,
+                   li_at=$4,
+                   notice_room=$5,
+                   space_mxid=$6
              WHERE mxid=$1
         """
         await self.db.execute(
             query,
             self.mxid,
             self.li_member_urn.id_str() if self.li_member_urn else None,
-            self._client_pickle,
+            self.jsessionid,
+            self.li_at,
             self.notice_room,
             self.space_mxid,
         )
