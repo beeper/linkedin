@@ -1,4 +1,4 @@
-FROM docker.io/alpine:3.18
+FROM docker.io/alpine:3.17
 
 ARG TARGETARCH=amd64
 
@@ -23,9 +23,7 @@ RUN apk add --no-cache \
     curl \
     git \
     jq \
-    yq \
-  # Temporarily install pillow from edge repo to get up-to-date version
-  && apk add --no-cache py3-pillow --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community
+    yq
 
 COPY requirements.txt /opt/linkedin-matrix/requirements.txt
 COPY optional-requirements.txt /opt/linkedin-matrix/optional-requirements.txt
