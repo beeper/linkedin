@@ -1,10 +1,10 @@
-FROM docker.io/alpine:3.17
+FROM docker.io/alpine:3.18
 
 ARG TARGETARCH=amd64
 
 RUN apk add --no-cache \
     python3 py3-pip py3-setuptools py3-wheel \
-    py3-pillow \
+    #py3-pillow \
     py3-aiohttp \
     py3-magic \
     py3-ruamel.yaml \
@@ -23,7 +23,9 @@ RUN apk add --no-cache \
     curl \
     git \
     jq \
-    yq
+    yq \
+  # Temporarily install pillow from edge repo to get up-to-date version
+  && apk add --no-cache py3-pillow --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community
 
 COPY requirements.txt /opt/linkedin-matrix/requirements.txt
 COPY optional-requirements.txt /opt/linkedin-matrix/optional-requirements.txt
