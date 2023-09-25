@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterable, Awaitable, cast
 from asyncio.futures import Future
 from datetime import datetime
 import asyncio
+import sys
 import time
 
 from aiohttp.client_exceptions import ServerConnectionError, TooManyRedirects
@@ -198,20 +199,29 @@ class User(DBUser, BaseUser):
 
         self.client = LinkedInMessaging.from_cookies(self.li_at, self.jsessionid)
 
-        try:
-            self.user_profile_cache = await self.client.get_user_profile()
-        except (TooManyRedirects, ServerConnectionError) as e:
-            await self.push_bridge_state(BridgeStateEvent.BAD_CREDENTIALS, message=str(e))
-            return False
-        except Exception as e:
-            self.log.exception("Failed to get user profile")
-            await self.push_bridge_state(BridgeStateEvent.UNKNOWN_ERROR, message=str(e))
-            return False
-        else:
-            if (mp := self.user_profile_cache.mini_profile) and mp.entity_urn:
-                self.li_member_urn = mp.entity_urn
-            else:
+        backoff = 1.0
+        while True:
+            try:
+                self.user_profile_cache = await self.client.get_user_profile()
+                break
+            except (TooManyRedirects, ServerConnectionError) as e:
+                await self.push_bridge_state(BridgeStateEvent.BAD_CREDENTIALS, message=str(e))
                 return False
+            except Exception as e:
+                self.log.exception("Failed to get user profile")
+                time.sleep(backoff)
+                backoff *= 2
+                if backoff > 64:
+                    # If we can't get the user profile and it's not due to the session being
+                    # invalid, it's probably a network error. Go ahead and push the UNKNOWN_ERROR,
+                    # and then crash the bridge.
+                    await self.push_bridge_state(BridgeStateEvent.UNKNOWN_ERROR, message=str(e))
+                    sys.exit(1)
+
+        if (mp := self.user_profile_cache.mini_profile) and mp.entity_urn:
+            self.li_member_urn = mp.entity_urn
+        else:
+            return False
 
         await self.push_bridge_state(BridgeStateEvent.CONNECTING)
 
