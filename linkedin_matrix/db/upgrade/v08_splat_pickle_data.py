@@ -11,8 +11,8 @@ from . import upgrade_table
 )
 async def upgrade_v8(conn: Connection):
     # First, add the columns for JSESSIONID and li_at.
-    await conn.execute('ALTER TABLE "user" ADD COLUMN jsessionid string')
-    await conn.execute('ALTER TABLE "user" ADD COLUMN li_at string')
+    await conn.execute('ALTER TABLE "user" ADD COLUMN jsessionid TEXT')
+    await conn.execute('ALTER TABLE "user" ADD COLUMN li_at TEXT')
 
     # Now, unpickle the data from client_pickle and put it into the new columns.
     for row in await conn.fetch('SELECT mxid, client_pickle FROM "user"'):
