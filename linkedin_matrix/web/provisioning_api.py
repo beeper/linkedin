@@ -8,7 +8,7 @@ from mautrix.types import UserID
 from mautrix.util.logging import TraceLogger
 
 from .. import user as u
-from ..segment_analytics import track
+from ..analytics import track
 
 
 class ProvisioningAPI:

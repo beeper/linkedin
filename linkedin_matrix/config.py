@@ -32,8 +32,6 @@ class Config(BaseBridgeConfig):
         copy("appservice.provisioning.shared_secret")
         if base["appservice.provisioning.shared_secret"] == "generate":
             base["appservice.provisioning.shared_secret"] = self._new_token()
-        copy("appservice.provisioning.segment_key")
-        copy("appservice.provisioning.segment_user_id")
 
         # bridge
         copy("bridge.backfill.disable_notifications")
@@ -73,6 +71,17 @@ class Config(BaseBridgeConfig):
         copy("bridge.private_chat_portal_meta")
         if base["bridge.private_chat_portal_meta"] not in ("default", "always", "never"):
             base["bridge.private_chat_portal_meta"] = "default"
+
+        # analytics
+        copy("analytics.host")
+        if "appservice.provisioning.segment_key" in self:
+            base["analytics.token"] = self["appservice.provisioning.segment_key"]
+        else:
+            copy("analytics.token")
+        if "appservice.provisioning.segment_user_id" in self:
+            base["analytics.user_id"] = self["appservice.provisioning.segment_user_id"]
+        else:
+            copy("analytics.user_id")
 
         # Metrics
         copy("metrics.enabled")
