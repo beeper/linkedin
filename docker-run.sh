@@ -11,7 +11,7 @@ function fixperms {
 cd /opt/linkedin-matrix
 
 if [ ! -f $CONFIG_PATH ]; then
-	cp linkedin_matrix/example-config.yaml $CONFIG_PATH
+	cp example-config.yaml $CONFIG_PATH
 	sed -i "s#hostname: localhost#hostname: 0.0.0.0#" $CONFIG_PATH
 	echo "Didn't find a config file."
 	echo "Copied default config file to $CONFIG_PATH"
