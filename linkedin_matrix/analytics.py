@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from urllib.parse import urlunparse
 import logging
 
+from yarl import URL
 import aiohttp
 
 from mautrix.util import background_task
@@ -11,7 +11,7 @@ from . import user as u
 
 log = logging.getLogger("mau.web.public.analytics")
 http: aiohttp.ClientSession | None = None
-analytics_url: str | None = None
+analytics_url: URL | None = None
 analytics_token: str | None = None
 analytics_user_id: str | None = None
 
@@ -42,7 +42,7 @@ def init(base_url: str | None, token: str | None, user_id: str | None = None):
         return
     log.info("Initialising segment-compatible analytics")
     global analytics_url, analytics_token, analytics_user_id, http
-    analytics_url = urlunparse(("https", base_url, "/v1/track", "", "", ""))
+    analytics_url = URL.build(scheme="https", host=base_url, path="/v1/track")
     analytics_token = token
     analytics_user_id = user_id
     http = aiohttp.ClientSession()
