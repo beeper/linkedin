@@ -72,10 +72,11 @@ class LinkedInBridge(Bridge):
             self.az.app.add_subapp(prefix, self.provisioning_api.app)
 
         if self.config["analytics.token"]:
+            host = self.config["analytics.host"]
             token = self.config["analytics.token"]
             user_id = self.config["analytics.user_id"]
             if token:
-                init_analytics(token, user_id)
+                init_analytics(host, token, user_id)
 
     async def stop(self):
         await Puppet.close()
