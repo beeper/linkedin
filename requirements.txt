@@ -5,5 +5,5 @@ linkedin-messaging==0.6.0
 mautrix>=0.20.1,<0.21
 pycryptodome>=3,<4
 python-magic>=0.4,<0.5
-ruamel.yaml>=0.15.94,<0.18
+ruamel.yaml>=0.15.94,<0.19
 yarl>=1,<2
