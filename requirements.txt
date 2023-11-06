@@ -1,5 +1,5 @@
 aiohttp>=3,<4
-asyncpg>=0.20,<0.28
+asyncpg>=0.20,<0.30
 commonmark>=0.8,<0.10
 linkedin-messaging==0.6.0
 mautrix>=0.20.1,<0.21
