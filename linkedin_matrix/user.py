@@ -557,7 +557,7 @@ class User(DBUser, BaseUser):
             self.client.add_event_listener("fromEntity", self.handle_linkedin_from_entity)
             self.listener_event_handlers_created = True
         try:
-            await self.client.start_listener()
+            await self.client.start_listener(self.li_member_urn)
         except Exception as e:
             self.log.exception(f"Exception in listener: {e}")
             self._prev_connected_bridge_state = None
