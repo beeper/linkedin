@@ -521,7 +521,7 @@ class LinkedInMessaging:
             headers={
                 "accept": "text/event-stream",
                 "connection": "keep-alive",
-                "x-li-accept": "application/vnd.linkedin.normalized+json+2.1",
+                "content-type": "text/event-stream",
                 **REQUEST_HEADERS,
             },
             # The event stream normally stays open for about 3 minutes, but this will
