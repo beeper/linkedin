@@ -8,7 +8,6 @@ from linkedin_messaging.api_objects import (
     MessageCreate,
     TextEntity,
 )
-
 from mautrix.appservice import IntentAPI
 from mautrix.types import Format, MessageType, TextMessageEventContent
 from mautrix.util.formatter import (

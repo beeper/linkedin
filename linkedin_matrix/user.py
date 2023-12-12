@@ -8,6 +8,7 @@ import sys
 import time
 
 from aiohttp.client_exceptions import ServerConnectionError, TooManyRedirects
+
 from linkedin_messaging import URN, LinkedInMessaging
 from linkedin_messaging.api_objects import (
     Conversation,
@@ -16,7 +17,6 @@ from linkedin_messaging.api_objects import (
     RealTimeEventStreamEvent,
     UserProfileResponse,
 )
-
 from mautrix.bridge import BaseUser, async_getter_lock
 from mautrix.errors import MNotFound
 from mautrix.types import EventType, PushActionType, PushRuleKind, PushRuleScope, RoomID, UserID

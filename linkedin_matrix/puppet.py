@@ -4,12 +4,12 @@ from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterable, Awaitable, cast
 from datetime import datetime
 import re
 
-from linkedin_messaging import URN
-from linkedin_messaging.api_objects import MessagingMember, Picture
 from yarl import URL
 import aiohttp
 import magic
 
+from linkedin_messaging import URN
+from linkedin_messaging.api_objects import MessagingMember, Picture
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import BasePuppet, async_getter_lock
 from mautrix.types import ContentURI, SyncToken, UserID

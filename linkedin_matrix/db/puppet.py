@@ -4,9 +4,9 @@ from typing import cast
 
 from asyncpg import Record
 from attr import dataclass
-from linkedin_messaging import URN
 from yarl import URL
 
+from linkedin_messaging import URN
 from mautrix.types import ContentURI, SyncToken, UserID
 
 from .model_base import Model

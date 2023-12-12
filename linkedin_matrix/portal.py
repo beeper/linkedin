@@ -8,6 +8,9 @@ from itertools import zip_longest
 import asyncio
 
 from bs4 import BeautifulSoup
+import magic
+
+from linkedin_matrix.db.message import Message
 from linkedin_messaging import URN
 from linkedin_messaging.api_objects import (
     AttributedBody,
@@ -22,9 +25,6 @@ from linkedin_messaging.api_objects import (
     RealTimeEventStreamEvent,
     ThirdPartyMedia,
 )
-import magic
-
-from linkedin_matrix.db.message import Message
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import BasePortal, NotificationDisabler, async_getter_lock
 from mautrix.errors import MatrixError, MForbidden

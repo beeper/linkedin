@@ -5,4 +5,5 @@ flake8-print>=5.0.0,<6
 flake8>=6.0.0,<7
 isort>=5.10.1,<6
 pre-commit>=2.10.1,<4
+pytest>=7.4.3,<7.5
 termcolor>=2.1.1,<3

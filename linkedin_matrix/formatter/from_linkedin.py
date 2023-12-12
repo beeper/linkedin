@@ -3,9 +3,9 @@ from __future__ import annotations
 from html import escape
 
 from bs4 import BeautifulSoup
+
 from linkedin_messaging import URN
 from linkedin_messaging.api_objects import AttributedBody, SpInmailContent
-
 from mautrix.types import Format, MessageType, TextMessageEventContent
 
 from .. import puppet as pu, user as u
