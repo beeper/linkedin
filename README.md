@@ -5,8 +5,7 @@
 [![Apache 2.0](https://img.shields.io/pypi/l/linkedin-matrix)](LICENSE)
 
 LinkedIn Messaging <-> Matrix bridge built using
-[mautrix-python](https://github.com/tulir/mautrix-python) and
-[linkedin-messaging-api](https://github.com/sumnerevans/linkedin-messaging-api).
+[mautrix-python](https://github.com/tulir/mautrix-python).
 
 ## Documentation
 
