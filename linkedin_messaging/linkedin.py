@@ -522,14 +522,18 @@ class LinkedInMessaging:
     async def _listen_to_event_stream(self):
         logging.info("Starting event stream listener")
 
+        headers = {
+            "accept": "text/event-stream",
+            "connection": "keep-alive",
+            "content-type": "text/event-stream",
+            **REQUEST_HEADERS,
+        }
+        if self._realtime_sesion_id:
+            headers["X-Li-Realtime-Session"] = self._realtime_sesion_id
+
         async with self.session.get(
             REALTIME_CONNECT_URL,
-            headers={
-                "accept": "text/event-stream",
-                "connection": "keep-alive",
-                "content-type": "text/event-stream",
-                **REQUEST_HEADERS,
-            },
+            headers=headers,
         ) as resp:
             if resp.status != 200:
                 raise TooManyRequestsError(f"Failed to connect. Status {resp.status}.")
