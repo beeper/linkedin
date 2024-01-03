@@ -534,6 +534,7 @@ class LinkedInMessaging:
         async with self.session.get(
             REALTIME_CONNECT_URL,
             headers=headers,
+            params={"rc": "1"},
         ) as resp:
             if resp.status != 200:
                 raise TooManyRequestsError(f"Failed to connect. Status {resp.status}.")
