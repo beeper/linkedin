@@ -26,7 +26,7 @@ from mautrix.util.simple_lock import SimpleLock
 
 from . import portal as po, puppet as pu
 from .config import Config
-from .db import User as DBUser
+from .db import Cookie, User as DBUser
 
 if TYPE_CHECKING:
     from .__main__ import LinkedInBridge
@@ -62,15 +62,11 @@ class User(DBUser, BaseUser):
         self,
         mxid: UserID,
         li_member_urn: URN | None = None,
-        jsessionid: str | None = None,
-        li_at: str | None = None,
         notice_room: RoomID | None = None,
         space_mxid: RoomID | None = None,
     ):
-        super().__init__(mxid, li_member_urn, notice_room, space_mxid, jsessionid, li_at)
+        super().__init__(mxid, li_member_urn, notice_room, space_mxid)
         BaseUser.__init__(self)
-        self.notice_room = notice_room
-        self.space_mxid = space_mxid
         self._notice_room_lock = asyncio.Lock()
         self._notice_send_lock = asyncio.Lock()
 
@@ -193,11 +189,13 @@ class User(DBUser, BaseUser):
     async def load_session(self, is_startup: bool = False) -> bool:
         if self._is_logged_in and is_startup:
             return True
-        if not self.jsessionid or not self.li_at:
+        cookies = await Cookie.get_for_mxid(self.mxid)
+        cookie_names = set(c.name for c in cookies)
+        if "li_at" not in cookie_names or "JSESSIONID" not in cookie_names:
             await self.push_bridge_state(BridgeStateEvent.BAD_CREDENTIALS, error="logged-out")
             return False
 
-        self.client = LinkedInMessaging.from_cookies(self.li_at, self.jsessionid)
+        self.client = LinkedInMessaging.from_cookies({c.name: c.value for c in cookies})
 
         backoff = 1.0
         while True:
@@ -205,6 +203,7 @@ class User(DBUser, BaseUser):
                 self.user_profile_cache = await self.client.get_user_profile()
                 break
             except (TooManyRedirects, ServerConnectionError) as e:
+                self.log.info(f"Failed to get user profile: {e}")
                 await self.push_bridge_state(BridgeStateEvent.BAD_CREDENTIALS, message=str(e))
                 return False
             except Exception as e:
@@ -256,10 +255,10 @@ class User(DBUser, BaseUser):
                 self.user_profile_cache = None
         return self._is_logged_in or False
 
-    async def on_logged_in(self, li_at: str, jsessionid: str):
-        self.li_at = li_at
-        self.jsessionid = jsessionid
-        self.client = LinkedInMessaging.from_cookies(self.li_at, self.jsessionid)
+    async def on_logged_in(self, cookies: dict[str, str]):
+        cookies = {k: v.strip('"') for k, v in cookies.items()}
+        await Cookie.bulk_upsert(self.mxid, cookies)
+        self.client = LinkedInMessaging.from_cookies(cookies)
         self.listener_event_handlers_created = False
         self.user_profile_cache = await self.client.get_user_profile()
         if (mp := self.user_profile_cache.mini_profile) and mp.entity_urn:
@@ -307,10 +306,9 @@ class User(DBUser, BaseUser):
                 del self.by_li_member_urn[self.li_member_urn]
             except KeyError:
                 pass
+        await Cookie.delete_all_for_mxid(self.mxid)
         self._track_metric(METRIC_LOGGED_IN, True)
         self.client = None
-        self.jsessionid = None
-        self.li_at = None
         self.listener_event_handlers_created = False
         self.user_profile_cache = None
         self.li_member_urn = None
@@ -558,6 +556,8 @@ class User(DBUser, BaseUser):
             self.listener_event_handlers_created = True
         try:
             await self.client.start_listener(self.li_member_urn)
+            # Make sure all of the cookies are up-to-date
+            await Cookie.bulk_upsert(self.mxid, self.client.cookies())
         except Exception as e:
             self.log.exception(f"Exception in listener: {e}")
             self._prev_connected_bridge_state = None

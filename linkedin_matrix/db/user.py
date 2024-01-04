@@ -18,15 +18,10 @@ class User(Model):
     notice_room: RoomID | None
     space_mxid: RoomID | None
 
-    jsessionid: str | None
-    li_at: str | None
-
     _table_name = "user"
     _field_list = [
         "mxid",
         "li_member_urn",
-        "jsessionid",
-        "li_at",
         "notice_room",
         "space_mxid",
     ]
@@ -66,8 +61,6 @@ class User(Model):
             query,
             self.mxid,
             self.li_member_urn.id_str() if self.li_member_urn else None,
-            self.jsessionid,
-            self.li_at,
             self.notice_room,
             self.space_mxid,
         )
@@ -79,18 +72,14 @@ class User(Model):
         query = """
             UPDATE "user"
                SET li_member_urn=$2,
-                   jsessionid=$3,
-                   li_at=$4,
-                   notice_room=$5,
-                   space_mxid=$6
+                   notice_room=$3,
+                   space_mxid=$4
              WHERE mxid=$1
         """
         await self.db.execute(
             query,
             self.mxid,
             self.li_member_urn.id_str() if self.li_member_urn else None,
-            self.jsessionid,
-            self.li_at,
             self.notice_room,
             self.space_mxid,
         )

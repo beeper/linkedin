@@ -1,3 +1,4 @@
+import json
 import logging
 
 from mautrix.bridge.commands import HelpSection, command_handler
@@ -54,26 +55,36 @@ async def whoami(evt: CommandEvent):
     needs_auth=False,
     management_only=False,
     help_section=SECTION_AUTH,
-    help_text=(
-        "Log in to LinkedIn by cookies from an existing LinkedIn browser session (recommended "
-        "to use a private window to extract the cookies)"
-    ),
-    help_args="<_li\\_at_> <_jsessionid_>",
+    help_text="""
+        Log in to LinkedIn using cookies from an existing LinkedIn browser session. To extract the
+        cookies go to your browser developer tools, open the Network tab, then copy the `Cookie`
+        header from one of the requests to `https://www.linkedin.com/` and paste the result into
+        the command. It is recommended that you use a private window to extract the cookies.
+    """,
+    help_args="<_cookie header_>",
 )
 async def login(evt: CommandEvent):
     if evt.sender.client and await evt.sender.client.logged_in():
         await evt.reply("You're already logged in.")
         return
-    elif len(evt.args) != 2:
-        await evt.reply("**Usage:** `$cmdprefix+sp login <li_at> <jsessionid>`")
+
+    if len(evt.args) == 0:
+        await evt.reply("**Usage:** `$cmdprefix+sp login <cookie header>`")
         return
 
-    li_at = evt.args[0].strip('"')
-    jsessionid = evt.args[1].strip('"')
     await evt.redact()
 
+    cookies: dict[str, str] = {}
+    for cookie in evt.args:
+        key, val = cookie.strip(" ;").split("=", 1)
+        cookies[key] = val
+
+    if not cookies.get("li_at") or not cookies.get("JSESSIONID"):
+        await evt.reply("Missing li_at or JSESSIONID cookie")
+        return
+
     try:
-        await evt.sender.on_logged_in(li_at, jsessionid)
+        await evt.sender.on_logged_in(cookies)
         await evt.reply("Successfully logged in")
     except Exception as e:
         logging.exception("Failed to log in")

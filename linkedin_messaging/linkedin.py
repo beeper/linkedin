@@ -139,11 +139,14 @@ class LinkedInMessaging:
         self.event_listeners = defaultdict(list)
 
     @staticmethod
-    def from_cookies(li_at: str, jsessionid: str) -> "LinkedInMessaging":
+    def from_cookies(cookies: dict[str, str]) -> "LinkedInMessaging":
         linkedin = LinkedInMessaging()
-        linkedin.session.cookie_jar.update_cookies({"li_at": li_at, "JSESSIONID": jsessionid})
-        linkedin._request_headers["csrf-token"] = jsessionid
+        linkedin.session.cookie_jar.update_cookies(cookies)
+        linkedin._request_headers["csrf-token"] = cookies["JSESSIONID"].strip('"')
         return linkedin
+
+    def cookies(self) -> dict[str, str]:
+        return {c.key: c.value for c in self.session.cookie_jar}
 
     async def close(self):
         await self.session.close()
@@ -174,13 +177,13 @@ class LinkedInMessaging:
             logging.exception(f"Failed getting the user profile: {e}")
             return False
 
-    async def login_manual(self, li_at: str, jsessionid: str, new_session: bool = True):
+    async def login_manual(self, cookies: dict[str, str], new_session: bool = True):
         if new_session:
             if self.session:
                 await self.session.close()
             self.session = aiohttp.ClientSession()
-        self.session.cookie_jar.update_cookies({"li_at": li_at, "JSESSIONID": jsessionid})
-        self._request_headers["csrf-token"] = jsessionid.strip('"')
+        self.session.cookie_jar.update_cookies(cookies)
+        self._request_headers["csrf-token"] = cookies["JSESSIONID"].strip('"')
 
     async def login(self, email: str, password: str, new_session: bool = True):
         if new_session:
@@ -417,7 +420,6 @@ class LinkedInMessaging:
                 f"/messaging/conversations/{conversation_id}/events",
                 params=params,
                 json=message_event,
-                headers=self._request_headers,
             )
 
         return cast(SendMessageResponse, await try_from_json(SendMessageResponse, res))
