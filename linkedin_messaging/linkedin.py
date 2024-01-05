@@ -26,30 +26,6 @@ from .api_objects import (
 )
 from .exceptions import TooManyRequestsError
 
-REQUEST_HEADERS = {
-    "user-agent": " ".join(
-        [
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5)",
-            "AppleWebKit/537.36 (KHTML, like Gecko)",
-            "Chrome/83.0.4103.116 Safari/537.36",
-        ]
-    ),
-    "accept-language": "en-AU,en-GB;q=0.9,en-US;q=0.8,en;q=0.7",
-    "x-li-lang": "en_US",
-    "x-restli-protocol-version": "2.0.0",
-    "x-li-track": json.dumps(
-        {
-            "clientVersion": "1.13.8031",
-            "mpVersion": "1.13.8031",
-            "osName": "web",
-            "timezoneOffset": 0,
-            "timezone": "Etc/UTC",
-            "deviceFormFactor": "DESKTOP",
-            "mpName": "voyager-web",
-        }
-    ),
-}
-
 LINKEDIN_BASE_URL = "https://www.linkedin.com"
 LOGIN_URL = f"{LINKEDIN_BASE_URL}/checkpoint/lg/login-submit"
 LOGOUT_URL = f"{LINKEDIN_BASE_URL}/uas/logout"
@@ -99,6 +75,50 @@ class ChallengeException(Exception):
 
 
 class LinkedInMessaging:
+    _request_headers = {
+        "user-agent": " ".join(
+            [
+                "Mozilla/5.0 (X11; Linux x86_64)",
+                "AppleWebKit/537.36 (KHTML, like Gecko)",
+                "Chrome/120.0.0.0 Safari/537.36",
+            ]
+        ),
+        "accept-language": "en-US,en;q=0.9",
+        "x-li-lang": "en_US",
+        "x-restli-protocol-version": "2.0.0",
+        "x-li-track": json.dumps(
+            {
+                "clientVersion": "1.13.8751",
+                "mpVersion": "1.13.8751",
+                "osName": "web",
+                "timezoneOffset": -7,
+                "timezone": "America/Denver",
+                "deviceFormFactor": "DESKTOP",
+                "mpName": "voyager-web",
+                "displayDensity": 1,
+                "displayWidth": 2560,
+                "displayHeight": 1440,
+            }
+        ),
+        "Authority": "www.linkedin.com",
+        "referer": "https://www.linkedin.com/feed/",
+        "sec-ch-ua": '"Not_A Brand";v="8", "Chromium";v="120"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Linux"',
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-origin",
+        "x-li-page-instance": "urn:li:page:feed_index_index;bcfe9fd6-239a-49e9-af15-44b7e5895eaa",
+        "x-li-recipe-accept": "application/vnd.linkedin.normalized+json+2.1",
+        "x-li-recipe-map": json.dumps(
+            {
+                "inAppAlertsTopic": "com.linkedin.voyager.dash.deco.identity.notifications.InAppAlert-51",  # noqa: E501
+                "professionalEventsTopic": "com.linkedin.voyager.dash.deco.events.ProfessionalEventDetailPage-53",  # noqa: E501
+                "topCardLiveVideoTopic": "com.linkedin.voyager.dash.deco.video.TopCardLiveVideo-9",
+            }
+        ),
+    }
+
     session: aiohttp.ClientSession
     two_factor_payload: dict[str, Any]
     event_listeners: defaultdict[
@@ -122,17 +142,21 @@ class LinkedInMessaging:
     def from_cookies(li_at: str, jsessionid: str) -> "LinkedInMessaging":
         linkedin = LinkedInMessaging()
         linkedin.session.cookie_jar.update_cookies({"li_at": li_at, "JSESSIONID": jsessionid})
-        linkedin.session.headers["csrf-token"] = jsessionid
+        linkedin._request_headers["csrf-token"] = jsessionid
         return linkedin
 
     async def close(self):
         await self.session.close()
 
     async def _get(self, relative_url: str, **kwargs: Any) -> aiohttp.ClientResponse:
-        return await self.session.get(API_BASE_URL + relative_url, **kwargs)
+        headers = kwargs.pop("headers", {})
+        headers.update(self._request_headers)
+        return await self.session.get(API_BASE_URL + relative_url, headers=headers, **kwargs)
 
     async def _post(self, relative_url: str, **kwargs: Any) -> aiohttp.ClientResponse:
-        return await self.session.post(API_BASE_URL + relative_url, **kwargs)
+        headers = kwargs.pop("headers", {})
+        headers.update(self._request_headers)
+        return await self.session.post(API_BASE_URL + relative_url, headers=headers, **kwargs)
 
     # region Authentication
 
@@ -156,7 +180,7 @@ class LinkedInMessaging:
                 await self.session.close()
             self.session = aiohttp.ClientSession()
         self.session.cookie_jar.update_cookies({"li_at": li_at, "JSESSIONID": jsessionid})
-        self.session.headers["csrf-token"] = jsessionid.strip('"')
+        self._request_headers["csrf-token"] = jsessionid.strip('"')
 
     async def login(self, email: str, password: str, new_session: bool = True):
         if new_session:
@@ -186,7 +210,7 @@ class LinkedInMessaging:
             if self.has_auth_cookies:
                 for c in self.session.cookie_jar:
                     if c.key == "JSESSIONID":
-                        self.session.headers["csrf-token"] = c.value.strip('"')
+                        self._request_headers["csrf-token"] = c.value.strip('"')
                 return
 
             # 2FA is required. Throw an exception.
@@ -225,13 +249,13 @@ class LinkedInMessaging:
             if self.has_auth_cookies:
                 for c in self.session.cookie_jar:
                     if c.key == "JSESSIONID":
-                        self.session.headers["csrf-token"] = c.value.strip('"')
+                        self._request_headers["csrf-token"] = c.value.strip('"')
                 return
             # TODO (#1) can we scrape anything from the page?
             raise Exception("Failed to log in.")
 
     async def logout(self) -> bool:
-        csrf_token = self.session.headers.get("csrf-token")
+        csrf_token = self._request_headers.get("csrf-token")
         if not csrf_token:
             return True
         response = await self.session.get(
@@ -393,7 +417,7 @@ class LinkedInMessaging:
                 f"/messaging/conversations/{conversation_id}/events",
                 params=params,
                 json=message_event,
-                headers=REQUEST_HEADERS,
+                headers=self._request_headers,
             )
 
         return cast(SendMessageResponse, await try_from_json(SendMessageResponse, res))
@@ -522,14 +546,7 @@ class LinkedInMessaging:
     async def _listen_to_event_stream(self):
         logging.info("Starting event stream listener")
 
-        headers = {
-            "accept": "text/event-stream",
-            "connection": "keep-alive",
-            "content-type": "text/event-stream",
-            **REQUEST_HEADERS,
-        }
-        if self._realtime_sesion_id:
-            headers["X-Li-Realtime-Session"] = self._realtime_sesion_id
+        headers = {"accept": "text/event-stream", **self._request_headers}
 
         async with self.session.get(
             REALTIME_CONNECT_URL,
@@ -558,7 +575,10 @@ class LinkedInMessaging:
 
                 if cc := data.get("com.linkedin.realtimefrontend.ClientConnection", {}):
                     logging.info(f"Got realtime connection ID: {cc.get('id')}")
-                    self._realtime_sesion_id = cc.get("id")
+                    if not self._realtime_sesion_id:
+                        logging.info("No existing realtime connection ID, setting the ID")
+                        self._request_headers["x-li-realtime-session"] = cc.get("id")
+                        self._realtime_sesion_id = cc.get("id")
 
                 event_payload = data.get("com.linkedin.realtimefrontend.DecoratedEvent", {}).get(
                     "payload", {}
