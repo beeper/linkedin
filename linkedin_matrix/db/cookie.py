@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-from typing import cast
-
 from asyncpg import Record
 from attr import dataclass
 
-from linkedin_messaging import URN
-from mautrix.types import RoomID, UserID
+from mautrix.types import UserID
 
 from .model_base import Model
 
@@ -14,8 +11,8 @@ from .model_base import Model
 @dataclass
 class Cookie(Model):
     mxid: UserID
-    name: string
-    value: string
+    name: str
+    value: str
 
     _table_name = "cookie"
     _field_list = [
@@ -38,7 +35,7 @@ class Cookie(Model):
 
     @classmethod
     async def delete_all_for_mxid(cls, mxid: id.UserID):
-        await self.db.execute("DELETE FROM cookie WHERE mxid=$1", self.mxid)
+        await cls.db.execute("DELETE FROM cookie WHERE mxid=$1", mxid)
 
     @classmethod
     async def bulk_upsert(cls, mxid: id.UserID, cookies: dict[str, str]):
