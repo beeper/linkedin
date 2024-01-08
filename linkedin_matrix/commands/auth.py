@@ -1,4 +1,3 @@
-import json
 import logging
 
 from mautrix.bridge.commands import HelpSection, command_handler

@@ -1,6 +1,3 @@
-import logging
-import pickle
-
 from mautrix.util.async_db import Connection
 
 from . import upgrade_table
