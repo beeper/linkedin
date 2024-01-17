@@ -577,8 +577,10 @@ class LinkedInMessaging:
 
                 if cc := data.get("com.linkedin.realtimefrontend.ClientConnection", {}):
                     logging.info(f"Got realtime connection ID: {cc.get('id')}")
-                    self._request_headers["x-li-realtime-session"] = cc.get("id")
-                    self._realtime_sesion_id = cc.get("id")
+                    if not self._realtime_sesion_id:
+                        logging.info("No existing realtime connection ID, setting the ID")
+                        self._request_headers["x-li-realtime-session"] = cc.get("id")
+                        self._realtime_sesion_id = cc.get("id")
 
                 event_payload = data.get("com.linkedin.realtimefrontend.DecoratedEvent", {}).get(
                     "payload", {}
