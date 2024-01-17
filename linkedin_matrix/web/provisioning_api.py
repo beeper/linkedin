@@ -97,6 +97,11 @@ class ProvisioningAPI:
         except json.JSONDecodeError:
             return web.HTTPBadRequest(body='{"error": "Malformed JSON"}', headers=self._headers)
 
+        if "cookie_header" in data:
+            for cookie in data.pop("cookie_header").split(" ;"):
+                key, val = cookie.split("=", 1)
+                data[key] = val
+
         if "li_at" not in data or "JSESSIONID" not in data:
             return web.HTTPBadRequest(body='{"error": "Missing keys"}', headers=self._headers)
 
