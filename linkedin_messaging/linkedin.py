@@ -126,7 +126,6 @@ class LinkedInMessaging:
         list[
             Union[
                 Callable[[RealTimeEventStreamEvent], Awaitable[None]],
-                Callable[[asyncio.TimeoutError], Awaitable[None]],
                 Callable[[Exception], Awaitable[None]],
             ]
         ],
@@ -525,16 +524,14 @@ class LinkedInMessaging:
         payload_key: str,
         fn: Union[
             Callable[[RealTimeEventStreamEvent], Awaitable[None]],
-            Callable[[asyncio.TimeoutError], Awaitable[None]],
             Callable[[Exception], Awaitable[None]],
         ],
     ):
         """
-        There are two special event types:
+        There is one special event type:
 
         * ``ALL_EVENTS`` - an event fired on every event, and which contains the entirety of the
           raw event payload
-        * ``TIMEOUT`` - an event fired if the event listener connection times out
         """
         self.event_listeners[payload_key].append(fn)
 
@@ -625,13 +622,7 @@ class LinkedInMessaging:
                 await self._listen_to_event_stream()
             except asyncio.TimeoutError as te:
                 logging.exception(f"Timeout in listener: {te}")
-                # Special handling for TIMEOUT handler.
-                if timeout_handlers := self.event_listeners.get("TIMEOUT"):
-                    for handler in timeout_handlers:
-                        try:
-                            await handler(te)
-                        except Exception:
-                            logging.exception(f"Handler {handler} failed to handle {te}")
+                raise
             except Exception as e:
                 logging.exception(f"Got exception in listener: {e}")
                 raise
