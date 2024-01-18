@@ -126,7 +126,7 @@ class LinkedInMessaging:
         list[
             Union[
                 Callable[[RealTimeEventStreamEvent], Awaitable[None]],
-                Callable[[asyncio.exceptions.TimeoutError], Awaitable[None]],
+                Callable[[asyncio.TimeoutError], Awaitable[None]],
                 Callable[[Exception], Awaitable[None]],
             ]
         ],
@@ -525,7 +525,7 @@ class LinkedInMessaging:
         payload_key: str,
         fn: Union[
             Callable[[RealTimeEventStreamEvent], Awaitable[None]],
-            Callable[[asyncio.exceptions.TimeoutError], Awaitable[None]],
+            Callable[[asyncio.TimeoutError], Awaitable[None]],
             Callable[[Exception], Awaitable[None]],
         ],
     ):
@@ -554,6 +554,7 @@ class LinkedInMessaging:
             REALTIME_CONNECT_URL,
             headers=headers,
             params={"rc": "1"},
+            timeout=aiohttp.ClientTimeout(total=None),
         ) as resp:
             if resp.status != 200:
                 raise TooManyRequestsError(f"Failed to connect. Status {resp.status}.")
