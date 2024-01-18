@@ -559,7 +559,7 @@ class LinkedInMessaging:
                 raise TooManyRequestsError(f"Failed to connect. Status {resp.status}.")
 
             while True:
-                line = await resp.content.readline()
+                line = await asyncio.wait_for(resp.content.readline(), timeout=20)
                 if resp.content.at_eof():
                     break
 
