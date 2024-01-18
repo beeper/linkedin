@@ -622,7 +622,8 @@ class LinkedInMessaging:
             try:
                 self._heartbeat_task = asyncio.create_task(self._send_heartbeat(user_urn))
                 await self._listen_to_event_stream()
-            except asyncio.exceptions.TimeoutError as te:
+            except asyncio.TimeoutError as te:
+                logging.exception(f"Timeout in listener: {te}")
                 # Special handling for TIMEOUT handler.
                 if timeout_handlers := self.event_listeners.get("TIMEOUT"):
                     for handler in timeout_handlers:
