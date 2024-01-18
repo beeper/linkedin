@@ -937,7 +937,8 @@ class Portal(DBPortal, BasePortal):
         try:
             await self._handle_matrix_message(sender, message, event_id)
         except NotImplementedError as e:
-            await self._send_bridge_error(str(e), certain_failure=True)
+            self.log.exception(f"Got NotImplementedError while handling {event_id}")
+            await self._send_bridge_error(f"Event is unsupported: {e}", certain_failure=True)
             exception = e
             status = MessageSendCheckpointStatus.UNSUPPORTED
         except Error as e:
