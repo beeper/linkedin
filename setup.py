@@ -51,7 +51,7 @@ setuptools.setup(
 
     install_requires=install_requires,
     extras_require=extras_require,
-    python_requires="~=3.9",
+    python_requires=">=3.10",
 
     keywords=["matrix", "LinkedIn"],
 
@@ -62,8 +62,8 @@ setuptools.setup(
         "Framework :: AsyncIO",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],
     package_data={
         "linkedin_matrix": ["example-config.yaml"],

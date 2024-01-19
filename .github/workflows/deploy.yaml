@@ -10,7 +10,7 @@ on:
       - created
 
 env:
-  PYTHON_VERSION: 3.9
+  PYTHON_VERSION: 3.11
   BEEPER_BRIDGE_TYPE: linkedin
   CI_REGISTRY_IMAGE: "${{ secrets.CI_REGISTRY }}/bridge/linkedin"
   GHCR_REGISTRY: ghcr.io
