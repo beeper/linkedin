@@ -133,7 +133,7 @@ class LinkedInMessaging:
     ]
 
     _realtime_session_id: uuid.UUID
-    _realtime_connection_id: uuid.UUID | None = None
+    _realtime_connection_id: Optional[uuid.UUID] = None
 
     def __init__(self):
         self.session = aiohttp.ClientSession()
