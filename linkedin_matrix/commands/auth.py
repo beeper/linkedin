@@ -1,4 +1,5 @@
 import logging
+import re
 
 from mautrix.bridge.commands import HelpSection, command_handler
 
@@ -83,7 +84,61 @@ async def login(evt: CommandEvent):
         return
 
     try:
-        await evt.sender.on_logged_in(cookies)
+        await evt.sender.on_logged_in(cookies, None)
+        await evt.reply("Successfully logged in")
+    except Exception as e:
+        logging.exception("Failed to log in")
+        await evt.reply(f"Failed to log in: {e}")
+        return
+
+
+@command_handler(
+    needs_auth=False,
+    management_only=False,
+    help_section=SECTION_AUTH,
+    help_text="""
+        Log in to LinkedIn using a "Copy as cURL" export from an existing LinkedIn browser session.
+    """,
+    help_args="<_curl command_>",
+)
+async def login_curl(evt: CommandEvent):
+    # if evt.sender.client and await evt.sender.client.logged_in():
+    #     await evt.reply("You're already logged in.")
+    #     return
+
+    if len(evt.args) == 0:
+        await evt.reply("**Usage:** `$cmdprefix+sp login_curl <cookie header>`")
+        return
+
+    # await evt.redact()
+
+    curl_command = " ".join(evt.args)
+
+    cookies: dict[str, str] = {}
+    headers: dict[str, str] = {}
+
+    curl_command_regex = r"-H '(?P<key>[^:]+): (?P<value>[^\']+)'"
+    header_matches = re.findall(curl_command_regex, curl_command)
+    for m in header_matches:
+        (name, value) = m
+
+        if name == "cookie":
+            cookie_items = value.split("; ")
+            for c in cookie_items:
+                n, v = c.split("=", 1)
+                cookies[n] = v
+        elif name == "accept":
+            # Every request will have a different value for this
+            pass
+        else:
+            headers[name] = value
+
+    if not cookies.get("li_at") or not cookies.get("JSESSIONID"):
+        await evt.reply("Missing li_at or JSESSIONID cookie")
+        return
+
+    try:
+        await evt.sender.on_logged_in(cookies, headers)
         await evt.reply("Successfully logged in")
     except Exception as e:
         logging.exception("Failed to log in")
@@ -109,6 +164,5 @@ async def logout(evt: CommandEvent):
 
     await evt.sender.logout()
     await evt.reply("Successfully logged out")
-
 
 # endregion

@@ -37,12 +37,10 @@ CONNECTIVITY_TRACKING_URL = (
     f"{LINKEDIN_BASE_URL}/realtime/realtimeFrontendClientConnectivityTracking"
 )
 
-
 SEED_URL = f"{LINKEDIN_BASE_URL}/login"
 """
 URL to seed all of the auth requests
 """
-
 
 T = TypeVar("T", bound=DataClassJsonMixin)
 
@@ -75,51 +73,54 @@ class ChallengeException(Exception):
     pass
 
 
-class LinkedInMessaging:
-    _request_headers = {
-        "user-agent": " ".join(
-            [
-                "Mozilla/5.0 (X11; Linux x86_64)",
-                "AppleWebKit/537.36 (KHTML, like Gecko)",
-                "Chrome/120.0.0.0 Safari/537.36",
-            ]
-        ),
-        "accept-language": "en-US,en;q=0.9",
-        "x-li-lang": "en_US",
-        "x-restli-protocol-version": "2.0.0",
-        "x-li-track": json.dumps(
-            {
-                "clientVersion": "1.13.8751",
-                "mpVersion": "1.13.8751",
-                "osName": "web",
-                "timezoneOffset": -7,
-                "timezone": "America/Denver",
-                "deviceFormFactor": "DESKTOP",
-                "mpName": "voyager-web",
-                "displayDensity": 1,
-                "displayWidth": 2560,
-                "displayHeight": 1440,
-            }
-        ),
-        "Authority": "www.linkedin.com",
-        "referer": "https://www.linkedin.com/feed/",
-        "sec-ch-ua": '"Not_A Brand";v="8", "Chromium";v="120"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": '"Linux"',
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-origin",
-        "x-li-page-instance": "urn:li:page:feed_index_index;bcfe9fd6-239a-49e9-af15-44b7e5895eaa",
-        "x-li-recipe-accept": "application/vnd.linkedin.normalized+json+2.1",
-        "x-li-recipe-map": json.dumps(
-            {
-                "inAppAlertsTopic": "com.linkedin.voyager.dash.deco.identity.notifications.InAppAlert-51",  # noqa: E501
-                "professionalEventsTopic": "com.linkedin.voyager.dash.deco.events.ProfessionalEventDetailPage-53",  # noqa: E501
-                "topCardLiveVideoTopic": "com.linkedin.voyager.dash.deco.video.TopCardLiveVideo-9",
-            }
-        ),
-    }
+fallback_headers = {
+    "user-agent": " ".join(
+        [
+            "Mozilla/5.0 (X11; Linux x86_64)",
+            "AppleWebKit/537.36 (KHTML, like Gecko)",
+            "Chrome/120.0.0.0 Safari/537.36",
+        ]
+    ),
+    "accept-language": "en-US,en;q=0.9",
+    "x-li-lang": "en_US",
+    "x-restli-protocol-version": "2.0.0",
+    "x-li-track": json.dumps(
+        {
+            "clientVersion": "1.13.8751",
+            "mpVersion": "1.13.8751",
+            "osName": "web",
+            "timezoneOffset": -7,
+            "timezone": "America/Denver",
+            "deviceFormFactor": "DESKTOP",
+            "mpName": "voyager-web",
+            "displayDensity": 1,
+            "displayWidth": 2560,
+            "displayHeight": 1440,
+        }
+    ),
+    "Authority": "www.linkedin.com",
+    "referer": "https://www.linkedin.com/feed/",
+    "sec-ch-ua": '"Not_A Brand";v="8", "Chromium";v="120"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Linux"',
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "x-li-page-instance": "urn:li:page:feed_index_index;bcfe9fd6-239a-49e9-af15-44b7e5895eaa",
+    "x-li-recipe-accept": "application/vnd.linkedin.normalized+json+2.1",
+    "x-li-recipe-map": json.dumps(
+        {
+            "inAppAlertsTopic": "com.linkedin.voyager.dash.deco.identity.notifications.InAppAlert-51",
+            # noqa: E501
+            "professionalEventsTopic": "com.linkedin.voyager.dash.deco.events.ProfessionalEventDetailPage-53",
+            # noqa: E501
+            "topCardLiveVideoTopic": "com.linkedin.voyager.dash.deco.video.TopCardLiveVideo-9",
+        }
+    ),
+}
 
+
+class LinkedInMessaging:
     session: aiohttp.ClientSession
     two_factor_payload: dict[str, Any]
     event_listeners: defaultdict[
@@ -131,6 +132,7 @@ class LinkedInMessaging:
             ]
         ],
     ]
+    headers: dict[str, str]
 
     _realtime_session_id: uuid.UUID
     _realtime_connection_id: Optional[uuid.UUID] = None
@@ -139,11 +141,21 @@ class LinkedInMessaging:
         self.session = aiohttp.ClientSession()
         self.event_listeners = defaultdict(list)
 
+    def update_headers_from_cookies(self):
+        self.headers["csrf-token"] = self.cookies["JSESSIONID"].strip('"')
+
     @staticmethod
-    def from_cookies(cookies: dict[str, str]) -> "LinkedInMessaging":
+    def from_cookies_and_headers(cookies: dict[str, str],
+                                 headers: Optional[dict[str, str]]) -> "LinkedInMessaging":
         linkedin = LinkedInMessaging()
         linkedin.session.cookie_jar.update_cookies(cookies)
-        linkedin._request_headers["csrf-token"] = cookies["JSESSIONID"].strip('"')
+
+        if headers:
+            linkedin.headers = headers
+        else:
+            linkedin.headers = fallback_headers
+            linkedin.update_headers_from_cookies()
+
         return linkedin
 
     def cookies(self) -> dict[str, str]:
@@ -154,13 +166,21 @@ class LinkedInMessaging:
 
     async def _get(self, relative_url: str, **kwargs: Any) -> aiohttp.ClientResponse:
         headers = kwargs.pop("headers", {})
-        headers.update(self._request_headers)
-        return await self.session.get(API_BASE_URL + relative_url, headers=headers, **kwargs)
+        headers.update(self.headers)
+        return await self.session.get(
+            API_BASE_URL + relative_url,
+            headers=headers,
+            **kwargs
+        )
 
     async def _post(self, relative_url: str, **kwargs: Any) -> aiohttp.ClientResponse:
         headers = kwargs.pop("headers", {})
-        headers.update(self._request_headers)
-        return await self.session.post(API_BASE_URL + relative_url, headers=headers, **kwargs)
+        headers.update(self.headers)
+        return await self.session.post(
+            API_BASE_URL + relative_url,
+            headers=headers,
+            **kwargs
+        )
 
     # region Authentication
 
@@ -177,14 +197,6 @@ class LinkedInMessaging:
         except Exception as e:
             logging.exception(f"Failed getting the user profile: {e}")
             return False
-
-    async def login_manual(self, cookies: dict[str, str], new_session: bool = True):
-        if new_session:
-            if self.session:
-                await self.session.close()
-            self.session = aiohttp.ClientSession()
-        self.session.cookie_jar.update_cookies(cookies)
-        self._request_headers["csrf-token"] = cookies["JSESSIONID"].strip('"')
 
     async def login(self, email: str, password: str, new_session: bool = True):
         if new_session:
@@ -212,9 +224,7 @@ class LinkedInMessaging:
             # Check to see if the user was successfully logged in with just email and
             # password.
             if self.has_auth_cookies:
-                for c in self.session.cookie_jar:
-                    if c.key == "JSESSIONID":
-                        self._request_headers["csrf-token"] = c.value.strip('"')
+                self.update_headers_from_cookies()
                 return
 
             # 2FA is required. Throw an exception.
@@ -251,15 +261,13 @@ class LinkedInMessaging:
             VERIFY_URL, data={**self.two_factor_payload, "pin": two_factor_code}
         ):
             if self.has_auth_cookies:
-                for c in self.session.cookie_jar:
-                    if c.key == "JSESSIONID":
-                        self._request_headers["csrf-token"] = c.value.strip('"')
+                self.update_headers_from_cookies()
                 return
             # TODO (#1) can we scrape anything from the page?
             raise Exception("Failed to log in.")
 
     async def logout(self) -> bool:
-        csrf_token = self._request_headers.get("csrf-token")
+        csrf_token = self.headers.get("csrf-token")
         if not csrf_token:
             return True
         response = await self.session.get(
@@ -549,8 +557,7 @@ class LinkedInMessaging:
 
         headers = {
             "accept": "text/event-stream",
-            "x-li-realtime-session": str(self._realtime_session_id),
-            **self._request_headers,
+            **self.headers,
         }
 
         async with self.session.get(
@@ -570,6 +577,8 @@ class LinkedInMessaging:
                 if not line.startswith(b"data:"):
                     continue
                 data = json.loads(line.decode("utf-8")[6:])
+
+                logging.debug("Got data from event stream")
 
                 # Special handling for ALL_EVENTS handler.
                 if all_events_handlers := self.event_listeners.get("ALL_EVENTS"):
@@ -594,25 +603,27 @@ class LinkedInMessaging:
         logging.info("Event stream closed")
 
     async def _send_heartbeat(self, user_urn: URN):
-        logging.info("Starting heartbeat task")
-        while True:
-            await asyncio.sleep(60)
-            logging.info("Sending heartbeat")
+        return
 
-            await self._post(
-                CONNECTIVITY_TRACKING_URL,
-                params={"action": "sendHeartbeat"},
-                json={
-                    "isFirstHeartbeat": False,
-                    "isLastHeartbeat": False,
-                    "realtimeSessionId": str(self._realtime_session_id),
-                    "mpName": "voyager-web",
-                    "mpVersion": "1.13.8094",
-                    "clientId": "voyager-web",
-                    "actorUrn": str(user_urn),
-                    "contextUrns": [str(user_urn)],
-                },
-            )
+        # logging.info("Starting heartbeat task")
+        # while True:
+        #     await asyncio.sleep(60)
+        #     logging.info("Sending heartbeat")
+
+        #     await self._post(
+        #         CONNECTIVITY_TRACKING_URL,
+        #         params={"action": "sendHeartbeat"},
+        #         json={
+        #             "isFirstHeartbeat": False,
+        #             "isLastHeartbeat": False,
+        #             "realtimeSessionId": str(self._realtime_session_id),
+        #             "mpName": "voyager-web",
+        #             "mpVersion": "1.13.8094",
+        #             "clientId": "voyager-web",
+        #             "actorUrn": str(user_urn),
+        #             "contextUrns": [str(user_urn)],
+        #         },
+        #     )
 
     async def start_listener(self, user_urn: URN):
         self._realtime_session_id = uuid.uuid4()

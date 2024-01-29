@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterable, Awaitable, cast
+from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterable, Awaitable, cast, Optional
 from asyncio.futures import Future
 from datetime import datetime
 import asyncio
@@ -26,7 +26,7 @@ from mautrix.util.simple_lock import SimpleLock
 
 from . import portal as po, puppet as pu
 from .config import Config
-from .db import Cookie, User as DBUser
+from .db import HttpHeader, Cookie, User as DBUser
 
 if TYPE_CHECKING:
     from .__main__ import LinkedInBridge
@@ -195,7 +195,10 @@ class User(DBUser, BaseUser):
             await self.push_bridge_state(BridgeStateEvent.BAD_CREDENTIALS, error="logged-out")
             return False
 
-        self.client = LinkedInMessaging.from_cookies({c.name: c.value for c in cookies})
+        self.client = LinkedInMessaging.from_cookies_and_headers(
+            {c.name: c.value for c in cookies},
+            {h.name: h.value for h in await HttpHeader.get_for_mxid(self.mxid)}
+        )
 
         backoff = 1.0
         while True:
@@ -255,10 +258,12 @@ class User(DBUser, BaseUser):
                 self.user_profile_cache = None
         return self._is_logged_in or False
 
-    async def on_logged_in(self, cookies: dict[str, str]):
+    async def on_logged_in(self, cookies: dict[str, str], headers: Optional[dict[str, str]]):
         cookies = {k: v.strip('"') for k, v in cookies.items()}
         await Cookie.bulk_upsert(self.mxid, cookies)
-        self.client = LinkedInMessaging.from_cookies(cookies)
+        if headers:
+            await HttpHeader.bulk_upsert(self.mxid, headers)
+        self.client = LinkedInMessaging.from_cookies_and_headers(cookies, headers)
         self.listener_event_handlers_created = False
         self.user_profile_cache = await self.client.get_user_profile()
         if (mp := self.user_profile_cache.mini_profile) and mp.entity_urn:
