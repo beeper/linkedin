@@ -153,6 +153,12 @@ class LinkedInMessaging:
             linkedin.headers = fallback_headers
             linkedin.update_headers_from_cookies()
 
+        # Skip these headers, including them will result in events being received in a newer
+        # format that we don't support
+        del linkedin.headers["x-li-query-map"]
+        del linkedin.headers["x-li-query-accept"]
+        del linkedin.headers["x-li-accept"]
+
         return linkedin
 
     def cookies(self) -> dict[str, str]:
@@ -593,9 +599,13 @@ class LinkedInMessaging:
                     "payload", {}
                 )
 
-                for key in self.event_listeners.keys():
-                    if event_payload.get(key) is not None:
-                        await self._fire(key, RealTimeEventStreamEvent.from_dict(event_payload))
+                if event_payload:
+                    logging.debug(f"Firing events for keys {event_payload.keys()}")
+
+                    for key in self.event_listeners.keys():
+                        if event_payload.get(key) is not None:
+                            await self._fire(key,
+                                             RealTimeEventStreamEvent.from_dict(event_payload))
 
         logging.info("Event stream closed")
 
