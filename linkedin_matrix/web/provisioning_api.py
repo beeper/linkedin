@@ -106,7 +106,7 @@ class ProvisioningAPI:
             return web.HTTPBadRequest(body='{"error": "Missing keys"}', headers=self._headers)
 
         try:
-            await user.on_logged_in(data)
+            await user.on_logged_in(data, None)
             track(user, "$login_success")
         except Exception as e:
             track(user, "$login_failed", {"error": str(e)})

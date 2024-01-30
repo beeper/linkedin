@@ -12,6 +12,7 @@ from . import (  # noqa: E402
     v07_puppet_contact_info_set,
     v08_splat_pickle_data,
     v09_cookie_table,
+    v10_http_header_table,
 )
 
 __all__ = (
@@ -24,4 +25,5 @@ __all__ = (
     "v07_puppet_contact_info_set",
     "v08_splat_pickle_data",
     "v09_cookie_table",
+    "v10_http_header_table",
 )
