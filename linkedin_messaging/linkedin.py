@@ -130,6 +130,8 @@ class LinkedInMessaging:
     ]
     headers: dict[str, str]
 
+    using_headers_from_user = False
+
     _realtime_session_id: uuid.UUID
     _realtime_connection_id: Optional[uuid.UUID] = None
 
@@ -149,6 +151,7 @@ class LinkedInMessaging:
 
         if headers:
             linkedin.headers = headers
+            linkedin.using_headers_from_user = True
         else:
             linkedin.headers = fallback_headers
             linkedin.update_headers_from_cookies()

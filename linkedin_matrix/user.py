@@ -585,7 +585,10 @@ class User(DBUser, BaseUser):
             # We haven't sent a CONNECTED state in the last 12 hours.
             or self._prev_connected_bridge_state + (12 * 60 * 60) < time.monotonic()
         ):
-            await self.push_bridge_state(BridgeStateEvent.CONNECTED)
+            await self.push_bridge_state(
+                BridgeStateEvent.CONNECTED,
+                info={"using_headers_from_user": self.client.using_headers_from_user},
+            )
             self._prev_connected_bridge_state = time.monotonic()
         else:
             self.log.trace("Event received on event stream, but not sending CONNECTED")
