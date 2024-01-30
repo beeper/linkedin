@@ -122,12 +122,12 @@ async def login_curl(evt: CommandEvent):
     for m in header_matches:
         (name, value) = m
 
-        if name == "cookie":
+        if name.lower() == "cookie":
             cookie_items = value.split("; ")
             for c in cookie_items:
                 n, v = c.split("=", 1)
                 cookies[n] = v
-        elif name == "accept":
+        elif name.lower() == "accept":
             # Every request will have a different value for this
             pass
         else:
