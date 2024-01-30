@@ -1,7 +1,7 @@
 from mautrix.util.async_db import Database
 
-from .http_header import HttpHeader
 from .cookie import Cookie
+from .http_header import HttpHeader
 from .message import Message
 from .model_base import Model
 from .portal import Portal

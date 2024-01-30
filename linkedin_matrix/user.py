@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterable, Awaitable, cast, Optional
+from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterable, Awaitable, Optional, cast
 from asyncio.futures import Future
 from datetime import datetime
 import asyncio
@@ -26,7 +26,7 @@ from mautrix.util.simple_lock import SimpleLock
 
 from . import portal as po, puppet as pu
 from .config import Config
-from .db import HttpHeader, Cookie, User as DBUser
+from .db import Cookie, HttpHeader, User as DBUser
 
 if TYPE_CHECKING:
     from .__main__ import LinkedInBridge
@@ -197,7 +197,7 @@ class User(DBUser, BaseUser):
 
         self.client = LinkedInMessaging.from_cookies_and_headers(
             {c.name: c.value for c in cookies},
-            {h.name: h.value for h in await HttpHeader.get_for_mxid(self.mxid)}
+            {h.name: h.value for h in await HttpHeader.get_for_mxid(self.mxid)},
         )
 
         backoff = 1.0

@@ -108,15 +108,11 @@ fallback_headers = {
     "sec-fetch-site": "same-origin",
     "x-li-page-instance": "urn:li:page:feed_index_index;bcfe9fd6-239a-49e9-af15-44b7e5895eaa",
     "x-li-recipe-accept": "application/vnd.linkedin.normalized+json+2.1",
-    "x-li-recipe-map": json.dumps(
-        {
-            "inAppAlertsTopic": "com.linkedin.voyager.dash.deco.identity.notifications.InAppAlert-51",
-            # noqa: E501
-            "professionalEventsTopic": "com.linkedin.voyager.dash.deco.events.ProfessionalEventDetailPage-53",
-            # noqa: E501
-            "topCardLiveVideoTopic": "com.linkedin.voyager.dash.deco.video.TopCardLiveVideo-9",
-        }
-    ),
+    "x-li-recipe-map": json.dumps({
+        "inAppAlertsTopic": "com.linkedin.voyager.dash.deco.identity.notifications.InAppAlert-51",
+        "professionalEventsTopic": "com.linkedin.voyager.dash.deco.events.ProfessionalEventDetailPage-53",  # noqa: E501
+        "topCardLiveVideoTopic": "com.linkedin.voyager.dash.deco.video.TopCardLiveVideo-9",
+    }),
 }
 
 
