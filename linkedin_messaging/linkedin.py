@@ -138,7 +138,7 @@ class LinkedInMessaging:
         self.event_listeners = defaultdict(list)
 
     def update_headers_from_cookies(self):
-        self.headers["csrf-token"] = self.cookies["JSESSIONID"].strip('"')
+        self.headers["csrf-token"] = self.cookies()["JSESSIONID"].strip('"')
 
     @staticmethod
     def from_cookies_and_headers(cookies: dict[str, str],
