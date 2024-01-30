@@ -134,6 +134,7 @@ class LinkedInMessaging:
     _realtime_connection_id: Optional[uuid.UUID] = None
 
     def __init__(self):
+        self._heartbeat_task = None
         self.session = aiohttp.ClientSession()
         self.event_listeners = defaultdict(list)
 
@@ -574,7 +575,7 @@ class LinkedInMessaging:
                     continue
                 data = json.loads(line.decode("utf-8")[6:])
 
-                logging.debug("Got data from event stream")
+                logging.debug(f"Got data from event stream {data.keys()}")
 
                 # Special handling for ALL_EVENTS handler.
                 if all_events_handlers := self.event_listeners.get("ALL_EVENTS"):
@@ -599,27 +600,31 @@ class LinkedInMessaging:
         logging.info("Event stream closed")
 
     async def _send_heartbeat(self, user_urn: URN):
-        return
+        is_first = True
+        mp_version = json.loads(self.headers["x-li-track"])["mpVersion"]
 
-        # logging.info("Starting heartbeat task")
-        # while True:
-        #     await asyncio.sleep(60)
-        #     logging.info("Sending heartbeat")
+        logging.info(f"Starting heartbeat task with client version {mp_version}")
 
-        #     await self._post(
-        #         CONNECTIVITY_TRACKING_URL,
-        #         params={"action": "sendHeartbeat"},
-        #         json={
-        #             "isFirstHeartbeat": False,
-        #             "isLastHeartbeat": False,
-        #             "realtimeSessionId": str(self._realtime_session_id),
-        #             "mpName": "voyager-web",
-        #             "mpVersion": "1.13.8094",
-        #             "clientId": "voyager-web",
-        #             "actorUrn": str(user_urn),
-        #             "contextUrns": [str(user_urn)],
-        #         },
-        #     )
+        while True:
+            await asyncio.sleep(60)
+            logging.info("Sending heartbeat")
+
+            await self._post(
+                CONNECTIVITY_TRACKING_URL,
+                params={"action": "sendHeartbeat"},
+                json={
+                    "isFirstHeartbeat": not is_first,
+                    "isLastHeartbeat": False,
+                    "realtimeSessionId": str(self._realtime_session_id),
+                    "mpName": "voyager-web",
+                    "mpVersion": mp_version,
+                    "clientId": "voyager-web",
+                    "actorUrn": str(user_urn),
+                    "contextUrns": [str(user_urn)],
+                },
+            )
+
+            is_first = False
 
     async def start_listener(self, user_urn: URN):
         self._realtime_session_id = uuid.uuid4()
