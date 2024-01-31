@@ -93,20 +93,32 @@ class ProvisioningAPI:
 
         track(user, "$login_start")
         try:
-            data = await request.json()
+            req_data = await request.json()
         except json.JSONDecodeError:
             return web.HTTPBadRequest(body='{"error": "Malformed JSON"}', headers=self._headers)
 
-        if "cookie_header" in data:
-            for cookie in data.pop("cookie_header").split("; "):
-                key, val = cookie.split("=", 1)
-                data[key] = val
+        cookie_dict = {}
+        headers = {}
 
-        if "li_at" not in data or "JSESSIONID" not in data:
+        def parse_cookies(c):
+            for cookie in c.split("; "):
+                key, val = cookie.split("=", 1)
+                cookie_dict[key] = val
+
+        if "all_headers" in req_data:
+            parse_cookies(req_data.pop("Cookie", req_data.pop("cookie", "")))
+            headers = req_data
+        elif "cookie_header" in req_data:
+            parse_cookies(req_data["cookie_header"])
+        elif "li_at" in req_data and "JSESSIONID" in req_data:
+            # The request is just a dictionary of individual cookies
+            cookie_dict = req_data
+
+        if "li_at" not in cookie_dict or "JSESSIONID" not in cookie_dict:
             return web.HTTPBadRequest(body='{"error": "Missing keys"}', headers=self._headers)
 
         try:
-            await user.on_logged_in(data, None)
+            await user.on_logged_in(req_data, headers)
             track(user, "$login_success")
         except Exception as e:
             track(user, "$login_failed", {"error": str(e)})
