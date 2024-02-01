@@ -312,6 +312,7 @@ class User(DBUser, BaseUser):
             except KeyError:
                 pass
         await Cookie.delete_all_for_mxid(self.mxid)
+        await HttpHeader.delete_all_for_mxid(self.mxid)
         self._track_metric(METRIC_LOGGED_IN, True)
         self.client = None
         self.listener_event_handlers_created = False
