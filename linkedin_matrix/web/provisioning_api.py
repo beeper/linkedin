@@ -110,7 +110,9 @@ class ProvisioningAPI:
 
             cookies = all_headers.pop("Cookie", all_headers.pop("cookie", None))
             if not cookies:
-                return web.HTTPBadRequest(body='{"error": "Missing cookies"}', headers=self._headers)
+                return web.HTTPBadRequest(
+                    body='{"error": "Missing cookies"}', headers=self._headers
+                )
 
             parse_cookies(cookies)
 
