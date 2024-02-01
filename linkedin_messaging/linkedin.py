@@ -158,9 +158,9 @@ class LinkedInMessaging:
 
         # Skip these headers, including them will result in events being received in a newer
         # format that we don't support
-        linkedin.headers.pop("x-li-query-map")
-        linkedin.headers.pop("x-li-query-accept")
-        linkedin.headers.pop("x-li-accept")
+        linkedin.headers.pop("x-li-query-map", None)
+        linkedin.headers.pop("x-li-query-accept", None)
+        linkedin.headers.pop("x-li-accept", None)
 
         return linkedin
 

@@ -107,11 +107,16 @@ class ProvisioningAPI:
 
         if "all_headers" in req_data:
             all_headers = req_data["all_headers"]
-            parse_cookies(all_headers.pop("Cookie", all_headers.pop("cookie", "")))
+
+            cookies = all_headers.pop("Cookie", all_headers.pop("cookie", None))
+            if not cookies:
+                return web.HTTPBadRequest(body='{"error": "Missing cookies"}', headers=self._headers)
+
+            parse_cookies(cookies)
 
             # We never want the accept header, skip it
-            all_headers.pop("Accept")
-            all_headers.pop("accept")
+            all_headers.pop("Accept", None)
+            all_headers.pop("accept", None)
 
             # Save the rest of the headers
             headers = all_headers
