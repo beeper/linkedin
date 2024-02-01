@@ -106,8 +106,15 @@ class ProvisioningAPI:
                 cookie_dict[key] = val
 
         if "all_headers" in req_data:
-            parse_cookies(req_data.pop("Cookie", req_data.pop("cookie", "")))
-            headers = req_data
+            all_headers = req_data["all_headers"]
+            parse_cookies(all_headers.pop("Cookie", all_headers.pop("cookie", "")))
+
+            # We never want the accept header, skip it
+            all_headers.pop("Accept")
+            all_headers.pop("accept")
+
+            # Save the rest of the headers
+            headers = all_headers
         elif "cookie_header" in req_data:
             parse_cookies(req_data["cookie_header"])
         elif "li_at" in req_data and "JSESSIONID" in req_data:
