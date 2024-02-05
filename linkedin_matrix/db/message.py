@@ -74,7 +74,7 @@ class Message(Model):
     ) -> Message | None:
         query = Message.select_constructor(
             """
-            li_message_urn=$1 AND li_receiver_urn=$2 AND "index"=$3'
+            li_message_urn=$1 AND li_receiver_urn=$2 AND "index"=$3
             """
         )
         row = await cls.db.fetchrow(
