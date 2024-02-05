@@ -104,9 +104,11 @@ class ProvisioningAPI:
             for cookie in c.split("; "):
                 key, val = cookie.split("=", 1)
                 cookie_dict[key] = val
+            logging.info(f"Got cookies: {cookie_dict.keys()}")
 
         if "all_headers" in req_data:
             all_headers = req_data["all_headers"]
+            logging.info(f"Got headers: {all_headers.keys()}")
 
             cookies = all_headers.pop("Cookie", all_headers.pop("cookie", None))
             if not cookies:
@@ -127,6 +129,7 @@ class ProvisioningAPI:
         elif "li_at" in req_data and "JSESSIONID" in req_data:
             # The request is just a dictionary of individual cookies
             cookie_dict = req_data
+            logging.info(f"Legacy login, got cookies: {cookie_dict.keys()}")
 
         if "li_at" not in cookie_dict or "JSESSIONID" not in cookie_dict:
             return web.HTTPBadRequest(body='{"error": "Missing keys"}', headers=self._headers)
