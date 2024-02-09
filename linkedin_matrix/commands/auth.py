@@ -107,10 +107,10 @@ async def login_curl(evt: CommandEvent):
     #     return
 
     if len(evt.args) == 0:
-        await evt.reply("**Usage:** `$cmdprefix+sp login_curl <cookie header>`")
+        await evt.reply("**Usage:** `$cmdprefix+sp login-curl <curl command>`")
         return
 
-    # await evt.redact()
+    await evt.redact()
 
     curl_command = " ".join(evt.args)
 
