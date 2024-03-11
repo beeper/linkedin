@@ -3,6 +3,7 @@
 .vim
 docker-requirements.txt
 linkedinmatrix.db*
+linkedin.db
 
 # Test caches so I don't get banned from LinkedIn
 convocache.json
