@@ -1,4 +1,4 @@
-black>=23,<24
+black>=23,<25
 flake8-annotations>=2.7.0,<4
 flake8-isort>=6.0.0,<7
 flake8-print>=5.0.0,<6
