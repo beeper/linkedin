@@ -1,5 +1,5 @@
 aiohttp>=3,<4
-asyncpg>=0.20,<0.28
+asyncpg>=0.20,<0.30
 beautifulsoup4>=4,<5
 commonmark>=0.8,<0.10
 dataclasses-json>=0.6.3,<0.7
