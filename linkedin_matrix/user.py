@@ -289,7 +289,7 @@ class User(DBUser, BaseUser):
             self.user_profile_cache = None
             self.log.exception("Failed to automatically enable custom puppet")
 
-        await self._create_or_update_space()
+        await self.create_or_update_space()
         await self.sync_threads()
         self.start_listen()
 
@@ -326,7 +326,7 @@ class User(DBUser, BaseUser):
 
     # Spaces support
 
-    async def _create_or_update_space(self):
+    async def create_or_update_space(self):
         if not self.config["bridge.space_support.enable"]:
             return
 
@@ -364,6 +364,14 @@ class User(DBUser, BaseUser):
                 await self.az.intent.ensure_joined(room)
             except Exception:
                 self.log.warning(f"Failed to add bridge bot to new space {room}")
+
+        # Ensure that the user is invited and joined to the space.
+        try:
+            puppet = await pu.Puppet.get_by_custom_mxid(self.mxid)
+            if puppet and puppet.is_real_user:
+                await puppet.intent.ensure_joined(self.space_mxid)
+        except Exception:
+            self.log.warning(f"Failed to add user to the space {self.space_mxid}")
 
     # endregion
 

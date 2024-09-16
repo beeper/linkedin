@@ -631,7 +631,6 @@ class Portal(DBPortal, BasePortal):
                         {"via": [self.config["homeserver.domain"]], "suggested": True},
                         state_key=str(self.mxid),
                     )
-                    await self.az.intent.invite_user(source.space_mxid, source.mxid)
                 except Exception:
                     self.log.warning(f"Failed to add chat {self.mxid} to user's space")
 
