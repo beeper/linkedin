@@ -1,0 +1,189 @@
+name: Lint & Deploy
+
+on:
+  push:
+  pull_request:
+    branches:
+      - master
+  release:
+    types:
+      - created
+
+env:
+  BEEPER_BRIDGE_TYPE: linkedin
+  CI_REGISTRY_IMAGE: "${{ secrets.CI_REGISTRY }}/bridge/linkedin"
+  GHCR_REGISTRY: ghcr.io
+  GHCR_REGISTRY_IMAGE: "ghcr.io/${{ github.repository }}"
+  BINARY_NAME: linkedin-matrix
+
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: [ "1.22", "1.23.2" ]
+    name: Lint ${{ matrix.go-version == '1.23.2' && '(latest)' || '(old)' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - name: Install libolm
+        run: sudo apt-get install libolm-dev libolm3
+
+      - name: Install dependencies
+        run: |
+          go install golang.org/x/tools/cmd/goimports@latest
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+          export PATH="$HOME/go/bin:$PATH"
+
+      - name: Run pre-commit
+        uses: pre-commit/action@v3.0.1
+
+  build:
+    runs-on: ubuntu-latest
+    needs: lint
+    env:
+        GOPATH: ${{ github.workspace }}/.cache
+        GOCACHE: ${{ github.workspace }}/.cache/build
+    steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Set up Go
+          uses: actions/setup-go@v4
+          with:
+            go-version: "1.23.2"
+            cache: true
+
+        - name: Create cache directory
+          run: mkdir -p .cache
+
+        - name: Get Mautrix Version
+          id: mautrix_version
+          run: echo "MAUTRIX_VERSION=$(grep 'maunium.net/go/mautrix ' go.mod | awk '{ print $2 }')" >> $GITHUB_ENV
+
+        - name: Set LDFLAGS
+          run: |
+            echo "GO_LDFLAGS=-s -w -linkmode external -extldflags '-static' \
+            -X main.Tag=${{ github.ref_name }} -X main.Commit=${{ github.sha }} \
+            -X 'main.BuildTime=`date -Iseconds`' \
+            -X 'maunium.net/go/mautrix.GoModVersion=${{ env.MAUTRIX_VERSION }}'" >> $GITHUB_ENV
+
+        - name: Build binary
+          run: go build -ldflags "$GO_LDFLAGS" -o $BINARY_NAME ./cmd/$BINARY_NAME
+
+        - name: Generate SHA256 checksum
+          run: sha256sum $BINARY_NAME | tee $BINARY_NAME.sha256sum
+
+        - name: Upload binary artifact
+          uses: actions/upload-artifact@v3
+          with:
+            name: $BINARY_NAME
+            path: $BINARY_NAME
+  build-docker:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download binary artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: $BINARY_NAME
+          path: ./
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.CI_REGISTRY }}
+          username: ${{ secrets.CI_REGISTRY_USER }}
+          password: ${{ secrets.CI_REGISTRY_PASSWORD }}
+
+      - name: Login to ghcr
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker Build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          cache-from: ${{ env.CI_REGISTRY_IMAGE }}:latest
+          pull: true
+          file: Dockerfile
+          tags: |
+            ${{ env.CI_REGISTRY_IMAGE }}:${{ github.sha }}
+            ${{ env.GHCR_REGISTRY_IMAGE }}:${{ github.sha }}
+          push: true
+
+  deploy-docker:
+    runs-on: ubuntu-latest
+    needs: build-docker
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - name: Login to Beeper Docker registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.CI_REGISTRY }}
+          username: ${{ secrets.CI_REGISTRY_USER }}
+          password: ${{ secrets.CI_REGISTRY_PASSWORD }}
+
+      - name: Login to ghcr
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: beeper/docker-retag-push-latest@main
+        with:
+          image: ${{ env.CI_REGISTRY_IMAGE }}
+
+      - uses: beeper/docker-retag-push-latest@main
+        with:
+          image: ${{ env.GHCR_REGISTRY_IMAGE }}
+
+      - name: Run bridge CD tool
+        uses: beeper/bridge-cd-tool@main
+        env:
+          CI_REGISTRY: "${{ secrets.CI_REGISTRY }}"
+          BEEPER_DEV_ADMIN_API_URL: "${{ secrets.BEEPER_DEV_ADMIN_API_URL }}"
+          BEEPER_STAGING_ADMIN_API_URL: "${{ secrets.BEEPER_STAGING_ADMIN_API_URL }}"
+          BEEPER_PROD_ADMIN_API_URL: "${{ secrets.BEEPER_PROD_ADMIN_API_URL }}"
+          BEEPER_DEV_ADMIN_NIGHTLY_PASS: "${{ secrets.BEEPER_DEV_ADMIN_NIGHTLY_PASS }}"
+          BEEPER_STAGING_ADMIN_NIGHTLY_PASS: "${{ secrets.BEEPER_STAGING_ADMIN_NIGHTLY_PASS }}"
+          BEEPER_PROD_ADMIN_NIGHTLY_PASS: "${{ secrets.BEEPER_PROD_ADMIN_NIGHTLY_PASS }}"
+
+  tag-docker-release:
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+      - build-docker
+    if: ${{ github.event_name == 'release' && github.event.action == 'created' }}
+    steps:
+      - name: Login to ghcr
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create a label for the tag on ghcr
+        run: |
+          docker pull ${{ env.GHCR_REGISTRY_IMAGE }}:${{ github.sha }}
+          docker tag ${{ env.GHCR_REGISTRY_IMAGE }}:${{ github.sha }} ${{ env.GHCR_REGISTRY_IMAGE }}:${{ github.ref_name }}
+          docker push ${{ env.GHCR_REGISTRY_IMAGE }}:${{ github.ref_name }}

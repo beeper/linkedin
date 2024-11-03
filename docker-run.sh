@@ -1,31 +1,32 @@
 #!/bin/sh
 
-[ -z $CONFIG_PATH ] && CONFIG_PATH="/data/config.yaml"
-[ -z $REGISTRATION_PATH ] && REGISTRATION_PATH="/data/registration.yaml"
+if [[ -z "$GID" ]]; then
+	GID="$UID"
+fi
 
-# Define functions.
+BINARY_NAME=/usr/bin/linkedin-matrix
+
 function fixperms {
-	chown -R $UID:$GID $CONFIG_PATH $REGISTRATION_PATH
+	chown -R $UID:$GID /data
 }
 
-cd /opt/linkedin-matrix
-
-if [ ! -f $CONFIG_PATH ]; then
-	cp example-config.yaml $CONFIG_PATH
-	sed -i "s#hostname: localhost#hostname: 0.0.0.0#" $CONFIG_PATH
+if [[ ! -f /data/config.yaml ]]; then
+	$BINARY_NAME -c /data/config.yaml -e
 	echo "Didn't find a config file."
-	echo "Copied default config file to $CONFIG_PATH"
+	echo "Copied default config file to /data/config.yaml"
 	echo "Modify that config file to your liking."
 	echo "Start the container again after that to generate the registration file."
-	fixperms
 	exit
 fi
 
-if [ ! -f $REGISTRATION_PATH ]; then
-	python3 -m linkedin_matrix -g -c $CONFIG_PATH -r $REGISTRATION_PATH
-	fixperms
+if [[ ! -f /data/registration.yaml ]]; then
+	$BINARY_NAME -g -c /data/config.yaml -r /data/registration.yaml
+	echo "Didn't find a registration file."
+	echo "Generated one for you."
+	echo "See https://docs.mau.fi/bridges/general/registering-appservices.html on how to use it."
 	exit
 fi
 
+cd /data
 fixperms
-exec su-exec $UID:$GID python3 -m linkedin_matrix -c $CONFIG_PATH
+exec su-exec $UID:$GID $BINARY_NAME

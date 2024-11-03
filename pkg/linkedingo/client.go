@@ -1,0 +1,163 @@
+package linkedingo
+
+import (
+	"encoding/json"
+	"fmt"
+	"net"
+	"net/http"
+	"net/url"
+	"time"
+
+	"github.com/rs/zerolog"
+	"golang.org/x/net/proxy"
+
+	"github.com/beeper/linkedin/pkg/linkedingo/cookies"
+	"github.com/beeper/linkedin/pkg/linkedingo/routing"
+	queryData "github.com/beeper/linkedin/pkg/linkedingo/routing/query"
+	"github.com/beeper/linkedin/pkg/linkedingo/types"
+)
+
+type EventHandler func(evt any)
+type ClientOpts struct {
+	Cookies      *cookies.Cookies
+	EventHandler EventHandler
+}
+type Client struct {
+	Logger       zerolog.Logger
+	cookies      *cookies.Cookies
+	pageLoader   *PageLoader
+	rc           *RealtimeClient
+	http         *http.Client
+	httpProxy    func(*http.Request) (*url.URL, error)
+	socksProxy   proxy.Dialer
+	eventHandler EventHandler
+}
+
+func NewClient(opts *ClientOpts, logger zerolog.Logger) *Client {
+	cli := Client{
+		http: &http.Client{
+			Transport: &http.Transport{
+				DialContext:           (&net.Dialer{Timeout: 10 * time.Second}).DialContext,
+				TLSHandshakeTimeout:   10 * time.Second,
+				ResponseHeaderTimeout: 40 * time.Second,
+				ForceAttemptHTTP2:     true,
+			},
+			Timeout: 60 * time.Second,
+		},
+		Logger: logger,
+	}
+
+	if opts.EventHandler != nil {
+		cli.SetEventHandler(opts.EventHandler)
+	}
+
+	if opts.Cookies != nil {
+		cli.cookies = opts.Cookies
+	} else {
+		cli.cookies = cookies.NewCookies()
+	}
+
+	cli.rc = cli.newRealtimeClient()
+	cli.pageLoader = cli.newPageLoader()
+
+	return &cli
+}
+
+func (c *Client) Connect() error {
+	return c.rc.Connect()
+}
+
+func (c *Client) Disconnect() error {
+	return c.rc.Disconnect()
+}
+
+func (c *Client) Logout() error {
+	query := queryData.LogoutQuery{
+		CsrfToken: c.cookies.Get(cookies.LinkedInJSESSIONID),
+	}
+	encodedQuery, err := query.Encode()
+	if err != nil {
+		return err
+	}
+
+	url := fmt.Sprintf("%s?%s", routing.LOGOUT_URL, string(encodedQuery))
+
+	logoutDefinition := routing.RequestStoreDefinition[routing.LOGOUT_URL]
+	headers := c.buildHeaders(logoutDefinition.HeaderOpts)
+	_, _, err = c.MakeRequest(url, http.MethodGet, headers, make([]byte, 0), logoutDefinition.ContentType)
+	return err
+}
+
+func (c *Client) GetCookieString() string {
+	return c.cookies.String()
+}
+
+func (c *Client) LoadMessagesPage() error {
+	return c.pageLoader.LoadMessagesPage()
+}
+
+func (c *Client) GetCurrentUserID() string {
+	return c.pageLoader.CurrentUser.FsdProfileID
+}
+
+func (c *Client) GetCurrentUserProfile() (*types.UserLoginProfile, error) {
+	headers := c.buildHeaders(types.HeaderOpts{
+		WithCookies:         true,
+		WithCsrfToken:       true,
+		WithXLiTrack:        true,
+		WithXLiPageInstance: true,
+		WithXLiProtocolVer:  true,
+		WithXLiLang:         true,
+	})
+
+	_, data, err := c.MakeRequest(string(routing.VOYAGER_COMMON_ME_URL), http.MethodGet, headers, make([]byte, 0), types.JSON_LINKEDIN_NORMALIZED)
+	if err != nil {
+		return nil, err
+	}
+
+	var response types.GetCommonMeResponse
+
+	err = json.Unmarshal(data, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	userProfile := &types.UserLoginProfile{
+		PlainId:     response.Data["plainId"],
+		MiniProfile: response.Included[0],
+	}
+
+	return userProfile, nil
+}
+
+func (c *Client) SetProxy(proxyAddr string) error {
+	proxyParsed, err := url.Parse(proxyAddr)
+	if err != nil {
+		return err
+	}
+
+	if proxyParsed.Scheme == "http" || proxyParsed.Scheme == "https" {
+		c.httpProxy = http.ProxyURL(proxyParsed)
+		c.http.Transport.(*http.Transport).Proxy = c.httpProxy
+	} else if proxyParsed.Scheme == "socks5" {
+		c.socksProxy, err = proxy.FromURL(proxyParsed, &net.Dialer{Timeout: 20 * time.Second})
+		if err != nil {
+			return err
+		}
+		c.http.Transport.(*http.Transport).Dial = c.socksProxy.Dial
+		contextDialer, ok := c.socksProxy.(proxy.ContextDialer)
+		if ok {
+			c.http.Transport.(*http.Transport).DialContext = contextDialer.DialContext
+		}
+	}
+
+	c.Logger.Debug().
+		Str("scheme", proxyParsed.Scheme).
+		Str("host", proxyParsed.Host).
+		Msg("Using proxy")
+	return nil
+}
+
+func (c *Client) SetEventHandler(handler EventHandler) {
+	c.eventHandler = handler
+}

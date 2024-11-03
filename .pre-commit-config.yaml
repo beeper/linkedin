@@ -1,40 +1,28 @@
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
-    hooks:
-      - id: trailing-whitespace
-        exclude_types: [markdown]
-      - id: end-of-file-fixer
-      - id: check-yaml
-      - id: check-added-large-files
+    - repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v5.0.0
+      hooks:
+          - id: trailing-whitespace
+            exclude_types: [markdown]
+          - id: end-of-file-fixer
+          - id: check-yaml
+          - id: check-added-large-files
 
-  # black
-  - repo: https://github.com/psf/black
-    rev: 24.2.0
-    hooks:
-      - id: black
-        files: ^(cicd|linkedin_matrix)/.*\.pyi?$
+    - repo: https://github.com/tekwizely/pre-commit-golang
+      rev: v1.0.0-rc.1
+      hooks:
+          - id: go-imports-repo
+            args:
+                - "-local"
+                - "github.com/beeper/linkedin"
+                - "-w"
+          - id: go-vet-repo-mod
+          - id: go-staticcheck-repo-mod
+          - id: go-mod-tidy
 
-  # isort
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        files: ^(cicd|linkedin_matrix|linkedin_messaging)/.*\.pyi?$
-
-  # flake8
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.0.0
-    hooks:
-      - id: flake8
-        files: ^.*\.py$
-
-  # custom style checks
-  - repo: local
-    hooks:
-      - id: custom-style-check
-        name: custom style check
-        entry: ./cicd/custom_style_check.py
-        language: python
-        additional_dependencies:
-          - termcolor==2.1.1
+    - repo: https://github.com/beeper/pre-commit-go
+      rev: v0.3.1
+      hooks:
+          - id: zerolog-ban-msgf
+          - id: zerolog-use-stringer
+          - id: prevent-literal-http-methods

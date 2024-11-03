@@ -1,0 +1,4 @@
+# Displayname template for LinkedIn users.
+# .FirstName is replaced with the first name
+# .LastName is replaced with the first name
+displayname_template: "{{ .FirstName }} {{ .LastName }} (LinkedIn)"
