@@ -69,6 +69,9 @@ func (lc *LinkedInClient) Connect(ctx context.Context) error {
 	}
 
 	profile, err := lc.client.GetCurrentUserProfile()
+	if err != nil {
+		return fmt.Errorf("failed to get current user profile")
+	}
 
 	lc.userLogin.RemoteName = fmt.Sprintf("%s %s", profile.MiniProfile.FirstName, profile.MiniProfile.LastName)
 	lc.userLogin.Save(ctx)

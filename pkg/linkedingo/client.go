@@ -115,19 +115,14 @@ func (c *Client) GetCurrentUserProfile() (*types.UserLoginProfile, error) {
 		return nil, err
 	}
 
-	var response types.GetCommonMeResponse
+	response := &types.UserLoginProfile{}
 
-	err = json.Unmarshal(data, &response)
+	err = json.Unmarshal(data, response)
 	if err != nil {
 		return nil, err
 	}
 
-	userProfile := &types.UserLoginProfile{
-		PlainId:     response.Data["plainId"],
-		MiniProfile: response.Included[0],
-	}
-
-	return userProfile, nil
+	return response, nil
 }
 
 func (c *Client) SetProxy(proxyAddr string) error {

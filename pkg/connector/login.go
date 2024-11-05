@@ -90,6 +90,9 @@ func (l *LinkedInLogin) SubmitCookies(ctx context.Context, cookies map[string]st
 	}
 
 	profile, err := client.GetCurrentUserProfile()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current user profile")
+	}
 
 	id := networkid.UserLoginID(client.GetCurrentUserID())
 	ul, err := l.User.NewLogin(

@@ -16,11 +16,6 @@ type UserProfile struct {
 }
 
 type UserLoginProfile struct {
-	PlainId     string      `json:"plainId"`
+	PlainId     int         `json:"plainId"`
 	MiniProfile UserProfile `json:"miniProfile"`
-}
-
-type GetCommonMeResponse struct {
-	Data     map[string]string `json:"data"`
-	Included []UserProfile     `json:"included"`
 }
