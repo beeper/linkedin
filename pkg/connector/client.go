@@ -49,7 +49,7 @@ func NewLinkedInClient(ctx context.Context, tc *LinkedInConnector, login *bridge
 		threadCache: make(map[string]response.ThreadElement),
 	}
 
-	//twitClient.client.SetEventHandler(twitClient.HandleTwitterEvent) // todo set event listener
+	linClient.client.SetEventHandler(linClient.HandleLinkedInEvent)
 	linClient.connector = tc
 	return linClient
 }
