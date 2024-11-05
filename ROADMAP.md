@@ -1,48 +1,47 @@
 # Features & roadmap
 
 * Matrix → LinkedIn
-  * [ ] Message content
-    * [ ] Text
-    * [ ] Media
-      * [ ] Files
-      * [ ] Images
-      * [ ] Videos
-      * [ ] GIFs
-      * [ ] Voice Messages
-      * [ ] Stickers
+  * [x] Message content
+    * [x] Text
+    * [x] Media
+      * [x] Files
+      * [x] Images
+      * [x] Videos
+      * [x] GIFs
+      * [x] Voice Messages
+      * [ ] ~~Stickers~~ (unsupported)
     * [ ] ~~Formatting~~ (LinkedIn does not support rich formatting)
-    * [ ] ~~Replies~~ (LinkedIn does not support replies)
+    * [x] Replies
     * [ ] Mentions
     * [ ] Emotes
-  * [ ] Message redactions
-  * [ ] Message reactions
+  * [x] Message redactions
+  * [x] Message reactions
   * [ ] Presence
   * [ ] Typing notifications
-  * [ ] Mark conversations as read
   * [ ] Read receipts
   * [ ] Power level
   * [ ] Membership actions
     * [ ] Invite
     * [ ] Kick
     * [ ] Leave
-  * [ ] Room metadata changes
-    * [ ] Name
-    * [ ] Avatar
+  * [x] Room metadata changes
+    * [x] Name
+    * [x] Avatar
     * [ ] Per-room user nick
 * LinkedIn → Matrix
-  * [ ] Message content
-    * [ ] Text
-    * [ ] Media
-      * [ ] Files
-      * [ ] Images
-      * [ ] GIFs
-      * [ ] Voice Messages
+  * [x] Message content
+    * [x] Text
+    * [x] Media
+      * [x] Files
+      * [x] Images
+      * [x] GIFs
+      * [x] Voice Messages
     * [ ] Mentions
   * [ ] Message delete
-  * [ ] Message reactions
-  * [ ] Message history
-  * [ ] Real-time messages
-  * [ ] Presence
+  * [x] Message reactions
+  * [x] Message history
+  * [x] Real-time messages
+  * [ ] ~~Presence~~ (impossible for now, see https://github.com/mautrix/go/issues/295)
   * [ ] Typing notifications
   * [ ] Read receipts
   * [ ] Admin status
@@ -60,9 +59,10 @@
 * Misc
   * [ ] Multi-user support
   * [ ] Shared group chat portals
-  * [ ] Automatic portal creation
-    * [ ] At startup
-    * [ ] When added to chat
-    * [ ] When receiving message
+  * [x] Automatic portal creation
+    * [x] At startup
+    * [x] When added to chat
+    * [ ] When receiving message (not supported)
   * [ ] Private chat creation by inviting Matrix puppet of LinkedIn user to new room
-  * [ ] Option to use own Matrix account for messages sent from other LinkedIn clients
+  * [ ] Option to use own Matrix account for messages sent from other LinkedIn clients (relay mode)
+  * [ ] Split portal support
