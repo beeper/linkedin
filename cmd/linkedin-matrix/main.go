@@ -19,10 +19,10 @@ var (
 
 var c = &connector.LinkedInConnector{}
 var m = mxmain.BridgeMain{
-	Name:        "mautrix-twitter",
-	URL:         "https://github.com/mautrix/twitter",
-	Description: "A Matrix-Twitter puppeting bridge.",
-	Version:     "0.2.0",
+	Name:        "linkedin-matrix",
+	URL:         "https://github.com/beeper/linkedin",
+	Description: "A Matrix-LinkedIn puppeting bridge.",
+	Version:     "0.6.0",
 	Connector:   c,
 }
 

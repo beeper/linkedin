@@ -35,7 +35,7 @@ var (
 
 func NewLinkedInClient(ctx context.Context, tc *LinkedInConnector, login *bridgev2.UserLogin) *LinkedInClient {
 	log := zerolog.Ctx(ctx).With().
-		Str("component", "twitter_client").
+		Str("component", "linkedin_client").
 		Str("user_login_id", string(login.ID)).
 		Logger()
 
