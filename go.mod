@@ -2,7 +2,7 @@ module github.com/beeper/linkedin
 
 go 1.22.0
 
-toolchain go1.22.3
+toolchain go1.23.2
 
 require github.com/rs/zerolog v1.33.0
 
