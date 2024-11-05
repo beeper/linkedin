@@ -94,7 +94,7 @@ func (lc *LinkedInClient) Disconnect() {
 }
 
 func (lc *LinkedInClient) IsLoggedIn() bool {
-	return ValidCookieRegex.MatchString(lc.userLogin.Metadata.(UserLoginMetadata).Cookies)
+	return ValidCookieRegex.MatchString(lc.userLogin.Metadata.(*UserLoginMetadata).Cookies)
 }
 
 func (lc *LinkedInClient) LogoutRemote(ctx context.Context) {
@@ -158,7 +158,7 @@ func (lc *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.
 	parts := make([]*bridgev2.ConvertedMessagePart, 0)
 
 	for _, renderContent := range msg.RenderContent {
-		if renderContent.RepliedMessageContent.OriginalMessageUrn != "" {
+		if renderContent.RepliedMessageContent != nil {
 			replyTo = &networkid.MessageOptionalPartID{
 				MessageID: networkid.MessageID(renderContent.RepliedMessageContent.OriginalMessageUrn),
 			}
