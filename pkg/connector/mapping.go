@@ -2,6 +2,7 @@ package connector
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -179,7 +180,11 @@ func (lc *LinkedInClient) MessageReactionsToBackfillReactions(reactions []respon
 	return backfillReactions, nil
 }
 
-func (tc *LinkedInClient) LinkedInAttachmentToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, content payload.RenderContent) (*bridgev2.ConvertedMessagePart, error) {
+var (
+	ErrUnsupportedAttachmentType = errors.New("unsupported attachment type")
+)
+
+func (lc *LinkedInClient) LinkedInAttachmentToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, content payload.RenderContent) (*bridgev2.ConvertedMessagePart, error) {
 	var attachmentURL string
 	var mimeType string
 	var msgType bridgeEvt.MessageType
@@ -210,12 +215,19 @@ func (tc *LinkedInClient) LinkedInAttachmentToMatrix(ctx context.Context, portal
 		mimeType = string(file.MediaType)
 		msgType = bridgeEvt.MsgFile
 		attachmentSize = file.ByteSize
+	} else {
+		return nil, ErrUnsupportedAttachmentType
 	}
 
-	cookieString := tc.client.GetCookieString()
-	attachmentSize, err := GetFileSize(ctx, cookieString, attachmentURL)
-	if err != nil {
-		return nil, err
+	cookieString := lc.client.GetCookieString()
+
+	var err error
+
+	if attachmentSize == 0 {
+		attachmentSize, err = GetFileSize(ctx, cookieString, attachmentURL)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	uploadContent := bridgeEvt.MessageEventContent{

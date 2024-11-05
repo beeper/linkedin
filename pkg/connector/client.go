@@ -2,6 +2,7 @@ package connector
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -165,7 +166,9 @@ func (lc *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.
 		} else {
 			convertedPart, err := lc.LinkedInAttachmentToMatrix(ctx, portal, intent, renderContent)
 			if err != nil {
-				return nil, err
+				if !errors.Is(err, ErrUnsupportedAttachmentType) {
+					return nil, err
+				}
 			}
 			if convertedPart != nil {
 				parts = append(parts, convertedPart)
