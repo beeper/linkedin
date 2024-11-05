@@ -1,6 +1,7 @@
 package linkedingo
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -85,6 +86,8 @@ func (c *Client) Logout() error {
 	logoutDefinition := routing.RequestStoreDefinition[routing.LOGOUT_URL]
 	headers := c.buildHeaders(logoutDefinition.HeaderOpts)
 	_, _, err = c.MakeRequest(url, http.MethodGet, headers, make([]byte, 0), logoutDefinition.ContentType)
+	c.Disconnect()
+	c.cookies.Store = make(map[cookies.LinkedInCookieName]string)
 	return err
 }
 
@@ -139,7 +142,9 @@ func (c *Client) SetProxy(proxyAddr string) error {
 		if err != nil {
 			return err
 		}
-		c.http.Transport.(*http.Transport).Dial = c.socksProxy.Dial
+		c.http.Transport.(*http.Transport).DialContext = func(ctx context.Context, network string, addr string) (net.Conn, error) {
+			return c.socksProxy.Dial(network, addr)
+		}
 		contextDialer, ok := c.socksProxy.(proxy.ContextDialer)
 		if ok {
 			c.http.Transport.(*http.Transport).DialContext = contextDialer.DialContext
