@@ -2,6 +2,7 @@ package linkedingo
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/beeper/linkedin/pkg/linkedingo/routing"
 	"github.com/beeper/linkedin/pkg/linkedingo/routing/payload"
@@ -34,7 +35,7 @@ func (c *Client) UploadMedia(mediaUploadType payload.MediaUploadType, fileName s
 	uploadUrl := metaData.SingleUploadURL
 
 	uploadHeaders := c.buildHeaders(types.HeaderOpts{WithCookies: true, WithCsrfToken: true})
-	resp, _, err := c.MakeRequest(uploadUrl, "PUT", uploadHeaders, mediaBytes, contentType)
+	resp, _, err := c.MakeRequest(uploadUrl, http.MethodPut, uploadHeaders, mediaBytes, contentType)
 	if err != nil {
 		return nil, err
 	}

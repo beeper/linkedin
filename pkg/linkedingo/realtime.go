@@ -63,7 +63,7 @@ func (rc *RealtimeClient) Connect() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	rc.cancelFunc = cancel
 
-	req, err := http.NewRequestWithContext(ctx, "GET", string(routing.REALTIME_CONNECT_URL)+"?rc=1", nil) // ("GET", string(routing.REALTIME_CONNECT_URL) + "?rc=1", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, string(routing.REALTIME_CONNECT_URL)+"?rc=1", nil) // ("GET", string(routing.REALTIME_CONNECT_URL) + "?rc=1", nil)
 	if err != nil {
 		return err
 	}

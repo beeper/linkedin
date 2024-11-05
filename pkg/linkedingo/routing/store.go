@@ -1,6 +1,8 @@
 package routing
 
 import (
+	"net/http"
+
 	"github.com/beeper/linkedin/pkg/linkedingo/routing/response"
 	"github.com/beeper/linkedin/pkg/linkedingo/types"
 )
@@ -22,7 +24,7 @@ type RequestEndpointInfo struct {
 
 var RequestStoreDefinition = map[RequestEndpointURL]RequestEndpointInfo{
 	MESSAGES_BASE_URL: {
-		Method:      "GET",
+		Method:      http.MethodGet,
 		ContentType: types.NONE,
 		HeaderOpts: types.HeaderOpts{
 			WithCookies: true,
@@ -36,7 +38,7 @@ var RequestStoreDefinition = map[RequestEndpointURL]RequestEndpointInfo{
 		},
 	},
 	VOYAGER_MESSAGING_GRAPHQL_URL: {
-		Method:      "GET",
+		Method:      http.MethodGet,
 		ContentType: types.NONE,
 		HeaderOpts: types.HeaderOpts{
 			WithCookies:         true,
@@ -52,7 +54,7 @@ var RequestStoreDefinition = map[RequestEndpointURL]RequestEndpointInfo{
 		ResponseDefinition: response.GraphQlResponse{},
 	},
 	VOYAGER_MESSAGING_DASH_MESSENGER_MESSAGES_URL: {
-		Method:      "POST",
+		Method:      http.MethodPost,
 		ContentType: types.PLAINTEXT_UTF8,
 		HeaderOpts: types.HeaderOpts{
 			WithCookies:         true,
@@ -69,7 +71,7 @@ var RequestStoreDefinition = map[RequestEndpointURL]RequestEndpointInfo{
 		ResponseDefinition: response.MessageSentResponse{},
 	},
 	VOYAGER_MESSAGING_DASH_MESSENGER_CONVERSATIONS_URL: {
-		Method:      "POST",
+		Method:      http.MethodPost,
 		ContentType: types.PLAINTEXT_UTF8,
 		HeaderOpts: types.HeaderOpts{
 			WithCookies:         true,
@@ -85,7 +87,7 @@ var RequestStoreDefinition = map[RequestEndpointURL]RequestEndpointInfo{
 		},
 	},
 	VOYAGER_MEDIA_UPLOAD_METADATA_URL: {
-		Method:      "POST",
+		Method:      http.MethodPost,
 		ContentType: types.JSON_PLAINTEXT_UTF8,
 		HeaderOpts: types.HeaderOpts{
 			WithCookies:         true,
@@ -101,7 +103,7 @@ var RequestStoreDefinition = map[RequestEndpointURL]RequestEndpointInfo{
 		ResponseDefinition: response.UploadMediaMetadataResponse{},
 	},
 	LOGOUT_URL: {
-		Method:      "GET",
+		Method:      http.MethodGet,
 		ContentType: types.NONE,
 		HeaderOpts: types.HeaderOpts{
 			WithCookies: true,

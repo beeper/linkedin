@@ -9,10 +9,6 @@ import (
 	"github.com/beeper/linkedin/pkg/linkedingo/cookies"
 	"github.com/beeper/linkedin/pkg/linkedingo/debug"
 	"github.com/beeper/linkedin/pkg/linkedingo/event"
-	"github.com/beeper/linkedin/pkg/linkedingo/routing/payload"
-	"github.com/beeper/linkedin/pkg/linkedingo/routing/query"
-	"github.com/beeper/linkedin/pkg/linkedingo/routing/response"
-	"github.com/beeper/linkedin/pkg/linkedingo/types"
 )
 
 var cli *linkedingo.Client
@@ -78,6 +74,7 @@ func evHandler(data any) {
 	}
 }
 
+/*
 func testDeleteConversation() {
 	firstThread := getTopThread()
 
@@ -453,4 +450,4 @@ func getTopThread() response.ThreadElement {
 		log.Fatal(err)
 	}
 	return threads.Threads[0]
-}
+}*/

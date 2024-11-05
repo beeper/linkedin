@@ -3,6 +3,7 @@ package linkedingo
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"github.com/beeper/linkedin/pkg/linkedingo/methods"
@@ -131,7 +132,7 @@ func (c *Client) EditMessage(messageUrn string, p payload.MessageBody) error {
 		return err
 	}
 
-	resp, respBody, err := c.MakeRequest(url, "POST", headers, payloadBytes, types.PLAINTEXT_UTF8)
+	resp, respBody, err := c.MakeRequest(url, http.MethodPost, headers, payloadBytes, types.PLAINTEXT_UTF8)
 	if err != nil {
 		return err
 	}
@@ -264,7 +265,7 @@ func (c *Client) MarkThreadRead(conversationUrns []string, read bool) (*response
 	}
 
 	headers := c.buildHeaders(headerOpts)
-	resp, respBody, err := c.MakeRequest(url, "POST", headers, payloadBytes, types.PLAINTEXT_UTF8)
+	resp, respBody, err := c.MakeRequest(url, http.MethodPost, headers, payloadBytes, types.PLAINTEXT_UTF8)
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +294,7 @@ func (c *Client) DeleteConversation(conversationUrn string) error {
 		},
 	})
 
-	resp, _, err := c.MakeRequest(url, "DELETE", headers, nil, types.NONE)
+	resp, _, err := c.MakeRequest(url, http.MethodDelete, headers, nil, types.NONE)
 	if err != nil {
 		return err
 	}
