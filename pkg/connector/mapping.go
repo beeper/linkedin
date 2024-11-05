@@ -144,8 +144,8 @@ func (lc *LinkedInClient) MessageToBackfillMessage(ctx context.Context, message 
 	return &bridgev2.BackfillMessage{
 		ConvertedMessage: cm,
 		Sender: bridgev2.EventSender{
-			IsFromMe: message.Sender.EntityUrn == lc.client.GetCurrentUserID(),
-			Sender:   networkid.UserID(message.Sender.EntityUrn),
+			IsFromMe: message.Sender.HostIdentityUrn == lc.client.GetCurrentUserID(),
+			Sender:   networkid.UserID(message.Sender.HostIdentityUrn),
 		},
 		ID:        networkid.MessageID(message.EntityUrn),
 		Timestamp: sentAt,
