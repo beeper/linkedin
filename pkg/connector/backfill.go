@@ -18,17 +18,19 @@ func (lc *LinkedInClient) FetchMessages(ctx context.Context, params bridgev2.Fet
 
 	variables := query.FetchMessagesVariables{
 		ConversationUrn: conversationUrn,
-		CountBefore:     int64(params.Count),
+		CountBefore:     20,
 	}
 
 	if params.Cursor == "" {
-		variables.DeliveredAt = params.AnchorMessage.Timestamp.UnixMilli()
+		if params.AnchorMessage != nil {
+			variables.DeliveredAt = params.AnchorMessage.Timestamp.UnixMilli()
+		}
 	} else {
-		cursorInt, err := strconv.Atoi(string(params.Cursor))
+		var err error
+		variables.DeliveredAt, err = strconv.ParseInt(string(params.Cursor), 10, 64)
 		if err != nil {
 			return nil, err
 		}
-		variables.DeliveredAt = int64(cursorInt)
 	}
 
 	fetchMessages, err := lc.client.FetchMessages(variables)
@@ -45,15 +47,21 @@ func (lc *LinkedInClient) FetchMessages(ctx context.Context, params bridgev2.Fet
 		return nil, err
 	}
 
-	backfilledMessages, err := lc.MessagesToBackfillMessages(ctx, messages, params.Portal) // get convo by id property missing
-	if err != nil {
-		return nil, err
+	backfilledMessages := make([]*bridgev2.BackfillMessage, len(messages))
+	cursor := networkid.PaginationCursor("")
+	if len(messages) > 0 {
+		cursor = networkid.PaginationCursor(strconv.FormatInt(messages[0].DeliveredAt, 10))
+
+		backfilledMessages, err = lc.MessagesToBackfillMessages(ctx, messages, params.Portal)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	fetchMessagesResp := &bridgev2.FetchMessagesResponse{
 		Messages: backfilledMessages,
-		Cursor:   networkid.PaginationCursor(messages[0].DeliveredAt),
-		HasMore:  len(messages) >= params.Count,
+		Cursor:   cursor,
+		HasMore:  len(messages) >= 20,
 		Forward:  params.Forward,
 	}
 
