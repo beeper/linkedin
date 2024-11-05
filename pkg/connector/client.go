@@ -24,7 +24,8 @@ type LinkedInClient struct {
 
 	userLogin *bridgev2.UserLogin
 
-	userCache map[string]types.Member // look into
+	userCache   map[string]types.Member
+	threadCache map[string]response.ThreadElement
 }
 
 var (
@@ -41,15 +42,16 @@ func NewLinkedInClient(ctx context.Context, tc *LinkedInConnector, login *bridge
 	clientOpts := &linkedingo.ClientOpts{
 		Cookies: cookies.NewCookiesFromString(meta.Cookies),
 	}
-	twitClient := &LinkedInClient{
-		client:    linkedingo.NewClient(clientOpts, log),
-		userLogin: login,
-		userCache: make(map[string]types.Member), // todo change any
+	linClient := &LinkedInClient{
+		client:      linkedingo.NewClient(clientOpts, log),
+		userLogin:   login,
+		userCache:   make(map[string]types.Member),
+		threadCache: make(map[string]response.ThreadElement),
 	}
 
 	//twitClient.client.SetEventHandler(twitClient.HandleTwitterEvent) // todo set event listener
-	twitClient.connector = tc
-	return twitClient
+	linClient.connector = tc
+	return linClient
 }
 
 func (lc *LinkedInClient) Connect(ctx context.Context) error {
@@ -76,6 +78,8 @@ func (lc *LinkedInClient) Connect(ctx context.Context) error {
 		return fmt.Errorf("failed to connect to linkedin client: %w", err)
 	}
 	lc.userLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+
+	go lc.syncChannels(ctx)
 	return nil
 }
 

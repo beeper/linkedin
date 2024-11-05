@@ -27,6 +27,8 @@ func (c *Client) GetThreads(variables query.GetThreadsVariables) (*response.Mess
 	var queryId types.GraphQLQueryIDs
 	if withCursor {
 		queryId = types.GRAPHQL_QUERY_ID_MESSENGER_CONVERSATIONS_WITH_CURSOR
+	} else if variables.SyncToken != "" {
+		queryId = types.GRAPHQL_QUERY_ID_MESSENGER_CONVERSATIONS_WITH_SYNC_TOKEN
 	} else {
 		queryId = types.GRAPHQL_QUERY_ID_MESSENGER_CONVERSATIONS
 	}

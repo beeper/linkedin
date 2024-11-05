@@ -39,6 +39,7 @@ type GetThreadsVariables struct {
 	MailboxUrn        string        `graphql:"mailboxUrn"`
 	LastUpdatedBefore int64         `graphql:"lastUpdatedBefore"`
 	NextCursor        string        `graphql:"nextCursor"`
+	SyncToken         string        `graphql:"syncToken"`
 }
 
 func (q GetThreadsVariables) Encode() ([]byte, error) {
