@@ -105,7 +105,7 @@ func (c *Client) FetchMessages(variables query.FetchMessagesVariables) (*respons
 }
 
 func (c *Client) EditMessage(messageUrn string, p payload.MessageBody) error {
-	url := fmt.Sprintf("%s/%s", routing.VOYAGER_MESSAGING_DASH_MESSENGER_MESSAGES_URL, url.QueryEscape(messageUrn))
+	editMessageUrl := fmt.Sprintf("%s/%s", routing.VOYAGER_MESSAGING_DASH_MESSENGER_MESSAGES_URL, url.QueryEscape(messageUrn))
 
 	headerOpts := types.HeaderOpts{
 		WithCookies:         true,
@@ -132,7 +132,7 @@ func (c *Client) EditMessage(messageUrn string, p payload.MessageBody) error {
 		return err
 	}
 
-	resp, respBody, err := c.MakeRequest(url, http.MethodPost, headers, payloadBytes, types.PLAINTEXT_UTF8)
+	resp, respBody, err := c.MakeRequest(editMessageUrl, http.MethodPost, headers, payloadBytes, types.PLAINTEXT_UTF8)
 	if err != nil {
 		return err
 	}
@@ -185,11 +185,11 @@ func (c *Client) StartTyping(conversationUrn string) error {
 		Action: query.ACTION_TYPING,
 	}
 
-	payload := payload.StartTypingPayload{
+	typingPayload := payload.StartTypingPayload{
 		ConversationUrn: conversationUrn,
 	}
 
-	resp, _, err := c.MakeRoutingRequest(routing.VOYAGER_MESSAGING_DASH_MESSENGER_CONVERSATIONS_URL, payload, actionQuery)
+	resp, _, err := c.MakeRoutingRequest(routing.VOYAGER_MESSAGING_DASH_MESSENGER_CONVERSATIONS_URL, typingPayload, actionQuery)
 	if err != nil {
 		return err
 	}
@@ -206,11 +206,11 @@ func (c *Client) DeleteMessage(messageUrn string) error {
 		Action: query.ACTION_RECALL,
 	}
 
-	payload := payload.DeleteMessagePayload{
+	deleteMsgPayload := payload.DeleteMessagePayload{
 		MessageUrn: messageUrn,
 	}
 
-	resp, _, err := c.MakeRoutingRequest(routing.VOYAGER_MESSAGING_DASH_MESSENGER_MESSAGES_URL, payload, actionQuery)
+	resp, _, err := c.MakeRoutingRequest(routing.VOYAGER_MESSAGING_DASH_MESSENGER_MESSAGES_URL, deleteMsgPayload, actionQuery)
 	if err != nil {
 		return err
 	}
@@ -243,12 +243,12 @@ func (c *Client) MarkThreadRead(conversationUrns []string, read bool) (*response
 	}
 
 	queryStr := fmt.Sprintf("ids=List(%s)", queryUrnValues)
-	url := fmt.Sprintf("%s?%s", routing.VOYAGER_MESSAGING_DASH_MESSENGER_CONVERSATIONS_URL, queryStr)
-	payload := payload.PatchEntitiesPayload{
+	markReadUrl := fmt.Sprintf("%s?%s", routing.VOYAGER_MESSAGING_DASH_MESSENGER_CONVERSATIONS_URL, queryStr)
+	patchEntitiesPayload := payload.PatchEntitiesPayload{
 		Entities: entities,
 	}
 
-	payloadBytes, err := payload.Encode()
+	payloadBytes, err := patchEntitiesPayload.Encode()
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +265,7 @@ func (c *Client) MarkThreadRead(conversationUrns []string, read bool) (*response
 	}
 
 	headers := c.buildHeaders(headerOpts)
-	resp, respBody, err := c.MakeRequest(url, http.MethodPost, headers, payloadBytes, types.PLAINTEXT_UTF8)
+	resp, respBody, err := c.MakeRequest(markReadUrl, http.MethodPost, headers, payloadBytes, types.PLAINTEXT_UTF8)
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +279,7 @@ func (c *Client) MarkThreadRead(conversationUrns []string, read bool) (*response
 }
 
 func (c *Client) DeleteConversation(conversationUrn string) error {
-	url := fmt.Sprintf("%s/%s", routing.VOYAGER_MESSAGING_DASH_MESSENGER_CONVERSATIONS_URL, url.QueryEscape(conversationUrn))
+	deleteConvUrl := fmt.Sprintf("%s/%s", routing.VOYAGER_MESSAGING_DASH_MESSENGER_CONVERSATIONS_URL, url.QueryEscape(conversationUrn))
 
 	headers := c.buildHeaders(types.HeaderOpts{
 		WithCookies:         true,
@@ -294,7 +294,7 @@ func (c *Client) DeleteConversation(conversationUrn string) error {
 		},
 	})
 
-	resp, _, err := c.MakeRequest(url, http.MethodDelete, headers, nil, types.NONE)
+	resp, _, err := c.MakeRequest(deleteConvUrl, http.MethodDelete, headers, nil, types.NONE)
 	if err != nil {
 		return err
 	}
@@ -334,12 +334,12 @@ func (c *Client) GetReactionsForEmoji(vars query.GetReactionsForEmojiVariables) 
 		return nil, err
 	}
 
-	query := query.GraphQLQuery{
+	gqlQuery := query.GraphQLQuery{
 		QueryID:   "messengerMessagingParticipants.3d2e0e93494e9dbf4943dc19da98bdf6",
 		Variables: string(variablesQuery),
 	}
 
-	_, respData, err := c.MakeRoutingRequest(routing.VOYAGER_MESSAGING_GRAPHQL_URL, nil, &query)
+	_, respData, err := c.MakeRoutingRequest(routing.VOYAGER_MESSAGING_GRAPHQL_URL, nil, &gqlQuery)
 	if err != nil {
 		return nil, err
 	}

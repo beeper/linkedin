@@ -132,9 +132,6 @@ func (lc *LinkedInClient) MessageToBackfillMessage(ctx context.Context, message 
 	sentAt := time.UnixMilli(message.DeliveredAt)
 
 	intent := lc.userLogin.Bridge.Matrix.BotIntent()
-	if err != nil {
-		return nil, err
-	}
 
 	cm, err := lc.convertToMatrix(ctx, portal, intent, &message)
 	if err != nil {

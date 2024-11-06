@@ -81,12 +81,12 @@ func (c *Client) Logout() error {
 		return err
 	}
 
-	url := fmt.Sprintf("%s?%s", routing.LOGOUT_URL, string(encodedQuery))
+	logoutUrl := fmt.Sprintf("%s?%s", routing.LOGOUT_URL, string(encodedQuery))
 
 	logoutDefinition := routing.RequestStoreDefinition[routing.LOGOUT_URL]
 	headers := c.buildHeaders(logoutDefinition.HeaderOpts)
-	_, _, err = c.MakeRequest(url, http.MethodGet, headers, make([]byte, 0), logoutDefinition.ContentType)
-	c.Disconnect()
+	_, _, err = c.MakeRequest(logoutUrl, http.MethodGet, headers, make([]byte, 0), logoutDefinition.ContentType)
+	_ = c.Disconnect()
 	c.cookies.Store = make(map[cookies.LinkedInCookieName]string)
 	return err
 }

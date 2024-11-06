@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/mattn/go-colorable"
-	zerolog "github.com/rs/zerolog"
+	"github.com/rs/zerolog"
 )
 
 var colors = map[string]string{

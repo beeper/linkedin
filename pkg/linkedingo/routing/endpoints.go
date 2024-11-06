@@ -6,7 +6,7 @@ type RequestEndpointURL string
 
 const (
 	BASE_URL                                           RequestEndpointURL = "https://" + BASE_HOST
-	MESSAGES_BASE_URL                                  RequestEndpointURL = BASE_URL + "/messaging"
+	MESSAGES_BASE_URL                                                     = BASE_URL + "/messaging"
 	VOYAGER_GRAPHQL_URL                                                   = BASE_URL + "/voyager/api/graphql"
 	VOYAGER_COMMON_ME_URL                                                 = BASE_URL + "/voyager/api/me"
 	VOYAGER_MESSAGING_GRAPHQL_URL                                         = BASE_URL + "/voyager/api/voyagerMessagingGraphQL/graphql"
