@@ -15,6 +15,7 @@ env:
   GHCR_REGISTRY: ghcr.io
   GHCR_REGISTRY_IMAGE: "ghcr.io/${{ github.repository }}"
   BINARY_NAME: linkedin-matrix
+  GOTOOLCHAIN: local
 
 
 jobs:
