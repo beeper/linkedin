@@ -17,13 +17,12 @@ var (
 	BuildTime = "unknown"
 )
 
-var c = &connector.LinkedInConnector{}
 var m = mxmain.BridgeMain{
 	Name:        "linkedin-matrix",
 	URL:         "https://github.com/beeper/linkedin",
 	Description: "A Matrix-LinkedIn puppeting bridge.",
 	Version:     "0.6.0",
-	Connector:   c,
+	Connector:   &connector.LinkedInConnector{},
 }
 
 func main() {

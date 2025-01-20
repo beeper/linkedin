@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/exhttp"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/bridgev2"
@@ -14,23 +15,6 @@ import (
 
 	"github.com/beeper/linkedin/pkg/connector"
 )
-
-func jsonResponse(w http.ResponseWriter, status int, response any) {
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(response)
-}
-
-type Error struct {
-	Success bool   `json:"success"`
-	Error   string `json:"error"`
-	ErrCode string `json:"errcode"`
-}
-
-type Response struct {
-	Success bool   `json:"success"`
-	Status  string `json:"status"`
-}
 
 var levelsToNames = map[bridgeconfig.Permissions]string{
 	bridgeconfig.PermissionLevelBlock:    "block",
@@ -49,7 +33,7 @@ func legacyProvStatus(w http.ResponseWriter, r *http.Request) {
 
 	ul := user.GetDefaultLogin()
 	if ul.ID != "" { // if logged in
-		linClient := connector.NewLinkedInClient(r.Context(), c, ul)
+		linClient := connector.NewLinkedInClient(r.Context(), m.Connector.(*connector.LinkedInConnector), ul)
 
 		currentUser, err := linClient.GetCurrentUser()
 		if err == nil {
@@ -57,7 +41,7 @@ func legacyProvStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	jsonResponse(w, http.StatusOK, response)
+	exhttp.WriteJSONResponse(w, http.StatusOK, response)
 }
 
 func legacyProvLogin(w http.ResponseWriter, r *http.Request) {
@@ -66,36 +50,36 @@ func legacyProvLogin(w http.ResponseWriter, r *http.Request) {
 	var body map[string]map[string]string
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
-		jsonResponse(w, http.StatusBadRequest, Error{ErrCode: mautrix.MBadJSON.ErrCode, Error: err.Error()})
+		exhttp.WriteJSONResponse(w, http.StatusBadRequest, mautrix.MBadJSON.WithMessage(err.Error()))
 		return
 	}
 	cookieString := body["all_headers"]["Cookie"]
 
-	lp, err := c.CreateLogin(ctx, user, "cookies")
+	lp, err := m.Connector.CreateLogin(ctx, user, "cookies")
 	if err != nil {
 		zerolog.Ctx(ctx).Err(err).Msg("Failed to create login")
-		jsonResponse(w, http.StatusInternalServerError, Error{ErrCode: "M_UNKNOWN", Error: "Internal error creating login"})
+		exhttp.WriteJSONResponse(w, http.StatusInternalServerError, mautrix.MUnknown.WithMessage("Internal error creating login"))
 	} else if firstStep, err := lp.Start(ctx); err != nil {
 		zerolog.Ctx(ctx).Err(err).Msg("Failed to start login")
-		jsonResponse(w, http.StatusInternalServerError, Error{ErrCode: "M_UNKNOWN", Error: "Internal error starting login"})
+		exhttp.WriteJSONResponse(w, http.StatusInternalServerError, mautrix.MUnknown.WithMessage("Internal error starting login"))
 	} else if firstStep.StepID != connector.LoginStepIDCookies {
-		jsonResponse(w, http.StatusInternalServerError, Error{ErrCode: "M_UNKNOWN", Error: "Unexpected login step"})
+		exhttp.WriteJSONResponse(w, http.StatusInternalServerError, mautrix.MUnknown.WithMessage("Unexpected login step"))
 	} else if !connector.ValidCookieRegex.MatchString(cookieString) {
-		jsonResponse(w, http.StatusOK, nil)
+		exhttp.WriteJSONResponse(w, http.StatusOK, nil)
 	} else if finalStep, err := lp.(bridgev2.LoginProcessCookies).SubmitCookies(ctx, map[string]string{
 		"cookie": cookieString,
 	}); err != nil {
 		zerolog.Ctx(ctx).Err(err).Msg("Failed to log in")
 		var respErr bridgev2.RespError
 		if errors.As(err, &respErr) {
-			jsonResponse(w, respErr.StatusCode, &respErr)
+			exhttp.WriteJSONResponse(w, respErr.StatusCode, &respErr)
 		} else {
-			jsonResponse(w, http.StatusInternalServerError, Error{ErrCode: "M_UNKNOWN", Error: "Internal error logging in"})
+			exhttp.WriteJSONResponse(w, http.StatusInternalServerError, mautrix.MUnknown.WithMessage("Internal error logging in"))
 		}
 	} else if finalStep.StepID != connector.LoginStepIDComplete {
-		jsonResponse(w, http.StatusInternalServerError, Error{ErrCode: "M_UNKNOWN", Error: "Unexpected login step"})
+		exhttp.WriteJSONResponse(w, http.StatusInternalServerError, mautrix.MUnknown.WithMessage("Unexpected login step"))
 	} else {
-		jsonResponse(w, http.StatusOK, map[string]any{})
+		exhttp.WriteJSONResponse(w, http.StatusOK, map[string]any{})
 		go handleLoginComplete(context.WithoutCancel(ctx), user, finalStep.CompleteParams.UserLogin)
 	}
 }
@@ -116,8 +100,8 @@ func legacyProvLogout(w http.ResponseWriter, r *http.Request) {
 		// Intentionally don't delete the user login, only disconnect the client
 		login.Client.(*connector.LinkedInClient).LogoutRemote(r.Context())
 	}
-	jsonResponse(w, http.StatusOK, Response{
-		Success: true,
-		Status:  "logged_out",
+	exhttp.WriteJSONResponse(w, http.StatusOK, map[string]any{
+		"success": true,
+		"status":  "logged_out",
 	})
 }
