@@ -1,4 +1,5 @@
-./linkedin-matrix
+/linkedin-matrix
+/linkedin-matrix.sha256sum
 logs/
 *.db*
 *.yaml
