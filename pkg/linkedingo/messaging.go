@@ -27,11 +27,11 @@ func (c *Client) GetThreads(variables query.GetThreadsVariables) (*response.Mess
 	withCursor := variables.LastUpdatedBefore != 0 && variables.NextCursor != ""
 	var queryId types.GraphQLQueryIDs
 	if withCursor {
-		queryId = types.GRAPHQL_QUERY_ID_MESSENGER_CONVERSATIONS_WITH_CURSOR
+		queryId = types.GraphQLQueryIDMessengerConversationsWithCursor
 	} else if variables.SyncToken != "" {
-		queryId = types.GRAPHQL_QUERY_ID_MESSENGER_CONVERSATIONS_WITH_SYNC_TOKEN
+		queryId = types.GraphQLQueryIDMessengerConversationsWithSyncToken
 	} else {
-		queryId = types.GRAPHQL_QUERY_ID_MESSENGER_CONVERSATIONS
+		queryId = types.GraphQLQueryIDMessengerConversations
 	}
 
 	variablesQuery, err := variables.Encode()
@@ -44,7 +44,7 @@ func (c *Client) GetThreads(variables query.GetThreadsVariables) (*response.Mess
 		Variables: string(variablesQuery),
 	}
 
-	_, respData, err := c.MakeRoutingRequest(routing.VOYAGER_MESSAGING_GRAPHQL_URL, nil, &threadQuery)
+	_, respData, err := c.MakeRoutingRequest(routing.LinkedInVoyagerMessagingGraphQLURL, nil, &threadQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -68,11 +68,11 @@ func (c *Client) FetchMessages(variables query.FetchMessagesVariables) (*respons
 
 	var queryId types.GraphQLQueryIDs
 	if withCursor {
-		queryId = types.GRAPHQL_QUERY_ID_MESSENGER_MESSAGES_BY_CONVERSATION
+		queryId = types.GraphQLQueryIDMessengerMessagesByConversation
 	} else if withAnchorTimestamp {
-		queryId = types.GRAPHQL_QUERY_ID_MESSENGER_MESSAGES_BY_ANCHOR_TIMESTAMP
+		queryId = types.GraphQLQueryIDMessengerMessagesByAnchorTimestamp
 	} else {
-		queryId = types.GRAPHQL_QUERY_ID_MESSENGER_MESSAGES_BY_SYNC_TOKEN
+		queryId = types.GraphQLQueryIDMessengerMessagesBySyncToken
 	}
 
 	variablesQuery, err := variables.Encode()
@@ -84,7 +84,7 @@ func (c *Client) FetchMessages(variables query.FetchMessagesVariables) (*respons
 		Variables: string(variablesQuery),
 	}
 
-	_, respData, err := c.MakeRoutingRequest(routing.VOYAGER_MESSAGING_GRAPHQL_URL, nil, &messagesQuery)
+	_, respData, err := c.MakeRoutingRequest(routing.LinkedInVoyagerMessagingGraphQLURL, nil, &messagesQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -105,17 +105,17 @@ func (c *Client) FetchMessages(variables query.FetchMessagesVariables) (*respons
 }
 
 func (c *Client) EditMessage(messageUrn string, p payload.MessageBody) error {
-	editMessageUrl := fmt.Sprintf("%s/%s", routing.VOYAGER_MESSAGING_DASH_MESSENGER_MESSAGES_URL, url.QueryEscape(messageUrn))
+	editMessageUrl := fmt.Sprintf("%s/%s", routing.LinkedInVoyagerMessagingDashMessengerMessagesURL, url.QueryEscape(messageUrn))
 
 	headerOpts := types.HeaderOpts{
 		WithCookies:         true,
 		WithCsrfToken:       true,
-		Origin:              string(routing.BASE_URL),
+		Origin:              string(routing.LinkedInBaseURL),
 		WithXLiTrack:        true,
 		WithXLiProtocolVer:  true,
 		WithXLiPageInstance: true,
 		WithXLiLang:         true,
-		Extra:               map[string]string{"accept": string(types.JSON)},
+		Extra:               map[string]string{"accept": string(types.ContentTypeJSON)},
 	}
 	headers := c.buildHeaders(headerOpts)
 
@@ -132,7 +132,7 @@ func (c *Client) EditMessage(messageUrn string, p payload.MessageBody) error {
 		return err
 	}
 
-	resp, respBody, err := c.MakeRequest(editMessageUrl, http.MethodPost, headers, payloadBytes, types.PLAINTEXT_UTF8)
+	resp, respBody, err := c.MakeRequest(editMessageUrl, http.MethodPost, headers, payloadBytes, types.ContentTypePlaintextUTF8)
 	if err != nil {
 		return err
 	}
@@ -148,7 +148,7 @@ func (c *Client) EditMessage(messageUrn string, p payload.MessageBody) error {
 // so you do not have to set it if u dont want to
 func (c *Client) SendMessage(p payload.SendMessagePayload) (*response.MessageSentResponse, error) {
 	actionQuery := query.DoActionQuery{
-		Action: query.ACTION_CREATE_MESSAGE,
+		Action: query.ActionCreateMessage,
 	}
 
 	if p.MailboxUrn == "" {
@@ -163,7 +163,7 @@ func (c *Client) SendMessage(p payload.SendMessagePayload) (*response.MessageSen
 		p.Message.OriginToken = uuid.NewString()
 	}
 
-	resp, respData, err := c.MakeRoutingRequest(routing.VOYAGER_MESSAGING_DASH_MESSENGER_MESSAGES_URL, p, actionQuery)
+	resp, respData, err := c.MakeRoutingRequest(routing.LinkedInVoyagerMessagingDashMessengerMessagesURL, p, actionQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -182,14 +182,14 @@ func (c *Client) SendMessage(p payload.SendMessagePayload) (*response.MessageSen
 
 func (c *Client) StartTyping(conversationUrn string) error {
 	actionQuery := query.DoActionQuery{
-		Action: query.ACTION_TYPING,
+		Action: query.ActionTyping,
 	}
 
 	typingPayload := payload.StartTypingPayload{
 		ConversationUrn: conversationUrn,
 	}
 
-	resp, _, err := c.MakeRoutingRequest(routing.VOYAGER_MESSAGING_DASH_MESSENGER_CONVERSATIONS_URL, typingPayload, actionQuery)
+	resp, _, err := c.MakeRoutingRequest(routing.LinkedInMessagingDashMessengerConversationsURL, typingPayload, actionQuery)
 	if err != nil {
 		return err
 	}
@@ -203,14 +203,14 @@ func (c *Client) StartTyping(conversationUrn string) error {
 
 func (c *Client) DeleteMessage(messageUrn string) error {
 	actionQuery := query.DoActionQuery{
-		Action: query.ACTION_RECALL,
+		Action: query.ActionRecall,
 	}
 
 	deleteMsgPayload := payload.DeleteMessagePayload{
 		MessageUrn: messageUrn,
 	}
 
-	resp, _, err := c.MakeRoutingRequest(routing.VOYAGER_MESSAGING_DASH_MESSENGER_MESSAGES_URL, deleteMsgPayload, actionQuery)
+	resp, _, err := c.MakeRoutingRequest(routing.LinkedInVoyagerMessagingDashMessengerMessagesURL, deleteMsgPayload, actionQuery)
 	if err != nil {
 		return err
 	}
@@ -243,7 +243,7 @@ func (c *Client) MarkThreadRead(conversationUrns []string, read bool) (*response
 	}
 
 	queryStr := fmt.Sprintf("ids=List(%s)", queryUrnValues)
-	markReadUrl := fmt.Sprintf("%s?%s", routing.VOYAGER_MESSAGING_DASH_MESSENGER_CONVERSATIONS_URL, queryStr)
+	markReadUrl := fmt.Sprintf("%s?%s", routing.LinkedInMessagingDashMessengerConversationsURL, queryStr)
 	patchEntitiesPayload := payload.PatchEntitiesPayload{
 		Entities: entities,
 	}
@@ -256,16 +256,16 @@ func (c *Client) MarkThreadRead(conversationUrns []string, read bool) (*response
 	headerOpts := types.HeaderOpts{
 		WithCookies:         true,
 		WithCsrfToken:       true,
-		Origin:              string(routing.BASE_URL),
+		Origin:              string(routing.LinkedInBaseURL),
 		WithXLiTrack:        true,
 		WithXLiProtocolVer:  true,
 		WithXLiPageInstance: true,
 		WithXLiLang:         true,
-		Extra:               map[string]string{"accept": string(types.JSON)},
+		Extra:               map[string]string{"accept": string(types.ContentTypeJSON)},
 	}
 
 	headers := c.buildHeaders(headerOpts)
-	resp, respBody, err := c.MakeRequest(markReadUrl, http.MethodPost, headers, payloadBytes, types.PLAINTEXT_UTF8)
+	resp, respBody, err := c.MakeRequest(markReadUrl, http.MethodPost, headers, payloadBytes, types.ContentTypePlaintextUTF8)
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +279,7 @@ func (c *Client) MarkThreadRead(conversationUrns []string, read bool) (*response
 }
 
 func (c *Client) DeleteConversation(conversationUrn string) error {
-	deleteConvUrl := fmt.Sprintf("%s/%s", routing.VOYAGER_MESSAGING_DASH_MESSENGER_CONVERSATIONS_URL, url.QueryEscape(conversationUrn))
+	deleteConvUrl := fmt.Sprintf("%s/%s", routing.LinkedInMessagingDashMessengerConversationsURL, url.QueryEscape(conversationUrn))
 
 	headers := c.buildHeaders(types.HeaderOpts{
 		WithCookies:         true,
@@ -288,13 +288,13 @@ func (c *Client) DeleteConversation(conversationUrn string) error {
 		WithXLiPageInstance: true,
 		WithXLiLang:         true,
 		WithXLiProtocolVer:  true,
-		Origin:              string(routing.BASE_URL),
+		Origin:              string(routing.LinkedInBaseURL),
 		Extra: map[string]string{
-			"accept": string(types.GRAPHQL),
+			"accept": string(types.ContentTypeGraphQL),
 		},
 	})
 
-	resp, _, err := c.MakeRequest(deleteConvUrl, http.MethodDelete, headers, nil, types.NONE)
+	resp, _, err := c.MakeRequest(deleteConvUrl, http.MethodDelete, headers, nil, "")
 	if err != nil {
 		return err
 	}
@@ -308,15 +308,15 @@ func (c *Client) DeleteConversation(conversationUrn string) error {
 
 // pass true to second arg to react and pass false to unreact
 func (c *Client) SendReaction(p payload.SendReactionPayload, react bool) error {
-	action := query.ACTION_REACT_WITH_EMOJI
+	action := query.ActionReactWithEmoji
 	if !react {
-		action = query.ACTION_UNREACT_WITH_EMOJI
+		action = query.ActionUnreactWithEmoji
 	}
 	actionQuery := query.DoActionQuery{
 		Action: action,
 	}
 
-	resp, _, err := c.MakeRoutingRequest(routing.VOYAGER_MESSAGING_DASH_MESSENGER_MESSAGES_URL, p, actionQuery)
+	resp, _, err := c.MakeRoutingRequest(routing.LinkedInVoyagerMessagingDashMessengerMessagesURL, p, actionQuery)
 	if err != nil {
 		return err
 	}
@@ -339,7 +339,7 @@ func (c *Client) GetReactionsForEmoji(vars query.GetReactionsForEmojiVariables) 
 		Variables: string(variablesQuery),
 	}
 
-	_, respData, err := c.MakeRoutingRequest(routing.VOYAGER_MESSAGING_GRAPHQL_URL, nil, &gqlQuery)
+	_, respData, err := c.MakeRoutingRequest(routing.LinkedInVoyagerMessagingGraphQLURL, nil, &gqlQuery)
 	if err != nil {
 		return nil, err
 	}

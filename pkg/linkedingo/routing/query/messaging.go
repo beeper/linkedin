@@ -7,12 +7,12 @@ import (
 type Action string
 
 const (
-	ACTION_CREATE_MESSAGE     Action = "createMessage"
-	ACTION_TYPING             Action = "typing"
-	ACTION_UPLOAD             Action = "upload"
-	ACTION_RECALL             Action = "recall"
-	ACTION_REACT_WITH_EMOJI   Action = "reactWithEmoji"
-	ACTION_UNREACT_WITH_EMOJI Action = "unreactWithEmoji"
+	ActionCreateMessage    Action = "createMessage"
+	ActionTyping           Action = "typing"
+	ActionUpload           Action = "upload"
+	ActionRecall           Action = "recall"
+	ActionReactWithEmoji   Action = "reactWithEmoji"
+	ActionUnreactWithEmoji Action = "unreactWithEmoji"
 )
 
 type DoActionQuery struct {
@@ -26,11 +26,11 @@ func (q DoActionQuery) Encode() ([]byte, error) {
 type InboxCategory string
 
 const (
-	INBOX_CATEGORY_OTHER     InboxCategory = "OTHER"
-	INBOX_CATEGORY_ARCHIVE   InboxCategory = "ARCHIVE"
-	INBOX_CATEGORY_INBOX     InboxCategory = "INBOX"
-	INBOX_CATEGORY_PRIMARY   InboxCategory = "PRIMARY_INBOX"
-	INBOX_CATEGORY_SECONDARY InboxCategory = "SECONDARY_INBOX"
+	InboxCategoryOther     InboxCategory = "OTHER"
+	InboxCategoryArchive   InboxCategory = "ARCHIVE"
+	InboxCategoryInbox     InboxCategory = "INBOX"
+	InboxCategoryPrimary   InboxCategory = "PRIMARY_INBOX"
+	InboxCategorySecondary InboxCategory = "SECONDARY_INBOX"
 )
 
 type GetThreadsVariables struct {

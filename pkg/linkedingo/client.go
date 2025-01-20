@@ -81,11 +81,11 @@ func (c *Client) Logout() error {
 		return err
 	}
 
-	logoutUrl := fmt.Sprintf("%s?%s", routing.LOGOUT_URL, string(encodedQuery))
+	logoutUrl := fmt.Sprintf("%s?%s", routing.LinkedInLogoutURL, string(encodedQuery))
 
-	logoutDefinition := routing.RequestStoreDefinition[routing.LOGOUT_URL]
+	logoutDefinition := routing.RequestStoreDefinition[routing.LinkedInLogoutURL]
 	headers := c.buildHeaders(logoutDefinition.HeaderOpts)
-	_, _, err = c.MakeRequest(logoutUrl, http.MethodGet, headers, make([]byte, 0), logoutDefinition.ContentType)
+	_, _, err = c.MakeRequest(logoutUrl, http.MethodGet, headers, nil, logoutDefinition.ContentType)
 	_ = c.Disconnect()
 	c.cookies.Store = make(map[cookies.LinkedInCookieName]string)
 	return err
@@ -113,7 +113,7 @@ func (c *Client) GetCurrentUserProfile() (*types.UserLoginProfile, error) {
 		WithXLiLang:         true,
 	})
 
-	_, data, err := c.MakeRequest(string(routing.VOYAGER_COMMON_ME_URL), http.MethodGet, headers, make([]byte, 0), types.JSON_LINKEDIN_NORMALIZED)
+	_, data, err := c.MakeRequest(string(routing.LinkedInVoyagerCommonMeURL), http.MethodGet, headers, make([]byte, 0), types.ContentTypeJSONLinkedInNormalized)
 	if err != nil {
 		return nil, err
 	}

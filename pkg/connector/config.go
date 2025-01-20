@@ -26,10 +26,7 @@ func (c *Config) UnmarshalYAML(node *yaml.Node) error {
 	}
 
 	c.displaynameTemplate, err = template.New("displayname").Parse(c.DisplaynameTemplate)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func upgradeConfig(helper up.Helper) {
@@ -41,7 +38,7 @@ type DisplaynameParams struct {
 	LastName  string
 }
 
-func (c *Config) FormatDisplayname(firstName string, lastName string) string {
+func (c *Config) FormatDisplayname(firstName, lastName string) string {
 	var nameBuf strings.Builder
 	err := c.displaynameTemplate.Execute(&nameBuf, &DisplaynameParams{
 		FirstName: firstName,

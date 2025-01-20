@@ -13,7 +13,7 @@ import (
 
 func (c *Client) UploadMedia(mediaUploadType payload.MediaUploadType, fileName string, mediaBytes []byte, contentType types.ContentType) (*response.MediaMetadata, error) {
 	uploadMetadataQuery := query.DoActionQuery{
-		Action: query.ACTION_UPLOAD,
+		Action: query.ActionUpload,
 	}
 	uploadMetadataPayload := payload.UploadMediaMetadataPayload{
 		MediaUploadType: mediaUploadType,
@@ -21,7 +21,7 @@ func (c *Client) UploadMedia(mediaUploadType payload.MediaUploadType, fileName s
 		Filename:        fileName,
 	}
 
-	_, respData, err := c.MakeRoutingRequest(routing.VOYAGER_MEDIA_UPLOAD_METADATA_URL, uploadMetadataPayload, uploadMetadataQuery)
+	_, respData, err := c.MakeRoutingRequest(routing.LinkedInVoyagerMediaUploadMetadataURL, uploadMetadataPayload, uploadMetadataQuery)
 	if err != nil {
 		return nil, err
 	}

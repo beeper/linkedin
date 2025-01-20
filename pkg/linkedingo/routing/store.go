@@ -23,9 +23,8 @@ type RequestEndpointInfo struct {
 }
 
 var RequestStoreDefinition = map[RequestEndpointURL]RequestEndpointInfo{
-	MESSAGES_BASE_URL: {
-		Method:      http.MethodGet,
-		ContentType: types.NONE,
+	LinkedInMessagingBaseURL: {
+		Method: http.MethodGet,
 		HeaderOpts: types.HeaderOpts{
 			WithCookies: true,
 			Extra: map[string]string{
@@ -37,25 +36,24 @@ var RequestStoreDefinition = map[RequestEndpointURL]RequestEndpointInfo{
 			},
 		},
 	},
-	VOYAGER_MESSAGING_GRAPHQL_URL: {
-		Method:      http.MethodGet,
-		ContentType: types.NONE,
+	LinkedInVoyagerMessagingGraphQLURL: {
+		Method: http.MethodGet,
 		HeaderOpts: types.HeaderOpts{
 			WithCookies:         true,
 			WithCsrfToken:       true,
 			WithXLiTrack:        true,
 			WithXLiPageInstance: true,
 			WithXLiProtocolVer:  true,
-			Referer:             string(MESSAGES_BASE_URL) + "/",
+			Referer:             string(LinkedInMessagingBaseURL) + "/",
 			Extra: map[string]string{
-				"accept": string(types.GRAPHQL),
+				"accept": string(types.ContentTypeGraphQL),
 			},
 		},
 		ResponseDefinition: response.GraphQlResponse{},
 	},
-	VOYAGER_MESSAGING_DASH_MESSENGER_MESSAGES_URL: {
+	LinkedInVoyagerMessagingDashMessengerMessagesURL: {
 		Method:      http.MethodPost,
-		ContentType: types.PLAINTEXT_UTF8,
+		ContentType: types.ContentTypePlaintextUTF8,
 		HeaderOpts: types.HeaderOpts{
 			WithCookies:         true,
 			WithCsrfToken:       true,
@@ -63,16 +61,16 @@ var RequestStoreDefinition = map[RequestEndpointURL]RequestEndpointInfo{
 			WithXLiPageInstance: true,
 			WithXLiTrack:        true,
 			WithXLiProtocolVer:  true,
-			Origin:              string(BASE_URL),
+			Origin:              string(LinkedInBaseURL),
 			Extra: map[string]string{
-				"accept": string(types.JSON),
+				"accept": string(types.ContentTypeJSON),
 			},
 		},
 		ResponseDefinition: response.MessageSentResponse{},
 	},
-	VOYAGER_MESSAGING_DASH_MESSENGER_CONVERSATIONS_URL: {
+	LinkedInMessagingDashMessengerConversationsURL: {
 		Method:      http.MethodPost,
-		ContentType: types.PLAINTEXT_UTF8,
+		ContentType: types.ContentTypePlaintextUTF8,
 		HeaderOpts: types.HeaderOpts{
 			WithCookies:         true,
 			WithCsrfToken:       true,
@@ -80,15 +78,15 @@ var RequestStoreDefinition = map[RequestEndpointURL]RequestEndpointInfo{
 			WithXLiPageInstance: true,
 			WithXLiProtocolVer:  true,
 			WithXLiLang:         true,
-			Origin:              string(BASE_URL),
+			Origin:              string(LinkedInBaseURL),
 			Extra: map[string]string{
-				"accept": string(types.JSON),
+				"accept": string(types.ContentTypeJSON),
 			},
 		},
 	},
-	VOYAGER_MEDIA_UPLOAD_METADATA_URL: {
+	LinkedInVoyagerMediaUploadMetadataURL: {
 		Method:      http.MethodPost,
-		ContentType: types.JSON_PLAINTEXT_UTF8,
+		ContentType: types.ContentTypeJSONPlaintextUTF8,
 		HeaderOpts: types.HeaderOpts{
 			WithCookies:         true,
 			WithCsrfToken:       true,
@@ -97,14 +95,13 @@ var RequestStoreDefinition = map[RequestEndpointURL]RequestEndpointInfo{
 			WithXLiProtocolVer:  true,
 			WithXLiLang:         true,
 			Extra: map[string]string{
-				"accept": string(types.JSON_LINKEDIN_NORMALIZED),
+				"accept": string(types.ContentTypeJSONLinkedInNormalized),
 			},
 		},
 		ResponseDefinition: response.UploadMediaMetadataResponse{},
 	},
-	LOGOUT_URL: {
-		Method:      http.MethodGet,
-		ContentType: types.NONE,
+	LinkedInLogoutURL: {
+		Method: http.MethodGet,
 		HeaderOpts: types.HeaderOpts{
 			WithCookies: true,
 		},

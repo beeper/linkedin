@@ -5,8 +5,8 @@ import "encoding/json"
 type MediaUploadType string
 
 const (
-	MESSAGING_PHOTO_ATTACHMENT MediaUploadType = "MESSAGING_PHOTO_ATTACHMENT"
-	MESSAGING_FILE_ATTACHMENT  MediaUploadType = "MESSAGING_FILE_ATTACHMENT"
+	MediaUploadTypePhotoAttachment MediaUploadType = "MESSAGING_PHOTO_ATTACHMENT"
+	MediaUploadFileAttachment      MediaUploadType = "MESSAGING_FILE_ATTACHMENT"
 )
 
 type UploadMediaMetadataPayload struct {

@@ -1,18 +1,18 @@
 package routing
 
-const BASE_HOST = "www.linkedin.com"
+const LinkedInBaseHost = "www.linkedin.com"
 
 type RequestEndpointURL string
 
 const (
-	BASE_URL                                           RequestEndpointURL = "https://" + BASE_HOST
-	MESSAGES_BASE_URL                                                     = BASE_URL + "/messaging"
-	VOYAGER_GRAPHQL_URL                                                   = BASE_URL + "/voyager/api/graphql"
-	VOYAGER_COMMON_ME_URL                                                 = BASE_URL + "/voyager/api/me"
-	VOYAGER_MESSAGING_GRAPHQL_URL                                         = BASE_URL + "/voyager/api/voyagerMessagingGraphQL/graphql"
-	VOYAGER_MESSAGING_DASH_MESSENGER_MESSAGES_URL                         = BASE_URL + "/voyager/api/voyagerMessagingDashMessengerMessages"
-	VOYAGER_MESSAGING_DASH_MESSENGER_CONVERSATIONS_URL                    = BASE_URL + "/voyager/api/voyagerMessagingDashMessengerConversations"
-	VOYAGER_MEDIA_UPLOAD_METADATA_URL                                     = BASE_URL + "/voyager/api/voyagerVideoDashMediaUploadMetadata"
-	REALTIME_CONNECT_URL                                                  = BASE_URL + "/realtime/connect"
-	LOGOUT_URL                                                            = BASE_URL + "/uas/logout"
+	LinkedInBaseURL                                  RequestEndpointURL = "https://" + LinkedInBaseHost
+	LinkedInMessagingBaseURL                                            = LinkedInBaseURL + "/messaging"
+	LinkedInVoyagerGraphQLURL                                           = LinkedInBaseURL + "/voyager/api/graphql"
+	LinkedInVoyagerCommonMeURL                                          = LinkedInBaseURL + "/voyager/api/me"
+	LinkedInVoyagerMessagingGraphQLURL                                  = LinkedInBaseURL + "/voyager/api/voyagerMessagingGraphQL/graphql"
+	LinkedInVoyagerMessagingDashMessengerMessagesURL                    = LinkedInBaseURL + "/voyager/api/voyagerMessagingDashMessengerMessages"
+	LinkedInMessagingDashMessengerConversationsURL                      = LinkedInBaseURL + "/voyager/api/voyagerMessagingDashMessengerConversations"
+	LinkedInVoyagerMediaUploadMetadataURL                               = LinkedInBaseURL + "/voyager/api/voyagerVideoDashMediaUploadMetadata"
+	LinkedInRealtimeConnectURL                                          = LinkedInBaseURL + "/realtime/connect"
+	LinkedInLogoutURL                                                   = LinkedInBaseURL + "/uas/logout"
 )

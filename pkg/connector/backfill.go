@@ -14,7 +14,7 @@ import (
 var _ bridgev2.BackfillingNetworkAPI = (*LinkedInClient)(nil)
 
 func (lc *LinkedInClient) FetchMessages(ctx context.Context, params bridgev2.FetchMessagesParams) (*bridgev2.FetchMessagesResponse, error) {
-	conversationUrn := string(params.Portal.PortalKey.ID)
+	conversationUrn := string(params.Portal.ID)
 
 	variables := query.FetchMessagesVariables{
 		ConversationUrn: conversationUrn,
@@ -43,10 +43,6 @@ func (lc *LinkedInClient) FetchMessages(ctx context.Context, params bridgev2.Fet
 		return messages[j].DeliveredAt < messages[i].DeliveredAt
 	})
 
-	if err != nil {
-		return nil, err
-	}
-
 	backfilledMessages := make([]*bridgev2.BackfillMessage, len(messages))
 	cursor := networkid.PaginationCursor("")
 	if len(messages) > 0 {
@@ -58,12 +54,10 @@ func (lc *LinkedInClient) FetchMessages(ctx context.Context, params bridgev2.Fet
 		}
 	}
 
-	fetchMessagesResp := &bridgev2.FetchMessagesResponse{
+	return &bridgev2.FetchMessagesResponse{
 		Messages: backfilledMessages,
 		Cursor:   cursor,
 		HasMore:  len(messages) >= 20,
 		Forward:  params.Forward,
-	}
-
-	return fetchMessagesResp, nil
+	}, nil
 }

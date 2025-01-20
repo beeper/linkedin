@@ -3,29 +3,29 @@ package types
 type RealtimeEvent string
 
 const (
-	ClientConnectionEvent RealtimeEvent = "com.linkedin.realtimefrontend.ClientConnection"
-	DecoratedEvent        RealtimeEvent = "com.linkedin.realtimefrontend.DecoratedEvent"
-	HeartBeat             RealtimeEvent = "com.linkedin.realtimefrontend.Heartbeat"
+	RealtimeEventClientConnection RealtimeEvent = "com.linkedin.realtimefrontend.ClientConnection"
+	RealtimeEventDecoratedEvent   RealtimeEvent = "com.linkedin.realtimefrontend.DecoratedEvent"
+	RealtimeEventHeartbeat        RealtimeEvent = "com.linkedin.realtimefrontend.Heartbeat"
 )
 
 type RealtimeEventTopic string
 
 const (
-	ConversationsTopic              RealtimeEventTopic = "conversationsTopic"
-	ConversationsDeleteTopic        RealtimeEventTopic = "conversationDeletesTopic"
-	MessageSeenReceiptsTopic        RealtimeEventTopic = "messageSeenReceiptsTopic"
-	MessagesTopic                   RealtimeEventTopic = "messagesTopic"
-	ReplySuggestionTopicV2          RealtimeEventTopic = "replySuggestionTopicV2"
-	TabBadgeUpdateTopic             RealtimeEventTopic = "tabBadgeUpdateTopic"
-	TypingIndicatorsTopic           RealtimeEventTopic = "typingIndicatorsTopic"
-	InvitationsTopic                RealtimeEventTopic = "invitationsTopic"
-	InAppAlertsTopic                RealtimeEventTopic = "inAppAlertsTopic"
-	MessageReactionSummariesTopic   RealtimeEventTopic = "messageReactionSummariesTopic"
-	SocialPermissionsPersonalTopic  RealtimeEventTopic = "socialPermissionsPersonalTopic"
-	JobPostingPersonalTopic         RealtimeEventTopic = "jobPostingPersonalTopic"
-	MessagingProgressIndicatorTopic RealtimeEventTopic = "messagingProgressIndicatorTopic"
-	MessagingDataSyncTopic          RealtimeEventTopic = "messagingDataSyncTopic"
-	PresenceStatusTopic             RealtimeEventTopic = "presenceStatusTopic"
+	RealtimeEventTopicConversations              RealtimeEventTopic = "conversationsTopic"
+	RealtimeEventTopicConversationsDelete        RealtimeEventTopic = "conversationDeletesTopic"
+	RealtimeEventTopicMessageSeenReceipts        RealtimeEventTopic = "messageSeenReceiptsTopic"
+	RealtimeEventTopicMessages                   RealtimeEventTopic = "messagesTopic"
+	RealtimeEventTopicReplySuggestionV2          RealtimeEventTopic = "replySuggestionTopicV2"
+	RealtimeEventTopicTabBadgeUpdate             RealtimeEventTopic = "tabBadgeUpdateTopic"
+	RealtimeEventTopicTypingIndicators           RealtimeEventTopic = "typingIndicatorsTopic"
+	RealtimeEventTopicInvitations                RealtimeEventTopic = "invitationsTopic"
+	RealtimeEventTopicInAppAlerts                RealtimeEventTopic = "inAppAlertsTopic"
+	RealtimeEventTopicMessageReactionSummaries   RealtimeEventTopic = "messageReactionSummariesTopic"
+	RealtimeEventTopicSocialPermissionsPersonal  RealtimeEventTopic = "socialPermissionsPersonalTopic"
+	RealtimeEventTopicJobPostingPersonal         RealtimeEventTopic = "jobPostingPersonalTopic"
+	RealtimeEventTopicMessagingProgressIndicator RealtimeEventTopic = "messagingProgressIndicatorTopic"
+	RealtimeEventTopicMessagingDataSync          RealtimeEventTopic = "messagingDataSyncTopic"
+	RealtimeEventTopicPresenceStatus             RealtimeEventTopic = "presenceStatusTopic"
 )
 
 type LinkedInAPIType string
@@ -40,19 +40,19 @@ const (
 type RealtimeEventType string
 
 const (
-	MessageEvent RealtimeEventType = "com.linkedin.voyager.messaging.event.MessageEvent"
+	RealtimeEventTypeMessageEvent RealtimeEventType = "com.linkedin.voyager.messaging.event.MessageEvent"
 )
 
 type PresenceAvailabilityStatus string
 
 const (
-	Online  PresenceAvailabilityStatus = "ONLINE"
-	Offline PresenceAvailabilityStatus = "OFFLINE"
+	PresenceAvailabilityStatusOnline  PresenceAvailabilityStatus = "ONLINE"
+	PresenceAvailabilityStatusOffline PresenceAvailabilityStatus = "OFFLINE"
 )
 
 type ConnectionClosedReason string
 
 const (
-	SELF_DISCONNECT_ISSUED ConnectionClosedReason = "client called Disconnect() method"
-	CONNECTION_DROPPED     ConnectionClosedReason = "real-time client lost connection to the server"
+	ConnectionClosedReasonSelfDisconnectIssued ConnectionClosedReason = "client called Disconnect() method"
+	SecondClosedReasonDropped                  ConnectionClosedReason = "real-time client lost connection to the server"
 )

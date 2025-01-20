@@ -70,12 +70,12 @@ func (lc *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2
 			return nil, err
 		}
 
-		attachmentType := payload.MESSAGING_FILE_ATTACHMENT
+		attachmentType := payload.MediaUploadFileAttachment
 		if content.MsgType == event.MsgImage {
-			attachmentType = payload.MESSAGING_PHOTO_ATTACHMENT
+			attachmentType = payload.MediaUploadTypePhotoAttachment
 		}
 
-		mediaMetadata, err := lc.client.UploadMedia(attachmentType, content.FileName, data, types.JSON_PLAINTEXT_UTF8)
+		mediaMetadata, err := lc.client.UploadMedia(attachmentType, content.FileName, data, types.ContentTypeJSONPlaintextUTF8)
 		if err != nil {
 			return nil, err
 		}
