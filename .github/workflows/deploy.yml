@@ -67,22 +67,11 @@ jobs:
         - name: Create cache directory
           run: mkdir -p .cache
 
-        - name: Get Mautrix Version
-          id: mautrix_version
-          run: echo "MAUTRIX_VERSION=$(grep 'maunium.net/go/mautrix ' go.mod | awk '{ print $2 }')" >> $GITHUB_ENV
-
-        - name: Set LDFLAGS
-          run: |
-            echo "GO_LDFLAGS=-s -w -linkmode external -extldflags '-static' \
-            -X main.Tag=${{ github.ref_name }} -X main.Commit=${{ github.sha }} \
-            -X 'main.BuildTime=`date -Iseconds`' \
-            -X 'maunium.net/go/mautrix.GoModVersion=${{ env.MAUTRIX_VERSION }}'" >> $GITHUB_ENV
-
         - name: Install libolm
           run: sudo apt-get install libolm-dev libolm3
 
         - name: Build binary
-          run: go build -ldflags "$GO_LDFLAGS" -o $BINARY_NAME ./cmd/$BINARY_NAME
+          run: ./build.sh
 
         - name: Generate SHA256 checksum
           run: sha256sum $BINARY_NAME | tee $BINARY_NAME.sha256sum
