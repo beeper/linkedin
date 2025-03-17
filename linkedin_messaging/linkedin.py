@@ -556,7 +556,7 @@ class LinkedInMessaging:
             try:
                 await listener(event)
             except Exception:
-                logging.exception(f"Listener {listener} failed to handle {event}")
+                logging.exception(f"Listener {listener} failed to handle {type(event)}")
 
     async def _listen_to_event_stream(self):
         logging.info("Starting event stream listener")
@@ -592,7 +592,7 @@ class LinkedInMessaging:
                         try:
                             await handler(data)
                         except Exception:
-                            logging.exception(f"Handler {handler} failed to handle {data}")
+                            logging.exception(f"Handler {handler} failed to handle {type(data)}")
 
                 if cc := data.get("com.linkedin.realtimefrontend.ClientConnection", {}):
                     logging.info(f"Got realtime connection ID: {cc.get('id')}")
