@@ -59,6 +59,12 @@ class Puppet(Model):
         )
 
     @classmethod
+    async def all(cls) -> list["Puppet"]:
+        query = Puppet.select_constructor()
+        rows = await cls.db.fetch(query)
+        return [cast(Puppet, cls._from_row(row)) for row in rows if row]
+
+    @classmethod
     async def get_by_li_member_urn(cls, li_member_urn: URN) -> Puppet | None:
         query = Puppet.select_constructor("li_member_urn=$1")
         row = await cls.db.fetchrow(query, li_member_urn.id_str())
